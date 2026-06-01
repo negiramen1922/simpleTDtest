@@ -160,72 +160,74 @@
   .help li{padding:2px 0}
 
   @media(max-width:680px){
-    .bar{grid-template-columns:repeat(4,1fr);gap:5px}
-    .card{padding:6px 4px 5px}
+    /* キャラバーは横スクロールの一列に（縦に伸びない） */
+    .bar{display:flex;grid-template-columns:none;gap:6px;
+      overflow-x:auto;overflow-y:hidden;padding-bottom:6px;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
+    .bar .card{flex:0 0 96px;padding:6px 5px 5px}
     .card .nm{font-size:10.5px} .card .skill{font-size:8px}
-    .card .ico{width:26px;height:26px;font-size:14px}
+    .card .ico{width:28px;height:28px;font-size:14px;margin:2px auto 5px}
+    .card .ro{font-size:9px}
     header h1{font-size:16px}
     .overlay h2{font-size:30px}
   }
 
-  /* ============ スマホ横画面 専用レイアウト ============ */
-  /* タッチ端末かつ横向き、または高さの低い画面でバトルUIをコンパクト化して見切れを防ぐ */
-  @media (orientation:landscape) and (hover:none) and (pointer:coarse){
+  /* ============ 横画面プレイ用レイアウト（仮） ============ */
+  /* スマホ等の横向き：全要素を1画面に収め、キャンバスは高さ基準・バーは横スクロール一列 */
+  @media (orientation:landscape) and (max-height:560px){
     body{padding:0}
     #battle.wrap{max-width:none;height:100vh;height:100dvh;display:flex;flex-direction:column;
-      padding:5px 7px;gap:4px;overflow:hidden}
-    /* ヘッダーは1行に圧縮 */
-    #battle header{margin:0;gap:8px;flex-wrap:nowrap;align-items:center}
-    #battle header h1{font-size:13px;letter-spacing:.08em}
-    #battle #quitBtn{padding:5px 9px;font-size:11px}
-    #battle header .tag{font-size:9px;letter-spacing:.12em;margin-left:auto;white-space:nowrap}
-    /* HUDは小さな横並び1行 */
-    #battle .hud{gap:5px;margin:0;flex-wrap:nowrap}
-    #battle .hud .stat{min-width:0;padding:3px 8px;flex:1}
-    #battle .hud .stat .k{font-size:8px;letter-spacing:.08em}
-    #battle .hud .stat .v{font-size:14px}
-    #battle #sStatus{flex:1.6;min-width:0}
+      padding:4px 8px 6px;gap:4px;overflow:hidden;box-sizing:border-box}
+    /* ヘッダー＋HUDを薄く */
+    #battle header{margin:0;gap:8px;flex-wrap:nowrap;align-items:center;flex:0 0 auto}
+    #battle header h1{font-size:13px;letter-spacing:.06em}
+    #battle #quitBtn{padding:4px 9px;font-size:11px;white-space:nowrap}
+    #battle header .tag{font-size:9px;letter-spacing:.1em;margin-left:auto;white-space:nowrap;
+      overflow:hidden;text-overflow:ellipsis;max-width:38vw}
+    #battle .hud{gap:5px;margin:0;flex-wrap:nowrap;flex:0 0 auto}
+    #battle .hud .stat{min-width:0;padding:2px 8px;flex:1}
+    #battle .hud .stat::before{width:2px}
+    #battle .hud .stat .k{font-size:8px;letter-spacing:.06em}
+    #battle .hud .stat .v{font-size:13px;margin-top:0}
+    #battle #sStatus{flex:1.5;min-width:0}
     #battle #sStatus .v{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    /* キャンバスは“高さ基準”で収め、横にはみ出さない */
-    #battle .stage{flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center;
-      background:#0b1119}
+    /* キャンバスは残り高さに“高さ基準”で収める（横にもはみ出さない） */
+    #battle .stage{flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center;background:#0b1119}
     #battle .stage canvas{width:auto;height:100%;max-width:100%;max-height:100%;margin:0 auto}
     #battle .corner{display:none}
-    /* コントロールは1行・小さめ。ラベルや一部は隠す */
-    #battle .controls{margin:0;gap:5px;flex-wrap:nowrap;overflow-x:auto;align-items:center}
-    #battle .controls button{padding:6px 10px;font-size:12px}
-    #battle .controls .spd button{padding:6px 9px}
+    /* コントロールは1行・横スクロール可 */
+    #battle .controls{margin:0;gap:5px;flex-wrap:nowrap;overflow-x:auto;align-items:center;flex:0 0 auto;
+      -webkit-overflow-scrolling:touch}
+    #battle .controls button{padding:5px 10px;font-size:12px;white-space:nowrap}
+    #battle .controls .spd button{padding:5px 9px}
     #battle .controls .modelabel{display:none}
     #battle .controls .ucount{font-size:11px;white-space:nowrap}
-    #battle .controls .grow{flex:0 0 4px}
-    /* ユニットバーは横スクロールの帯にして全カードへアクセス可能に */
-    #battle .bar{display:flex;grid-template-columns:none;gap:6px;margin:0;
-      overflow-x:auto;overflow-y:hidden;padding-bottom:4px;-webkit-overflow-scrolling:touch;
-      scrollbar-width:thin;flex:0 0 auto}
-    #battle .bar .card{flex:0 0 88px;padding:5px 4px}
-    #battle .bar .card .ico{width:24px;height:24px;font-size:13px;margin:0 auto 3px}
-    #battle .bar .card .nm{font-size:10px}
-    #battle .bar .card .ro{display:none}
-    #battle .bar .card .skill{display:none}
-    #battle .bar .card .cost{font-size:12px;margin-top:2px}
-    /* ユニットパネルもコンパクト1行 */
-    #battle .unitpanel{margin:0;padding:5px 9px;gap:7px;flex-wrap:nowrap;overflow-x:auto}
+    #battle .controls .grow{flex:0 0 2px}
+    /* ユニット選択パネルもコンパクト1行 */
+    #battle .unitpanel{margin:0;padding:5px 9px;gap:7px;flex-wrap:nowrap;overflow-x:auto;flex:0 0 auto}
     #battle .unitpanel .upname{font-size:12px;white-space:nowrap}
     #battle .unitpanel .modelabel{display:none}
-    #battle .unitpanel .modetoggle button{padding:5px 10px;font-size:12px}
-    #battle .unitpanel .btn-skill{padding:6px 10px;font-size:12px;white-space:nowrap}
-    /* 遊び方アコーディオンはバトル中は隠す（メニューで読める） */
+    #battle .unitpanel .modetoggle button{padding:4px 10px;font-size:12px}
+    #battle .unitpanel .btn-skill{padding:5px 10px;font-size:12px;white-space:nowrap}
+    /* キャラバーは横スクロール一列・小さめカード（必ず画面内に残す） */
+    #battle .bar{display:flex;grid-template-columns:none;gap:6px;margin:0;flex:0 0 auto;
+      overflow-x:auto;overflow-y:hidden;padding-bottom:3px;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
+    #battle .bar .card{flex:0 0 84px;padding:4px 4px}
+    #battle .bar .card .ico{width:22px;height:22px;font-size:12px;margin:0 auto 3px}
+    #battle .bar .card .nm{font-size:9.5px}
+    #battle .bar .card .ro{display:none}
+    #battle .bar .card .skill{display:none}
+    #battle .bar .card .cost{font-size:11px;margin-top:2px}
+    #battle .bar .card .key{font-size:8px}
+    /* バトル中の遊び方アコーディオンは隠す（メニューで読める） */
     #battle details{display:none}
-    /* オーバーレイ文字を縮小 */
-    #battle .overlay h2{font-size:26px}
-    #battle .ovstars .star{font-size:32px}
-    #battle .overlay p{font-size:12px;margin-bottom:12px}
+    /* 勝敗オーバーレイの縮小 */
+    #battle .overlay h2{font-size:24px;margin-bottom:2px}
+    #battle .ovstars{margin:2px 0 8px}
+    #battle .ovstars .star{font-size:30px}
+    #battle .overlay p{font-size:12px;margin-bottom:10px}
+    #battle .overlay button{padding:7px 14px;font-size:13px}
   }
-  /* 非常に低い高さのビューでも同様（横画面のノッチ機種など） */
-  @media (orientation:landscape) and (max-height:430px){
-    #battle .bar .card .skill,#battle .bar .card .ro{display:none}
-    #battle details{display:none}
-  }
+
   /* ============ メニュー画面 ============ */
   .screens{width:100%;max-width:980px}
   .mhead{display:flex;align-items:baseline;gap:14px;margin-bottom:18px;flex-wrap:wrap}
@@ -2424,31 +2426,5 @@ G=newGame();                       // ダミー初期化（バトル開始時に
 showScreen("title");
 requestAnimationFrame(loop);
 </script>
-
-<!-- 縦持ち時の横向き案内（スマホのみ・横向きで自動的に消える） -->
-<div id="rotateGate">
-  <div class="rg-inner">
-    <div class="rg-phone">📱</div>
-    <div class="rg-title">端末を横向きにしてください</div>
-    <p class="rg-sub">シンプルTDは横画面でのプレイを推奨しています。<br>スマホを横にすると自動でゲームに戻ります。</p>
-  </div>
-</div>
-<style>
-  #rotateGate{position:fixed;inset:0;z-index:9999;display:none;
-    background:radial-gradient(circle at 50% 35%,#10202e,#070d14 70%);
-    color:#e7eef5;align-items:center;justify-content:center;text-align:center;padding:30px;
-    font-family:'Zen Kaku Gothic New','Chakra Petch',sans-serif}
-  #rotateGate .rg-inner{max-width:340px}
-  #rotateGate .rg-phone{font-size:64px;line-height:1;margin-bottom:18px;
-    display:inline-block;animation:rgrot 2.2s ease-in-out infinite}
-  @keyframes rgrot{0%,30%{transform:rotate(0)}55%,75%{transform:rotate(-90deg)}100%{transform:rotate(-90deg)}}
-  #rotateGate .rg-title{font-family:'Chakra Petch';font-size:21px;font-weight:700;color:#ffd24a;
-    letter-spacing:.04em;margin-bottom:12px}
-  #rotateGate .rg-sub{font-size:13px;line-height:1.7;color:#9fb0bf}
-  /* スマホ縦持ちのときだけ表示（タッチ可能なポートレート、低い高さは対象外＝デスクトップの縦長窓は無視） */
-  @media (orientation:portrait) and (hover:none) and (pointer:coarse){
-    #rotateGate{display:flex}
-  }
-</style>
 </body>
 </html>
