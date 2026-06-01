@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>OPERATION // タワーディフェンス</title>
+<title>シンプルTD</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Zen+Kaku+Gothic+New:wght@500;700;900&display=swap" rel="stylesheet">
@@ -225,6 +225,44 @@
 
   /* 編成グリッド */
   .squad-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+  .xpbadge{font-size:13px;color:var(--gold);background:rgba(255,210,74,.1);border:1px solid rgba(255,210,74,.4);padding:3px 10px;border-radius:20px}
+  .train-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:11px}
+  .tcard{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);
+    border-left:4px solid var(--c);border-radius:10px;padding:12px}
+  .tcard .th{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+  .tcard .cico{width:38px;height:38px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+    font-family:'Chakra Petch';font-weight:700;font-size:19px;color:#06121b;background:var(--c)}
+  .tcard .cn{font-size:14px;font-weight:700;color:#fff}
+  .tcard .lv{font-family:'Chakra Petch';font-size:12px;color:var(--gold)}
+  .tcard .lv .maxtag{color:var(--cyan);font-size:10px}
+  .tcard .tstats{font-size:12px;color:#9fb0bf;margin-bottom:7px;font-family:'Chakra Petch'}
+  .lvbar{height:6px;background:#0c1218;border-radius:4px;overflow:hidden;margin-bottom:9px;border:1px solid var(--line)}
+  .lvfill{height:100%;background:linear-gradient(90deg,var(--amber),var(--gold))}
+  .tbtn{width:100%;font-size:12px;padding:8px;border-color:var(--line2);color:var(--dim)}
+  .tbtn.ok{border-color:var(--gold);color:var(--gold)}
+  .tbtn.ok:hover{background:#2a230a;color:#fff}
+  .tbtn.warn{border-color:var(--red);color:var(--red)}
+  .tbtns{display:flex;gap:6px}
+  .tbtns .tbtn{flex:1;width:auto}
+  .detailbtn{font-size:12px;padding:8px 12px;border-color:var(--line2);color:var(--cyan)}
+  .detailbtn:hover{border-color:var(--cyan);color:#fff}
+  /* 詳細モーダル */
+  .detail-modal{position:fixed;inset:0;background:rgba(5,9,14,.78);backdrop-filter:blur(3px);
+    display:none;align-items:center;justify-content:center;z-index:50;padding:18px}
+  .detail-modal.show{display:flex}
+  .detail-box{position:relative;width:100%;max-width:420px;max-height:88vh;overflow:auto;
+    background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line2);
+    border-radius:12px;padding:20px;box-shadow:0 24px 60px -20px #000}
+  .detail-box #detailBody .ch{padding-right:40px}  /* ✕ボタンと通路バッジの重なり防止 */
+  .detail-close{position:absolute;top:10px;right:10px;width:32px;height:32px;padding:0;border-radius:8px;z-index:2;
+    font-size:15px;border-color:var(--line2);color:var(--dim)}
+  .detail-close:hover{border-color:var(--red);color:#fff}
+  .dxp{font-size:12px;color:var(--gold);font-family:'Chakra Petch';margin-bottom:10px;display:flex;align-items:center;gap:10px}
+  .dxp .tbtn{flex:0 0 auto;width:auto;padding:7px 14px}
+  .rolebadge{display:inline-block;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;
+    color:var(--rc);border:1px solid var(--rc);background:color-mix(in srgb,var(--rc) 14%,transparent)}
+  .trole{margin-bottom:7px}
+  .roledesc{font-size:11px;color:var(--dim);margin:6px 0 2px;line-height:1.5}
   .scard{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);
     border-radius:10px;padding:11px;cursor:pointer;position:relative;transition:.12s;text-align:center}
   .scard:hover{border-color:var(--c)}
@@ -238,6 +276,7 @@
   .scard .cn{font-size:13.5px;font-weight:700;color:#e7eef5}
   .scard .cr{font-size:9px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase;margin-top:2px}
   .scard .cc{font-family:'Chakra Petch';font-size:12px;color:var(--amber);margin-top:5px}
+  .scard .sclv{font-family:'Chakra Petch';font-size:10px;color:var(--gold)}
   .scard .tgmark{margin-top:5px}
   .tm{font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:14px}
   .tm.g{color:var(--amber)} .tm.a{color:#67d8e8} .tm.b{color:#c08bff} .tm.n{color:var(--dim)}
@@ -278,31 +317,32 @@
 <!-- ============ メニュー画面群 ============ -->
 <div id="menu" class="screens">
   <header class="mhead">
-    <h1>OPERATION<b>//</b>防衛戦</h1>
+    <h1>シンプル<b>//</b>TD</h1>
     <span class="tag">tactical tower defense</span>
   </header>
 
   <!-- タイトル -->
   <section class="screen show" id="scTitle">
     <div class="title-art">
-      <div class="big mono">防衛戦</div>
+      <div class="big mono">シンプルTD</div>
       <p class="sub">経路にキャラを配置し、迫る敵を迎撃せよ。</p>
     </div>
     <div class="menu-btns">
       <button class="btn-go big-btn" data-go="stage">▶ 出撃する</button>
       <button class="big-btn" data-go="squad">編成を組む</button>
-      <button class="big-btn" data-go="codex">キャラ性能を見る</button>
+      <button class="big-btn" data-go="train">キャラ図鑑・育成</button>
     </div>
   </section>
 
-  <!-- キャラ性能確認 -->
-  <section class="screen" id="scCodex">
+  <!-- キャラ図鑑・育成 -->
+  <section class="screen" id="scTrain">
     <div class="sc-top">
       <button class="back" data-go="title">← 戻る</button>
-      <h2>キャラ性能</h2>
+      <h2>キャラ図鑑・育成 <span class="mono xpbadge" id="xpBadge"></span></h2>
       <span class="spacer"></span>
     </div>
-    <div class="codex-grid" id="codexGrid"></div>
+    <p class="hint">ステージクリアで得た<b>経験値(XP)</b>でキャラを<b>レベルアップ</b>（レベルごとにHP・攻撃力・回復量+8%、最大Lv<b id="maxLvLabel"></b>）。各カードの「<b>詳細</b>」から、全ステータス・役割・スキルの説明を確認できます。</p>
+    <div class="train-grid" id="trainGrid"></div>
   </section>
 
   <!-- 編成 -->
@@ -325,13 +365,21 @@
     </div>
     <div class="stage-list" id="stageList"></div>
   </section>
+
+  <!-- キャラ詳細モーダル -->
+  <div class="detail-modal" id="detailModal">
+    <div class="detail-box">
+      <button class="detail-close" id="detailClose">✕</button>
+      <div id="detailBody"></div>
+    </div>
+  </div>
 </div>
 
 <!-- ============ バトル画面 ============ -->
 <div class="wrap" id="battle" style="display:none">
   <header>
     <button class="back inline" id="quitBtn">← 編成/ステージ</button>
-    <h1 id="battleTitle">OPERATION<b>//</b>防衛戦</h1>
+    <h1 id="battleTitle">シンプル<b>//</b>TD</h1>
     <span class="tag" id="battleStage"></span>
   </header>
 
@@ -744,9 +792,24 @@ const TYPES={
     skill:{name:"金属変成",spMax:16,dur:8,dpPerSec:6.5,burst:20}},
   prospector:{name:"プロスペクター",role:"SCOUT",letter:"¥",color:"#e0c060",place:"hill",cost:6,
     hp:200,block:0,range:0,kind:"economy",targets:"none",dpPerSec:0,deployDP:14,
-    skill:{name:"埋蔵金",spMax:15,dur:1,burst:18}}
+    skill:{name:"埋蔵金",spMax:15,dur:1,burst:18}},
+  warlord:{name:"ウォーロード",role:"OVERLORD",letter:"※",color:"#ff4d6d",place:"road",cost:32,
+    hp:2600,atk:480,interval:0.9,block:3,kind:"melee",targets:"both",airReach:1.4,
+    skill:{name:"覇王の咆哮",spMax:18,dur:9,atk:2.0,spd:1.5,dr:0.4,airReach:2.0}},
+  archmage:{name:"アークメイジ",role:"ARCHMAGE",letter:"魔",color:"#b06bff",place:"hill",cost:30,
+    hp:520,atk:360,interval:1.5,block:0,range:4.6,kind:"aoe",aoe:1.5,stun:0.3,targets:"both",
+    skill:{name:"メテオ",spMax:20,dur:8,atk:2.4,aoe:2.4,spd:1.4,stun:1.0}},
+  valkyrie:{name:"ヴァルキリー",role:"VALKYRIE",letter:"翼",color:"#ffd24a",place:"hill",cost:28,
+    hp:560,atk:300,interval:0.7,block:0,range:5.0,kind:"range",targets:"both",aimMax:true,
+    skill:{name:"神罰の槍",spMax:19,dur:7,atk:2.8,spd:1.6}},
+  highpriest:{name:"ハイプリースト",role:"HIGH-PRIEST",letter:"聖",color:"#5ee89a",place:"hill",cost:26,
+    hp:680,heal:340,interval:0.9,block:0,range:4.0,kind:"heal",targets:"none",
+    skill:{name:"聖域",spMax:18,dur:9,heal:1.8,spd:1.6,aoe:true,regen:0}},
+  archon:{name:"アルコーン",role:"ARCHON",letter:"統",color:"#ff8ad8",place:"hill",cost:30,
+    hp:640,block:0,range:3.6,kind:"support",slow:0.4,spdBuff:1.6,targets:"both",
+    skill:{name:"軍神の威光",spMax:20,dur:9,slow:0.22,spd:2.1,atk:1.8}}
 };
-const ORDER=["tank","attacker","shooter","healer","support","trickster","breaker","guardian","lancer","berserker","sniper","mage","artillery","archer","flak","halberdier","guardknight","duelist","revenger","marksman","poisoner","chaincaster","freezer","shaman","summoner","bard","alchemist","prospector"];
+const ORDER=["tank","attacker","shooter","healer","support","trickster","breaker","guardian","lancer","berserker","sniper","mage","artillery","archer","flak","halberdier","guardknight","duelist","revenger","marksman","poisoner","chaincaster","freezer","shaman","summoner","bard","alchemist","prospector","warlord","archmage","valkyrie","highpriest","archon"];
 
 /* ============ 敵定義 ============ */
 const ENEMY={
@@ -891,6 +954,41 @@ function recordClear(stageId,stars){
 }
 loadClearData();
 
+/* ============ レベル・育成システム ============ */
+const LVL_KEY="td_levels_v1";
+const XP_KEY="td_xp_v1";
+const MAX_LEVEL=10;
+let unitLevels={};   // {type: level}
+let playerXP=0;      // 育成に使える経験値
+function loadProgress(){
+  try{ unitLevels=JSON.parse(localStorage.getItem(LVL_KEY))||{}; }catch(e){ unitLevels={}; }
+  try{ playerXP=parseInt(localStorage.getItem(XP_KEY))||0; }catch(e){ playerXP=0; }
+}
+function saveProgress(){
+  try{ localStorage.setItem(LVL_KEY,JSON.stringify(unitLevels)); localStorage.setItem(XP_KEY,String(playerXP)); }catch(e){}
+}
+function getLevel(type){ return unitLevels[type]||1; }
+// 次のレベルに必要な経験値（レベルが上がるほど増える）
+function xpToNext(level){ return 50+level*level*30; }
+// ステータス倍率：レベル1で1.0、レベルごとに+8%（HP/ATK/HEAL）
+function lvlMul(type){ return 1+(getLevel(type)-1)*0.08; }
+// レベル補正済みステータス
+function statHP(cfg,type){ return Math.round(cfg.hp*lvlMul(type)); }
+function statATK(cfg,type){ return cfg.atk?Math.round(cfg.atk*lvlMul(type)):0; }
+function statHEAL(cfg,type){ return cfg.heal?Math.round(cfg.heal*lvlMul(type)):0; }
+// 経験値を消費して育成（成功でtrue）
+function levelUp(type){
+  const lv=getLevel(type);
+  if(lv>=MAX_LEVEL) return "max";
+  const need=xpToNext(lv);
+  if(playerXP<need) return "poor";
+  playerXP-=need; unitLevels[type]=lv+1; saveProgress();
+  return "ok";
+}
+// ステージクリア報酬XP（星に応じて）
+function clearXP(stage,stars){ return Math.round((40+stage.diff*25)*(0.6+stars*0.2)); }
+loadProgress();
+
 /* ============ 状態 ============ */
 let G;
 function newGame(){
@@ -928,9 +1026,10 @@ function tryPlace(c,r){
   G.dp-=cost;
   rs.state="deployed"; rs.times++;
   const p=center(c,r);
+  const hp=statHP(cfg,t), atk=statATK(cfg,t), heal=statHEAL(cfg,t);
   G.units.push({
-    type:t,cfg,c,r,x:p.x,y:p.y,
-    hp:cfg.hp,maxHp:cfg.hp,cd:0,blocking:[],spdBuff:1,atkBuff:1,
+    type:t,cfg,c,r,x:p.x,y:p.y,level:getLevel(t),
+    hp,maxHp:hp,atk,heal,cd:0,blocking:[],spdBuff:1,atkBuff:1,
     sp:0,skillActive:false,skillTimer:0,skillMode:G.defaultSkillMode||"auto",shield:0
   });
   // 出撃時DP生産（プロスペクター等）
@@ -971,11 +1070,13 @@ function spawnToken(summoner){
   if(!cands.length)return;
   cands.sort((a,b)=>a.d-b.d);
   const spot=cands[0]; const cfg=summoner.cfg;
+  const m=lvlMul(summoner.type); // サモナーのレベルで召喚兵も強化
+  const thp=Math.round(cfg.summonHp*m), tatk=Math.round(cfg.summonAtk*m);
   G.units.push({
     type:"_token",isToken:true,cfg:{name:"召喚兵",kind:"melee",block:cfg.summonBlock,targets:"ground",
-      atk:cfg.summonAtk,interval:cfg.summonInterval,color:"#bfe89a",hp:cfg.summonHp,letter:"o"},
-    c:spot.c,r:spot.r,x:spot.p.x,y:spot.p.y,
-    hp:cfg.summonHp,maxHp:cfg.summonHp,cd:0,blocking:[],spdBuff:1,atkBuff:1,
+      atk:tatk,interval:cfg.summonInterval,color:"#bfe89a",hp:thp,letter:"o"},
+    c:spot.c,r:spot.r,x:spot.p.x,y:spot.p.y,atk:tatk,heal:0,level:summoner.level||1,
+    hp:thp,maxHp:thp,cd:0,blocking:[],spdBuff:1,atkBuff:1,
     sp:0,skillActive:false,skillTimer:0,skillMode:"auto",ttl:cfg.summonLife
   });
 }
@@ -1228,7 +1329,7 @@ function update(dt){
         // デュエリスト：ブロック対象への与ダメ激増
         let duelMul=1;
         if(u.cfg.duelMul){ duelMul=(active&&sk&&sk.duelMul)?sk.duelMul:u.cfg.duelMul; }
-        const dmg=u.cfg.atk*atkMult*rageMult*duelMul;
+        const dmg=u.atk*atkMult*rageMult*duelMul;
         const tg=u.blocking[0]||airTarget;
         // ランサー：自分のマス＋進路後方の敵も貫通攻撃
         const pierce=(active&&sk&&sk.pierce)?sk.pierce:(u.cfg.pierce||1);
@@ -1264,7 +1365,7 @@ function update(dt){
       if(u.cd<=0){
         const tg=pickEnemy(u);
         if(tg){u.cd=itv;
-          const s=shot(u,tg,u.cfg.atk*atkMult,u.cfg.color,"bolt");
+          const s=shot(u,tg,u.atk*atkMult,u.cfg.color,"bolt");
           // ポイズナー：毒を付与
           if(u.cfg.poison){ s.poison=(active&&sk.poison?sk.poison:u.cfg.poison); s.poisonDur=(active&&sk.poisonDur?sk.poisonDur:u.cfg.poisonDur); }
           // フリーザー：凍結を付与
@@ -1282,7 +1383,7 @@ function update(dt){
           .sort((a,b)=>b.progress-a.progress).slice(0,n);
         if(targets.length){ u.cd=itv;
           for(const tg of targets){
-            const s=shot(u,tg,u.cfg.atk*atkMult,u.cfg.color,"bolt");
+            const s=shot(u,tg,u.atk*atkMult,u.cfg.color,"bolt");
             s.slowHit=(active&&sk.slowHit?sk.slowHit:u.cfg.slowHit); s.slowDur=u.cfg.slowDur;
             G.shots.push(s);
           }
@@ -1294,7 +1395,7 @@ function update(dt){
       if(u.cd<=0){
         const tg=pickEnemy(u);
         if(tg){ u.cd=itv;
-          const s=shot(u,tg,u.cfg.atk*atkMult,u.cfg.color,"chain");
+          const s=shot(u,tg,u.atk*atkMult,u.cfg.color,"chain");
           s.chain=(active&&sk&&sk.chain?sk.chain:u.cfg.chain); s.falloff=u.cfg.chainFalloff;
           G.shots.push(s); Sound.play("sniper");
         }
@@ -1303,7 +1404,7 @@ function update(dt){
       if(u.cd<=0){
         const tg=pickEnemy(u);
         if(tg){u.cd=itv;
-          const s=shot(u,tg,u.cfg.atk*atkMult,u.cfg.color,"aoe");
+          const s=shot(u,tg,u.atk*atkMult,u.cfg.color,"aoe");
           s.aoeR=(active&&sk.aoe?sk.aoe:u.cfg.aoe)*TILE;
           s.stun=(active&&sk.stun?sk.stun:u.cfg.stun);
           G.shots.push(s); Sound.play("aoe");
@@ -1323,12 +1424,12 @@ function update(dt){
             G.fx.push({type:"shell",x:en.x+(Math.random()*2-1)*TILE*0.5,
               y:en.y+(Math.random()*2-1)*TILE*0.5,col:u.cfg.color,
               life:u.cfg.delay+0.01,age:0,delay:u.cfg.delay,
-              dmg:u.cfg.atk*atkMult,aoeR,fromU:u});
+              dmg:u.atk*atkMult,aoeR,fromU:u});
           }
         }
       }
     } else if(k==="heal"){
-      const healAmt=u.cfg.heal*(active&&sk.heal?sk.heal:1);
+      const healAmt=u.heal*(active&&sk.heal?sk.heal:1);
       const R=unitRange(u);
       if(u.cd<=0){
         if(active&&sk.aoe){ // 範囲回復
@@ -1433,7 +1534,7 @@ function update(dt){
   if(G.life<=0){G.life=0;G.state="lost";clearTransient();Sound.stopMusic();Sound.play("lose");showOverlay("lose");}
   else if(G.state==="wave"&&G.spawnQ.length===0&&G.enemies.length===0){
     clearTransient();
-    if(G.waveIndex>=WAVES.length-1){G.state="won";G.clearStars=calcStars(currentStage,G.life);recordClear(currentStage.id,G.clearStars);Sound.stopMusic();Sound.play("win");showOverlay("win");}
+    if(G.waveIndex>=WAVES.length-1){G.state="won";G.clearStars=calcStars(currentStage,G.life);recordClear(currentStage.id,G.clearStars);G.gainedXP=clearXP(currentStage,G.clearStars);playerXP+=G.gainedXP;saveProgress();Sound.stopMusic();Sound.play("win");showOverlay("win");}
     else{G.state="ready";Sound.setMusicIntensity(0.16);flash("ウェーブクリア！ 次へ進めます");}
   }
   updateHUD();
@@ -1792,7 +1893,7 @@ function refreshSkillBtn(){
   const u=G.selectedUnit;
   if(!u || !u.cfg.skill){ unitPanel.classList.remove("show"); return; }
   unitPanel.classList.add("show");
-  upName.textContent=u.cfg.name+" ／ "+u.cfg.skill.name;
+  upName.textContent=u.cfg.name+" Lv."+(u.level||1)+" ／ "+u.cfg.skill.name;
   // SP状態表示
   if(u.skillActive) upSP.textContent="発動中 "+u.skillTimer.toFixed(1)+"s";
   else { const p=Math.min(1,u.sp/u.cfg.skill.spMax); upSP.textContent="SP "+Math.floor(p*100)+"%"; }
@@ -1901,7 +2002,7 @@ function showOverlay(kind){
     starsEl.innerHTML=[1,2,3].map(i=>`<span class="star ${i<=s?'on':''}">★</span>`).join("");
     starsEl.style.display="flex";
     const rate = s===3?"★★★ 完全防衛（ノーダメージ）！":s===2?"★★ 見事な防衛！":"★ 防衛成功";
-    ovText.textContent=rate+"  ／  残ライフ "+G.life+"/"+currentStage.life;
+    ovText.textContent=rate+"  ／  残ライフ "+G.life+"/"+currentStage.life+"  ／  経験値 +"+(G.gainedXP||0);
   } else {
     ovTitle.textContent="MISSION FAILED";
     starsEl.style.display="none";
@@ -1924,13 +2025,13 @@ addEventListener("keydown",e=>{
 
 /* ============ 画面遷移 ============ */
 const menuEl=document.getElementById("menu"), battleEl=document.getElementById("battle");
-const screens={title:"scTitle",codex:"scCodex",squad:"scSquad",stage:"scStage"};
+const screens={title:"scTitle",squad:"scSquad",stage:"scStage",train:"scTrain"};
 function showScreen(name){
   document.querySelectorAll(".screen").forEach(s=>s.classList.remove("show"));
   document.getElementById(screens[name]).classList.add("show");
-  if(name==="codex")buildCodex();
   if(name==="squad")buildSquad();
   if(name==="stage")buildStageList();
+  if(name==="train")buildTrain();
   window.scrollTo(0,0);
 }
 function gotoMenu(name){battleEl.style.display="none";menuEl.style.display="block";Sound.stopMusic();showScreen(name);}
@@ -1949,43 +2050,63 @@ document.querySelectorAll("[data-go]").forEach(b=>{
   b.addEventListener("click",()=>{Sound.ensureStarted();Sound.play("click");showScreen(b.dataset.go);});
 });
 document.getElementById("quitBtn").onclick=()=>gotoMenu("stage");
+document.getElementById("detailClose").onclick=closeDetail;
+document.getElementById("detailModal").addEventListener("click",e=>{ if(e.target.id==="detailModal")closeDetail(); });
 
 /* ----- キャラ性能確認 ----- */
-function buildCodex(){
-  const g=document.getElementById("codexGrid"); g.innerHTML="";
-  for(const t of ORDER){
-    const c=TYPES[t];
-    const rows=[];
-    rows.push(["HP",c.hp]);
-    if(c.atk)rows.push(["攻撃力",c.atk]);
-    if(c.heal)rows.push(["回復量",c.heal]);
-    if(c.interval)rows.push(["攻撃間隔",c.interval+"s"]);
-    if(c.range)rows.push(["射程",c.range.toFixed(1)]);
-    if(c.block!=null&&c.place==="road")rows.push(["ブロック",c.block+"体"]);
-    if(c.bonusDP)rows.push(["撃破DP","+"+c.bonusDP]);
-    if(c.deployDP)rows.push(["出撃時DP","+"+c.deployDP]);
-    if(c.dpPerSec)rows.push(["DP生産","+"+c.dpPerSec+"/s"]);
-    if(c.poison)rows.push(["毒/秒",c.poison]);
-    if(c.freeze)rows.push(["凍結",c.freeze+"s"]);
-    if(c.chain)rows.push(["連鎖",c.chain+"体"]);
-    if(c.multi)rows.push(["同時攻撃",c.multi+"体"]);
-    if(c.duelMul)rows.push(["決闘倍率","×"+c.duelMul]);
-    rows.push(["コスト",c.cost+" DP"]);
-    const statHTML=rows.map(r=>`<div class="row"><span>${r[0]}</span><span>${r[1]}</span></div>`).join("");
-    const d=document.createElement("div");
-    d.className="codex"; d.style.setProperty("--c",c.color);
-    d.innerHTML=`
+// 詳細モーダル（旧・性能画面の内容を表示）
+let detailOpenType=null;
+function openDetail(t){ detailOpenType=t; renderDetail(t); document.getElementById("detailModal").classList.add("show"); }
+function closeDetail(){ detailOpenType=null; document.getElementById("detailModal").classList.remove("show"); }
+function renderDetail(t){
+  const c=TYPES[t], lv=getLevel(t), maxed=lv>=MAX_LEVEL;
+  const rows=[];
+  rows.push(["レベル","Lv."+lv+(maxed?" (MAX)":"")]);
+  rows.push(["HP",statHP(c,t)]);
+  if(c.atk)rows.push(["攻撃力",statATK(c,t)]);
+  if(c.heal)rows.push(["回復量",statHEAL(c,t)]);
+  if(c.interval)rows.push(["攻撃間隔",c.interval+"s"]);
+  if(c.range)rows.push(["射程",c.range.toFixed(1)]);
+  if(c.block!=null&&c.place==="road")rows.push(["ブロック",c.block+"体"]);
+  if(c.airReach)rows.push(["対空範囲",c.airReach.toFixed(1)]);
+  if(c.bonusDP)rows.push(["撃破DP","+"+c.bonusDP]);
+  if(c.deployDP)rows.push(["出撃時DP","+"+c.deployDP]);
+  if(c.dpPerSec)rows.push(["DP生産","+"+c.dpPerSec+"/s"]);
+  if(c.poison)rows.push(["毒/秒",c.poison]);
+  if(c.freeze)rows.push(["凍結",c.freeze+"s"]);
+  if(c.chain)rows.push(["連鎖",c.chain+"体"]);
+  if(c.multi)rows.push(["同時攻撃",c.multi+"体"]);
+  if(c.duelMul)rows.push(["決闘倍率","×"+c.duelMul]);
+  rows.push(["コスト",c.cost+" DP"]);
+  const statHTML=rows.map(r=>`<div class="row"><span>${r[0]}</span><span>${r[1]}</span></div>`).join("");
+  // 育成ボタン
+  const need=maxed?0:xpToNext(lv), can=!maxed&&playerXP>=need;
+  const trainBtn=maxed?`<button class="tbtn" disabled>最大レベル</button>`
+    :`<button class="tbtn ${can?'ok':''}" id="detailTrainBtn" ${can?'':'disabled'}>育成 (XP ${need})</button>`;
+  document.getElementById("detailBody").innerHTML=`
+    <div class="codex" style="--c:${c.color};border:0;padding:0">
       <div class="ch">
         <div class="cico">${c.letter}</div>
         <div><div class="cn">${c.name}</div><div class="cr">${c.role}</div></div>
         <span class="place ${c.place}">${c.place==="road"?"通路":"高台"}</span>
       </div>
-      <div class="tgt">${targetBadge(c.targets)}</div>
+      <div class="tgt">${roleBadge(t)} ${targetBadge(c.targets)}</div>
+      <div class="roledesc">${roleInfo(t).desc}</div>
+      <div class="lvbar" style="margin:8px 0"><div class="lvfill" style="width:${(lv/MAX_LEVEL)*100}%"></div></div>
+      <div class="dxp">所持XP ${playerXP}　${trainBtn}</div>
       <div class="stats">${statHTML}</div>
       <div class="desc">${CODEX_DESC[t]||""}</div>
-      <div class="sk">★ <b>${c.skill.name}</b>：${SKILL_DESC[t]||""}</div>`;
-    g.appendChild(d);
-  }
+      <div class="sk">★ <b>${c.skill.name}</b>：${SKILL_DESC[t]||""}</div>
+    </div>`;
+  const tb=document.getElementById("detailTrainBtn");
+  if(tb) tb.onclick=()=>{
+    const r=levelUp(t);
+    if(r==="ok"){ Sound.play("skill"); renderDetail(t); refreshXPBadge();
+      const card=[...document.getElementById("trainGrid").children].find(x=>x.dataset.t===t);
+      if(card)renderTrainCard(card,t);
+      [...document.getElementById("trainGrid").children].forEach(x=>renderTrainCard(x,x.dataset.t));
+    }
+  };
 }
 function targetBadge(t){
   if(t==="ground")return '<span class="tb g">攻撃: 地上のみ</span>';
@@ -1993,6 +2114,30 @@ function targetBadge(t){
   if(t==="both")return '<span class="tb b">攻撃: 地上＋空中</span>';
   return '<span class="tb n">攻撃しない（支援）</span>';
 }
+// ロール（役割）定義
+const ROLE_INFO={
+  attacker:{name:"アタッカー",color:"#ff5b6e",desc:"通路に立ち、高い火力で敵を直接削る近接アタッカー。"},
+  tank:{name:"タンク",color:"#5b8dd6",desc:"通路で敵を足止めするブロック特化。高HPで前線を支える壁役。"},
+  shooter:{name:"シューター",color:"#3fc7f4",desc:"高台から遠距離攻撃を行う火力役。"},
+  healer:{name:"ヒーラー",color:"#4ade80",desc:"味方の回復に特化した支援役。"},
+  supporter:{name:"サポーター",color:"#ff6ba9",desc:"多少の攻撃もこなすが、基本はバフ・デバフ・妨害で支える支援役。"},
+  breaker:{name:"ブレイカー",color:"#ffd24a",desc:"DP（コスト）の生産・獲得に秀でた経済役。"},
+  trickster:{name:"トリックスター",color:"#c08bff",desc:"召喚・連鎖・凍結など、奇抜な戦い方をする特殊役。"}
+};
+// 各キャラの所属ロール
+const ROLE_OF={
+  tank:"tank", attacker:"attacker", shooter:"shooter", healer:"healer", support:"supporter",
+  trickster:"trickster", breaker:"breaker", guardian:"tank", lancer:"attacker", berserker:"attacker",
+  sniper:"shooter", mage:"shooter", artillery:"shooter", archer:"shooter", flak:"shooter",
+  halberdier:"tank", guardknight:"tank", duelist:"attacker", revenger:"attacker", marksman:"shooter",
+  poisoner:"shooter", chaincaster:"trickster", freezer:"trickster", shaman:"supporter",
+  summoner:"trickster", bard:"supporter", alchemist:"breaker", prospector:"breaker",
+  warlord:"attacker", archmage:"shooter", valkyrie:"shooter", highpriest:"healer", archon:"supporter"
+};
+function roleOf(t){ return ROLE_OF[t]||"attacker"; }
+function roleInfo(t){ return ROLE_INFO[roleOf(t)]; }
+function roleBadge(t){ const ri=roleInfo(t); return `<span class="rolebadge" style="--rc:${ri.color}">${ri.name}</span>`; }
+
 const CODEX_DESC={
   tank:"通路を塞ぐ壁役。最大3体を足止めしつつ高HPで耐える。攻撃は控えめ。",
   attacker:"1体ブロックしながら高い単体火力で前線を削る近接アタッカー。",
@@ -2021,7 +2166,12 @@ const CODEX_DESC={
   summoner:"使い捨ての召喚兵（前衛トークン）を定期生成。実質ブロック枠を増やす。",
   bard:"射程内の味方のSPチャージを加速。手動スキル運用と好相性。",
   alchemist:"撃破に関係なく、時間経過でDPを生産し続ける経済役。",
-  prospector:"低HP・無攻撃だが、出撃した瞬間にまとまったDPを生む格安の資源要員。"
+  prospector:"低HP・無攻撃だが、出撃した瞬間にまとまったDPを生む格安の資源要員。",
+  warlord:"高コストの最強前衛。3体ブロックしながら高火力で殴り、低空の敵も叩く万能の王者。",
+  archmage:"高コストの大魔導。広範囲に高威力の爆撃を放ち、地上・空中をまとめて消し飛ばす。",
+  valkyrie:"高コストの高速射手。最大HPの敵を超高速で狙撃し続ける重装・ボスキラー。",
+  highpriest:"高コストの大司祭。広範囲を高速・大回復で支える最上位ヒーラー。",
+  archon:"高コストの軍神。強力な減速と全体強化を同時に振りまく最上位サポーター。"
 };
 const SKILL_DESC={
   tank:"一定時間ダメージを大幅軽減し自己回復する。",
@@ -2051,8 +2201,66 @@ const SKILL_DESC={
   summoner:"発動と同時に召喚兵を一気に3体追加召喚。",
   bard:"SPチャージ加速が大幅に強化される。",
   alchemist:"DP生産が急増＋発動時にまとまったDPを即獲得。",
-  prospector:"発動時にまとまったDPを即獲得する。"
+  prospector:"発動時にまとまったDPを即獲得する。",
+  warlord:"攻撃力・速度UP＋被ダメ大幅カット＋対空範囲拡大。まさに無双。",
+  archmage:"威力・範囲が激増し長時間スタンも付与する超火力の隕石召喚。",
+  valkyrie:"攻撃力2.8倍・連射速度UPで単体を瞬溶かしする。",
+  highpriest:"回復量・速度UPの広範囲回復領域を展開する。",
+  archon:"減速・全体攻撃強化・速度UPを極限まで高める軍神の号令。"
 };
+
+/* ----- 育成 ----- */
+function buildTrain(){
+  document.getElementById("maxLvLabel").textContent=MAX_LEVEL;
+  refreshXPBadge();
+  const g=document.getElementById("trainGrid"); g.innerHTML="";
+  for(const t of ORDER){
+    const c=TYPES[t];
+    const d=document.createElement("div");
+    d.className="tcard"; d.dataset.t=t; d.style.setProperty("--c",c.color);
+    g.appendChild(d);
+    renderTrainCard(d,t);
+  }
+}
+function refreshXPBadge(){ const b=document.getElementById("xpBadge"); if(b)b.textContent="所持XP "+playerXP; }
+function renderTrainCard(d,t){
+  const c=TYPES[t], lv=getLevel(t), m=lvlMul(t);
+  const maxed=lv>=MAX_LEVEL;
+  const need=maxed?0:xpToNext(lv);
+  const can=!maxed&&playerXP>=need;
+  const hpV=statHP(c,t), atkV=statATK(c,t), healV=statHEAL(c,t);
+  const stat = c.heal?`回復 ${healV}`:(c.atk?`攻撃 ${atkV}`:"支援");
+  d.innerHTML=`
+    <div class="th">
+      <div class="cico">${c.letter}</div>
+      <div><div class="cn">${c.name}</div><div class="lv">Lv.${lv}${maxed?' <span class="maxtag">MAX</span>':''}</div></div>
+    </div>
+    <div class="trole">${roleBadge(t)}</div>
+    <div class="tstats">HP ${hpV}　/　${stat}</div>
+    <div class="lvbar"><div class="lvfill" style="width:${(lv/MAX_LEVEL)*100}%"></div></div>
+    <div class="tbtns">
+      <button class="tbtn ${can?'ok':''}" ${maxed||!can?'disabled':''}>
+        ${maxed?'最大レベル':'育成 (XP '+need+')'}
+      </button>
+      <button class="detailbtn" title="詳細を見る">詳細</button>
+    </div>`;
+  const btn=d.querySelector(".tbtn");
+  if(btn) btn.onclick=()=>{
+    const r=levelUp(t);
+    if(r==="ok"){ Sound.play("skill"); renderTrainCard(d,t); refreshXPBadge();
+      // 他カードのボタン可否も更新（XP消費したため）
+      [...document.getElementById("trainGrid").children].forEach(x=>{ if(x!==d)renderTrainCard(x,x.dataset.t); });
+      if(detailOpenType===t) renderDetail(t); // 詳細を開いていれば更新
+    } else if(r==="poor"){ flashTrain(d,"XPが足りません"); }
+  };
+  const db=d.querySelector(".detailbtn");
+  if(db) db.onclick=()=>openDetail(t);
+}
+function flashTrain(d,msg){
+  const btn=d.querySelector(".tbtn"); if(!btn)return;
+  const old=btn.textContent; btn.textContent=msg; btn.classList.add("warn");
+  setTimeout(()=>{btn.textContent=old;btn.classList.remove("warn");},900);
+}
 
 /* ----- 編成 ----- */
 function targetMark(t){
@@ -2070,7 +2278,7 @@ function buildSquad(){
     d.className="scard"; d.dataset.t=t; d.style.setProperty("--c",c.color);
     d.innerHTML=`<div class="num"></div>
       <div class="cico">${c.letter}</div>
-      <div class="cn">${c.name}</div>
+      <div class="cn">${c.name} <span class="sclv">Lv.${getLevel(t)}</span></div>
       <div class="cr">${c.role} / ${c.place==="road"?"通路":"高台"}</div>
       <div class="cc">${c.cost} DP</div>
       <div class="tgmark">${targetMark(c.targets)}</div>`;
@@ -2157,5 +2365,31 @@ G=newGame();                       // ダミー初期化（バトル開始時に
 showScreen("title");
 requestAnimationFrame(loop);
 </script>
+
+<!-- 縦持ち時の横向き案内（スマホのみ・横向きで自動的に消える） -->
+<div id="rotateGate">
+  <div class="rg-inner">
+    <div class="rg-phone">📱</div>
+    <div class="rg-title">端末を横向きにしてください</div>
+    <p class="rg-sub">シンプルTDは横画面でのプレイを推奨しています。<br>スマホを横にすると自動でゲームに戻ります。</p>
+  </div>
+</div>
+<style>
+  #rotateGate{position:fixed;inset:0;z-index:9999;display:none;
+    background:radial-gradient(circle at 50% 35%,#10202e,#070d14 70%);
+    color:#e7eef5;align-items:center;justify-content:center;text-align:center;padding:30px;
+    font-family:'Zen Kaku Gothic New','Chakra Petch',sans-serif}
+  #rotateGate .rg-inner{max-width:340px}
+  #rotateGate .rg-phone{font-size:64px;line-height:1;margin-bottom:18px;
+    display:inline-block;animation:rgrot 2.2s ease-in-out infinite}
+  @keyframes rgrot{0%,30%{transform:rotate(0)}55%,75%{transform:rotate(-90deg)}100%{transform:rotate(-90deg)}}
+  #rotateGate .rg-title{font-family:'Chakra Petch';font-size:21px;font-weight:700;color:#ffd24a;
+    letter-spacing:.04em;margin-bottom:12px}
+  #rotateGate .rg-sub{font-size:13px;line-height:1.7;color:#9fb0bf}
+  /* スマホ縦持ちのときだけ表示（タッチ可能なポートレート、低い高さは対象外＝デスクトップの縦長窓は無視） */
+  @media (orientation:portrait) and (hover:none) and (pointer:coarse){
+    #rotateGate{display:flex}
+  }
+</style>
 </body>
 </html>
