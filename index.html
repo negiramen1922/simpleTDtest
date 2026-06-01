@@ -1686,6 +1686,8 @@ function newGame(){
 /* ============ 補助 ============ */
 function dist(a,b){const dx=a.x-b.x,dy=a.y-b.y;return Math.hypot(dx,dy);}
 function unitAtCell(c,r){return G.units.find(u=>u.c===c&&u.r===r);}
+// 出撃枠としてカウントするのはプレイヤーが配置したキャラのみ（召喚兵などのトークンは除外）
+function deployedCount(){return G.units.reduce((n,u)=>n+(u.isToken?0:1),0);}
 function cellOfPx(x,y){return [Math.floor(x/TILE),Math.floor(y/TILE)];}
 function addFx(o){o.life=o.life||0.4;o.age=0;G.fx.push(o);}
 function clearTransient(){G.fx=[];G.shots=[];} // ダメージ表記・弾・着弾などを一掃
@@ -1701,7 +1703,7 @@ function tryPlace(c,r){
   if(!ok||unitAtCell(c,r))return;
   const rs=G.roster[t];
   if(rs.state!=="ready"){flash(rs.state==="deployed"?"そのキャラは出撃中です":"再出撃クールタイム中です");return;}
-  if(G.units.length>=MAX_UNITS){flash("出撃上限 ("+MAX_UNITS+"体) です");return;}
+  if(deployedCount()>=MAX_UNITS){flash("出撃上限 ("+MAX_UNITS+"体) です");return;}
   const cost=unitCost(t);
   if(G.dp<cost){flash("DPが足りません");return;}
   G.dp-=cost;
@@ -2699,8 +2701,9 @@ function updateHUD(){
   else s="防衛失敗…";
   if(flashT>0){s=flashMsg;}
   statusVal.textContent=s;
-  unitCountEl.textContent=G.units.length;
-  unitCountEl.parentElement.classList.toggle("full",G.units.length>=MAX_UNITS);
+  const dCount=deployedCount();
+  unitCountEl.textContent=dCount;
+  unitCountEl.parentElement.classList.toggle("full",dCount>=MAX_UNITS);
   // エンドレスは常に次ウェーブへ進める
   startBtn.disabled=!(G.state==="ready"&&(G.endless||G.waveIndex<WAVES.length-1));
   startBtn.textContent=G.waveIndex<0?"▶ 戦闘開始":"▶ 次のウェーブ ("+(G.waveIndex+2)+")";
