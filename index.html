@@ -1,0 +1,2161 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>OPERATION // タワーディフェンス</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Zen+Kaku+Gothic+New:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#090d13;
+    --panel:#121a24;
+    --panel2:#0e151d;
+    --line:#26323f;
+    --line2:#33485c;
+    --txt:#c8d6e2;
+    --dim:#6b7d8f;
+    --amber:#ffb340;
+    --cyan:#3fc7f4;
+    --green:#4ade80;
+    --pink:#ff6ba9;
+    --red:#ff5b6e;
+    --gold:#ffd24a;
+    --steel:#5b8dd6;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{background:var(--bg);color:var(--txt);font-family:'Zen Kaku Gothic New',sans-serif;}
+  body{
+    min-height:100vh;display:flex;justify-content:center;padding:14px;
+    background:
+      radial-gradient(1200px 600px at 50% -10%, #16212e 0%, transparent 60%),
+      repeating-linear-gradient(0deg, transparent 0 3px, rgba(255,255,255,.012) 3px 4px),
+      var(--bg);
+  }
+  .wrap{width:100%;max-width:980px;}
+  .mono{font-family:'Chakra Petch',monospace;font-variant-numeric:tabular-nums;}
+
+  header{display:flex;align-items:baseline;gap:14px;margin-bottom:10px;flex-wrap:wrap;}
+  header h1{
+    font-family:'Chakra Petch';font-weight:700;letter-spacing:.18em;font-size:20px;
+    color:#fff;text-transform:uppercase;
+  }
+  header h1 b{color:var(--amber)}
+  header .tag{font-size:11px;color:var(--dim);letter-spacing:.25em;text-transform:uppercase;}
+
+  /* HUD */
+  .hud{display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+  .stat{
+    flex:1;min-width:96px;background:linear-gradient(180deg,var(--panel),var(--panel2));
+    border:1px solid var(--line);border-radius:8px;padding:8px 12px;position:relative;overflow:hidden;
+  }
+  .stat::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent,var(--line2));}
+  .stat .k{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--dim)}
+  .stat .v{font-family:'Chakra Petch';font-weight:700;font-size:22px;line-height:1.1;margin-top:2px}
+  #sDP{--accent:var(--amber)} #sDP .v{color:var(--amber)}
+  #sLife{--accent:var(--red)} #sLife .v{color:var(--red)}
+  #sWave{--accent:var(--cyan)} #sWave .v{color:var(--cyan)}
+  #sStatus{--accent:var(--green);flex:2;min-width:180px}
+  #sStatus .v{font-family:'Zen Kaku Gothic New';font-size:15px;font-weight:700;color:var(--green)}
+
+  /* Canvas */
+  .stage{position:relative;border:1px solid var(--line2);border-radius:10px;overflow:hidden;
+    background:#0b1119;box-shadow:0 0 0 1px #000 inset, 0 18px 40px -20px #000;}
+  canvas{display:block;width:100%;height:auto;touch-action:none;}
+  .corner{position:absolute;width:14px;height:14px;border:2px solid var(--amber);opacity:.6;pointer-events:none}
+  .corner.tl{top:6px;left:6px;border-right:0;border-bottom:0}
+  .corner.tr{top:6px;right:6px;border-left:0;border-bottom:0}
+  .corner.bl{bottom:6px;left:6px;border-right:0;border-top:0}
+  .corner.br{bottom:6px;right:6px;border-left:0;border-top:0}
+
+  .overlay{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;
+    background:rgba(6,10,15,.82);text-align:center;z-index:5;backdrop-filter:blur(2px)}
+  .overlay.show{display:flex}
+  .overlay h2{font-family:'Chakra Petch';font-size:42px;letter-spacing:.1em;margin-bottom:6px;text-transform:uppercase}
+  .ovstars{display:flex;gap:10px;margin:4px 0 12px;justify-content:center}
+  .ovstars .star{font-size:46px;color:#2c3744;transition:transform .3s;text-shadow:0 0 0 transparent}
+  .ovstars .star.on{color:var(--gold);text-shadow:0 0 18px rgba(255,210,74,.7);animation:starpop .4s ease both}
+  .ovstars .star.on:nth-child(2){animation-delay:.15s}
+  .ovstars .star.on:nth-child(3){animation-delay:.3s}
+  @keyframes starpop{0%{transform:scale(0) rotate(-30deg)}60%{transform:scale(1.3) rotate(8deg)}100%{transform:scale(1) rotate(0)}}
+  .overlay.win h2{color:var(--green)} .overlay.lose h2{color:var(--red)}
+  .overlay p{color:var(--dim);margin-bottom:18px}
+  .overlay button{font-family:'Chakra Petch'}
+
+  /* Controls */
+  .controls{display:flex;gap:8px;margin:8px 0;flex-wrap:wrap;align-items:center}
+  button{
+    font-family:'Zen Kaku Gothic New';font-weight:700;cursor:pointer;border-radius:8px;
+    border:1px solid var(--line2);background:linear-gradient(180deg,#1a2532,#121a24);color:var(--txt);
+    padding:9px 16px;font-size:14px;letter-spacing:.04em;transition:.12s;
+  }
+  button:hover{border-color:var(--amber);color:#fff}
+  button:active{transform:translateY(1px)}
+  button:disabled{opacity:.35;cursor:not-allowed;border-color:var(--line)}
+  .btn-go{background:linear-gradient(180deg,#3a2a08,#241d0a);border-color:var(--amber);color:var(--amber)}
+  .btn-go:hover{background:linear-gradient(180deg,#4a360a,#2c2208);color:#fff}
+  .spd{display:flex;border:1px solid var(--line2);border-radius:8px;overflow:hidden}
+  .spd button{border:0;border-radius:0;padding:9px 12px;background:#0e151d}
+  .spd button.on{background:var(--cyan);color:#04161f}
+  .grow{flex:1}
+  .btn-retreat{border-color:var(--red);color:var(--red)}
+  .btn-retreat:hover{background:#2a1015;color:#fff}
+  #soundBtn.muted{opacity:.55;border-color:var(--line)}
+  .unitpanel{display:none;align-items:center;gap:10px;margin:8px 0;padding:8px 12px;
+    background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line2);border-radius:9px}
+  .unitpanel.show{display:flex;flex-wrap:wrap}
+  .unitpanel .upname{font-weight:700;color:#fff;font-size:14px}
+  .unitpanel .upsp{font-size:12px;color:var(--cyan);font-family:'Chakra Petch'}
+  .unitpanel .modelabel{font-size:12px;color:var(--dim)}
+  .modetoggle{display:flex;border:1px solid var(--line2);border-radius:8px;overflow:hidden}
+  .modetoggle button{border:0;border-radius:0;padding:7px 14px;background:#0e151d;font-size:13px}
+  .modetoggle button.on{background:var(--amber);color:#1a1206}
+  .btn-skill{border-color:var(--gold);color:var(--gold)}
+  .btn-skill:hover:not(:disabled){background:#2a230a;color:#fff}
+  .btn-skill.ready{background:linear-gradient(180deg,#3a2f08,#241d0a);animation:skillpulse 1s infinite}
+  @keyframes skillpulse{0%,100%{box-shadow:0 0 0 0 rgba(255,210,74,.5)}50%{box-shadow:0 0 0 5px rgba(255,210,74,0)}}
+  .ucount{font-size:13px;color:var(--dim);letter-spacing:.06em}
+  .ucount b{color:var(--cyan);font-size:15px}
+  .ucount.full b{color:var(--red)}
+
+  /* Unit bar */
+  .bar{display:grid;grid-template-columns:repeat(7,1fr);gap:7px;margin-top:6px}
+  .card{
+    background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);
+    border-radius:9px;padding:9px 8px 8px;cursor:pointer;position:relative;transition:.12s;text-align:center;
+  }
+  .card:hover{border-color:var(--c)}
+  .card.sel{border-color:var(--c);box-shadow:0 0 0 1px var(--c),0 0 16px -4px var(--c)}
+  .card.poor{opacity:.42;filter:saturate(.4)}
+  .card .ico{width:34px;height:34px;margin:2px auto 6px;border-radius:8px;display:flex;align-items:center;
+    justify-content:center;font-family:'Chakra Petch';font-weight:700;font-size:18px;color:#06121b;
+    background:var(--c);box-shadow:0 0 14px -3px var(--c)}
+  .card .nm{font-size:12.5px;font-weight:700;color:#e7eef5}
+  .card .ro{font-size:9.5px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase;margin-top:1px}
+  .card .cost{font-family:'Chakra Petch';font-weight:700;font-size:14px;color:var(--amber);margin-top:5px}
+  .card .cost span{font-size:9px;color:var(--dim)}
+  .card .skill{font-size:9px;color:var(--gold);margin-top:4px;line-height:1.2;
+    border-top:1px solid var(--line);padding-top:4px}
+  .card .cost.up .cv{color:var(--red)} /* 再出撃でコスト上昇 */
+  .card .state{position:absolute;inset:0;border-radius:9px;display:none;flex-direction:column;
+    align-items:center;justify-content:center;background:rgba(8,12,18,.74);font-family:'Chakra Petch';font-weight:700}
+  .card.deployed .state{display:flex;color:var(--green);font-size:13px;letter-spacing:.15em}
+  .card.cooldown .state{display:flex;color:var(--red)}
+  .card.cooldown .state .l{font-size:8px;color:var(--dim);letter-spacing:.2em}
+  .card.cooldown .state .t{font-size:26px;line-height:1}
+  .card.deployed,.card.cooldown{cursor:default}
+  .card.deployed:hover,.card.cooldown:hover{border-color:var(--line);color:var(--txt)}
+  .card .key{position:absolute;top:5px;right:6px;font-size:9px;color:var(--dim);font-family:'Chakra Petch'}
+
+  details{margin-top:12px;border:1px solid var(--line);border-radius:9px;background:var(--panel2)}
+  summary{cursor:pointer;padding:10px 14px;font-weight:700;font-size:13px;color:var(--cyan);letter-spacing:.05em;list-style:none}
+  summary::-webkit-details-marker{display:none}
+  summary::before{content:"▸ ";color:var(--amber)}
+  details[open] summary::before{content:"▾ "}
+  .help{padding:4px 16px 16px;font-size:13px;line-height:1.85;color:#aab8c6}
+  .help b{color:#fff} .help .tk{color:var(--steel)} .help .at{color:var(--red)}
+  .help .sh{color:var(--cyan)} .help .he{color:var(--green)} .help .su{color:var(--pink)} .help .tr{color:var(--gold)} .help .br{color:#ff8c42}
+  .help ul{margin:6px 0 6px 4px;list-style:none}
+  .help li{padding:2px 0}
+
+  @media(max-width:680px){
+    .bar{grid-template-columns:repeat(4,1fr);gap:5px}
+    .card{padding:6px 4px 5px}
+    .card .nm{font-size:10.5px} .card .skill{font-size:8px}
+    .card .ico{width:26px;height:26px;font-size:14px}
+    header h1{font-size:16px}
+    .overlay h2{font-size:30px}
+  }
+  /* ============ メニュー画面 ============ */
+  .screens{width:100%;max-width:980px}
+  .mhead{display:flex;align-items:baseline;gap:14px;margin-bottom:18px;flex-wrap:wrap}
+  .mhead h1{font-family:'Chakra Petch';font-weight:700;letter-spacing:.18em;font-size:20px;color:#fff;text-transform:uppercase}
+  .mhead h1 b{color:var(--amber)}
+  .mhead .tag{font-size:11px;color:var(--dim);letter-spacing:.25em;text-transform:uppercase}
+  .screen{display:none;animation:fade .25s ease}
+  .screen.show{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .sc-top{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+  .sc-top h2{font-family:'Chakra Petch';font-size:18px;letter-spacing:.1em;color:#fff;text-transform:uppercase}
+  .sc-top .spacer,.sc-top .grow{flex:1}
+  .sc-top h2 + *{margin-left:auto}
+  .back{border-color:var(--line2);color:var(--dim);padding:7px 13px;font-size:13px}
+  .back:hover{border-color:var(--cyan);color:#fff}
+  .back.inline{margin-right:6px}
+  .hint{font-size:13px;color:var(--dim);margin-bottom:14px;line-height:1.6}
+  .hint b{color:var(--cyan)}
+
+  /* タイトル */
+  #scTitle{text-align:center;padding:34px 0 10px}
+  .title-art{margin-bottom:34px}
+  .title-art .big{font-size:64px;font-weight:700;color:#fff;letter-spacing:.12em;
+    text-shadow:0 0 30px rgba(255,179,64,.35);background:linear-gradient(180deg,#fff,#ffb340);
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .title-art .sub{color:var(--dim);margin-top:12px;letter-spacing:.06em}
+  .menu-btns{display:flex;flex-direction:column;gap:12px;max-width:340px;margin:0 auto}
+  .big-btn{padding:15px;font-size:16px;letter-spacing:.06em}
+  .big-btn.btn-go{font-size:18px}
+
+  /* 性能確認グリッド */
+  .codex-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px}
+  .codex{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);
+    border-left:4px solid var(--c);border-radius:10px;padding:14px}
+  .codex .ch{display:flex;align-items:center;gap:11px;margin-bottom:9px}
+  .codex .cico{width:42px;height:42px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+    font-family:'Chakra Petch';font-weight:700;font-size:22px;color:#06121b;background:var(--c);box-shadow:0 0 16px -4px var(--c)}
+  .codex .cn{font-size:16px;font-weight:700;color:#fff}
+  .codex .cr{font-size:10px;color:var(--dim);letter-spacing:.14em;text-transform:uppercase}
+  .codex .place{margin-left:auto;font-size:10px;padding:3px 8px;border-radius:20px;border:1px solid var(--line2);color:var(--dim)}
+  .codex .place.road{color:var(--amber);border-color:var(--amber)}
+  .codex .place.hill{color:var(--green);border-color:var(--green)}
+  .codex .stats{display:grid;grid-template-columns:1fr 1fr;gap:4px 14px;font-size:12px;margin:8px 0}
+  .codex .stats .row{display:flex;justify-content:space-between;border-bottom:1px dotted var(--line)}
+  .codex .stats .row span:first-child{color:var(--dim)}
+  .codex .stats .row span:last-child{font-family:'Chakra Petch';font-weight:600;color:var(--txt)}
+  .codex .desc{font-size:12px;color:#9fb0bf;line-height:1.6;margin-top:7px}
+  .codex .tgt{margin:2px 0 6px}
+  .tb{display:inline-block;font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;letter-spacing:.05em}
+  .tb.g{background:rgba(255,179,64,.14);color:var(--amber);border:1px solid rgba(255,179,64,.4)}
+  .tb.a{background:rgba(103,216,232,.14);color:#67d8e8;border:1px solid rgba(103,216,232,.5)}
+  .tb.b{background:rgba(192,139,255,.14);color:#c08bff;border:1px solid rgba(192,139,255,.5)}
+  .tb.n{background:rgba(120,140,160,.12);color:var(--dim);border:1px solid var(--line2)}
+  .codex .sk{font-size:12px;color:var(--gold);margin-top:8px;border-top:1px solid var(--line);padding-top:8px;line-height:1.55}
+  .codex .sk b{color:#ffe08a}
+
+  /* 編成グリッド */
+  .squad-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+  .scard{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);
+    border-radius:10px;padding:11px;cursor:pointer;position:relative;transition:.12s;text-align:center}
+  .scard:hover{border-color:var(--c)}
+  .scard.on{border-color:var(--c);box-shadow:0 0 0 1px var(--c),0 0 18px -5px var(--c)}
+  .scard.on::after{content:"✓ 出撃";position:absolute;top:7px;right:8px;font-size:10px;font-weight:700;color:var(--c);font-family:'Chakra Petch'}
+  .scard.off{opacity:.5}
+  .scard.off::after{content:"待機";position:absolute;top:7px;right:8px;font-size:10px;color:var(--dim)}
+  .scard .num{position:absolute;top:7px;left:9px;font-family:'Chakra Petch';font-weight:700;font-size:13px;color:var(--c)}
+  .scard .cico{width:38px;height:38px;margin:8px auto 7px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+    font-family:'Chakra Petch';font-weight:700;font-size:19px;color:#06121b;background:var(--c)}
+  .scard .cn{font-size:13.5px;font-weight:700;color:#e7eef5}
+  .scard .cr{font-size:9px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase;margin-top:2px}
+  .scard .cc{font-family:'Chakra Petch';font-size:12px;color:var(--amber);margin-top:5px}
+  .scard .tgmark{margin-top:5px}
+  .tm{font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:14px}
+  .tm.g{color:var(--amber)} .tm.a{color:#67d8e8} .tm.b{color:#c08bff} .tm.n{color:var(--dim)}
+
+  /* ステージリスト */
+  .stage-list{display:flex;flex-direction:column;gap:11px}
+  .stagecard{display:flex;align-items:center;gap:16px;background:linear-gradient(180deg,var(--panel),var(--panel2));
+    border:1px solid var(--line);border-radius:11px;padding:15px 18px;cursor:pointer;transition:.12s}
+  .stagecard:hover{border-color:var(--amber);transform:translateX(3px)}
+  .stagecard.cleared{border-color:rgba(255,210,74,.35)}
+  .stagecard.cleared .sid{color:var(--gold)}
+  .stagecard .sid{position:relative}
+  .stagecard .sid .crown{position:absolute;top:-14px;right:-6px;font-size:16px}
+  .ministars{font-size:13px;letter-spacing:1px;margin-left:6px}
+  .ministars .ms{color:#2c3744}
+  .ministars .ms.on{color:var(--gold)}
+  .stagecard .sid{font-family:'Chakra Petch';font-weight:700;font-size:26px;color:var(--amber);min-width:58px}
+  .stagecard .sinfo{flex:1}
+  .stagecard .sname{font-size:16px;font-weight:700;color:#fff;margin-bottom:3px}
+  .stagecard .sdesc{font-size:12px;color:#9fb0bf;line-height:1.5}
+  .stagecard .smeta{text-align:right;font-size:11px;color:var(--dim);font-family:'Chakra Petch';white-space:nowrap}
+  .stagecard .smeta .dots{color:var(--red);letter-spacing:2px;font-size:14px}
+  .stagecard .go{font-size:24px;color:var(--amber)}
+  .gtags{margin-top:6px;display:flex;flex-wrap:wrap;gap:5px}
+  .gtag{font-size:10px;color:var(--cyan);border:1px solid rgba(63,199,244,.4);
+    background:rgba(63,199,244,.08);padding:2px 8px;border-radius:20px}
+
+  @media(max-width:680px){
+    .title-art .big{font-size:46px}
+    .codex-grid{grid-template-columns:1fr}
+    .stagecard{gap:10px;padding:12px}
+    .stagecard .sid{font-size:20px;min-width:44px}
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ メニュー画面群 ============ -->
+<div id="menu" class="screens">
+  <header class="mhead">
+    <h1>OPERATION<b>//</b>防衛戦</h1>
+    <span class="tag">tactical tower defense</span>
+  </header>
+
+  <!-- タイトル -->
+  <section class="screen show" id="scTitle">
+    <div class="title-art">
+      <div class="big mono">防衛戦</div>
+      <p class="sub">経路にキャラを配置し、迫る敵を迎撃せよ。</p>
+    </div>
+    <div class="menu-btns">
+      <button class="btn-go big-btn" data-go="stage">▶ 出撃する</button>
+      <button class="big-btn" data-go="squad">編成を組む</button>
+      <button class="big-btn" data-go="codex">キャラ性能を見る</button>
+    </div>
+  </section>
+
+  <!-- キャラ性能確認 -->
+  <section class="screen" id="scCodex">
+    <div class="sc-top">
+      <button class="back" data-go="title">← 戻る</button>
+      <h2>キャラ性能</h2>
+      <span class="spacer"></span>
+    </div>
+    <div class="codex-grid" id="codexGrid"></div>
+  </section>
+
+  <!-- 編成 -->
+  <section class="screen" id="scSquad">
+    <div class="sc-top">
+      <button class="back" data-go="title">← 戻る</button>
+      <h2>編成 <span class="mono" id="squadCount"></span></h2>
+      <button class="btn-go" data-go="stage">ステージ選択 →</button>
+    </div>
+    <p class="hint">編成に入れるキャラを選択（最大 <b id="squadMax"></b> 体）。カードをタップで出撃ON/OFF、並び順がショートカット番号になります。<br>バトル中にフィールドへ<b>同時配置できるのは10体まで</b>。編成は控えも含めて選び、状況に応じて使い分けましょう。</p>
+    <div class="squad-grid" id="squadGrid"></div>
+  </section>
+
+  <!-- ステージ選択 -->
+  <section class="screen" id="scStage">
+    <div class="sc-top">
+      <button class="back" data-go="title">← 戻る</button>
+      <h2>ステージ選択</h2>
+      <button class="back" data-go="squad">編成へ</button>
+    </div>
+    <div class="stage-list" id="stageList"></div>
+  </section>
+</div>
+
+<!-- ============ バトル画面 ============ -->
+<div class="wrap" id="battle" style="display:none">
+  <header>
+    <button class="back inline" id="quitBtn">← 編成/ステージ</button>
+    <h1 id="battleTitle">OPERATION<b>//</b>防衛戦</h1>
+    <span class="tag" id="battleStage"></span>
+  </header>
+
+  <div class="hud">
+    <div class="stat" id="sDP"><div class="k">DP コスト</div><div class="v" id="dpVal">25</div></div>
+    <div class="stat" id="sLife"><div class="k">残ライフ</div><div class="v" id="lifeVal">20</div></div>
+    <div class="stat" id="sWave"><div class="k">ウェーブ</div><div class="v" id="waveVal">0 / 6</div></div>
+    <div class="stat" id="sStatus"><div class="k">状況</div><div class="v" id="statusVal">配置して戦闘開始</div></div>
+  </div>
+
+  <div class="stage">
+    <canvas id="cv"></canvas>
+    <div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>
+    <div class="overlay" id="ov">
+      <h2 id="ovTitle"></h2>
+      <div class="ovstars" id="ovStars"></div>
+      <p id="ovText"></p>
+      <div style="display:flex;gap:10px">
+        <button id="ovBtn" class="btn-go">もう一度</button>
+        <button id="ovMenuBtn">ステージ選択へ</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button id="startBtn" class="btn-go">▶ 戦闘開始</button>
+    <button id="pauseBtn">⏸ 一時停止</button>
+    <div class="spd" id="spd">
+      <button data-s="1" class="on">1×</button>
+      <button data-s="2">2×</button>
+      <button data-s="3">3×</button>
+    </div>
+    <span class="grow"></span>
+    <span class="modelabel" style="font-size:12px">全体スキル:</span>
+    <div class="modetoggle" id="allModeToggle">
+      <button data-m="auto" class="on">自動</button>
+      <button data-m="manual">手動</button>
+    </div>
+    <button id="soundBtn" title="サウンド切替">🔊 音 ON</button>
+    <span class="ucount mono">出撃中 <b id="unitCount">0</b> / 10</span>
+    <button id="retreatBtn" class="btn-retreat" disabled>↩ 撤退 (R)</button>
+  </div>
+
+  <div class="unitpanel" id="unitPanel">
+    <span class="upname" id="upName">—</span>
+    <span class="upsp" id="upSP"></span>
+    <span class="grow"></span>
+    <span class="modelabel">スキル:</span>
+    <div class="modetoggle" id="modeToggle">
+      <button data-m="auto" class="on">自動</button>
+      <button data-m="manual">手動</button>
+    </div>
+    <button id="skillBtn" class="btn-skill" disabled>★ スキル発動 (Q)</button>
+  </div>
+
+  <div class="bar" id="bar"></div>
+
+  <details>
+    <summary>遊び方 / キャラの役割</summary>
+    <div class="help">
+      敵は左から出現し、ルートを通って右へ抜けます。抜けられると<b>ライフ</b>が減り、0でゲームオーバー。そのステージの全ウェーブを耐え切れば勝利です。<br>
+      下のカードからキャラを選び、光ったマスをタップ／クリックで配置。配置には<b>DP（コスト）</b>を消費し、DPは時間と撃破で回復します。配置済みキャラをクリックすると射程表示＋撤退できます。<br>
+      同じキャラは<b>同時に1体まで</b>。死亡または撤退すると<b>再出撃クールタイム（約20秒・ウェーブ中に経過）</b>が発生し、再出撃するたびに必要DPが<b>+5</b>ずつ増えていきます（コストが赤字＝値上がり中）。
+      <ul>
+        <li><span class="tk">■ タンク</span>：通路（地上マス）に置く。最大<b>3体</b>をブロックして足止め。HP特大・攻撃低め。壁役。</li>
+        <li><span class="at">■ アタッカー</span>：通路に置く。<b>1体</b>ブロックしつつ高い単体火力で殴る前衛。</li>
+        <li><span class="sh">■ シューター</span>：高台に置く。ブロック不可。長射程・高火力の遠距離単体アタッカー。</li>
+        <li><span class="he">■ ヒーラー</span>：高台に置く。射程内の味方の中で最も傷ついた1体を回復。</li>
+        <li><span class="su">■ サポート</span>：高台に置く。射程内の敵を<b>減速</b>させ、近くの味方の<b>攻撃速度を強化</b>するオーラ役。</li>
+        <li><span class="tr">■ トリックスター</span>：高台に置く。特殊。<b>範囲攻撃＋短時間スタン</b>で群れを足止め＆まとめて削る。</li>
+        <li><span class="br">■ ブレイカー</span>：通路に置く。1体ブロックの前衛。<b>敵を倒すたびに追加でDPを生産</b>する経済役。仕留めやすい位置に置くのがコツ。</li>
+        <li><span class="tk">■ ガーディアン</span>：通路に置く。最大<b>5体</b>ブロック・HP最大級の超壁役。攻撃はほぼ無いが、群れを丸ごと受け止める。</li>
+        <li><span style="color:#7ad0c0">■ ランサー</span>：通路に置く。1体ブロックしつつ、<b>後方に並んだ敵も貫通攻撃</b>。縦列で来る敵に強い前衛。</li>
+        <li><span class="at">■ バーサーカー</span>：通路に置く。<b>HPが減るほど攻撃力が上がる</b>ハイリスク前衛。ヒーラーと組ませて維持するのが鍵。</li>
+        <li><span class="sh">■ スナイパー</span>：高台に置く。<b>超長射程・単発特大火力</b>だが連射は遅い。ボスや重装の狙撃に。</li>
+        <li><span class="su">■ メイジ</span>：高台に置く。着弾点に<b>小範囲の魔法ダメージ</b>。固まった敵に強い遠距離。</li>
+        <li><span class="tr">■ アーティラリー</span>：高台に置く。<b>超長射程＋時間差の範囲砲撃</b>。命中位置に着弾マーカーが出て、群れを一掃する。地上のみ。</li>
+        <li><span class="he">■ アーチャー</span>：高台に置く。<b>対空特化</b>の遠距離。飛行敵を撃ち落とす要だが、地上は攻撃できない。</li>
+        <li><span class="sh">■ フラック</span>：高台に置く。<b>対空の範囲攻撃</b>。群がる飛行敵をまとめて撃墜。地上は攻撃できない。</li>
+        <li><span style="color:#d4a574">■ ハルバーディア</span>：通路に置く。2体ブロックしつつ<b>低空の飛行敵も薙ぎ払える</b>両対応の前衛。空の壁役。</li>
+      </ul>
+      <b style="color:#67d8e8">✈ 飛行敵と攻撃対象</b>：敵には<b>地上を歩く敵</b>と<b>空を飛ぶ敵</b>（破線ルート）がいます。各キャラには攻撃できる対象（地上／空中／両方）が決まっており、<b>対空可能なキャラでないと飛行敵を倒せません</b>。対空できるのは、シューター・スナイパー・メイジ・トリックスター・サポート（両対応）、アーチャー・フラック（対空専門）、ハルバーディア（前衛で低空に対応）、そしてアーティラリー（スキル中のみ対空）です。また砲兵や飛行敵など<b>遠隔攻撃を持つ敵は高台のキャラも攻撃</b>してくるので、ヒーラーでの維持が重要です。
+      <b style="color:var(--gold)">★ スキル（自動 / 手動 切替）</b>：配置後、各キャラのSP（足元のゲージ）が時間で溜まります。キャラをタップして選択すると、下のパネルで<b>自動／手動</b>を切り替えられます。<br>
+      ・<b>自動</b>：SPが満タンの状態で攻撃（行動）する時に自動で発動します。<br>
+      ・<b>手動</b>：SPが満タンになると★が点滅。そのキャラを<b>タップ</b>（または選択して「スキル発動」ボタン／Qキー）で任意のタイミングに発動できます。<br>
+      切り替えた発動方式は、以後新しく配置するキャラの既定にもなります。コントロール右の<b>「全体スキル：自動／手動」</b>で、配置中の全員＋今後の既定を<b>一括切替</b>もできます。発動中はゲージが金色になり、効果時間が切れると再チャージします。
+      <ul>
+        <li><span class="tk">タンク／鉄壁防御</span>：一定時間ダメージを大幅軽減＋自己回復。</li>
+        <li><span class="at">アタッカー／乱れ撃ち</span>：攻撃力と攻撃速度を大幅強化。</li>
+        <li><span class="sh">シューター／必中狙撃</span>：攻撃力が約2.2倍になる集中砲火。</li>
+        <li><span class="he">ヒーラー／治療領域</span>：射程内の味方<b>全員</b>を高速回復。</li>
+        <li><span class="su">サポート／総攻撃指令</span>：減速・攻撃速度・攻撃力バフがすべて強化。</li>
+        <li><span class="tr">トリックスター／大爆発</span>：範囲・威力・スタンが増した連続爆撃。</li>
+        <li><span class="br">ブレイカー／資源強奪</span>：攻撃力・攻撃速度UP＋撃破DPが2.5倍に。</li>
+        <li><span class="tk">ガーディアン／絶対防壁</span>：ダメージ70%カット＋自己回復＋ブロック維持。</li>
+        <li><span style="color:#7ad0c0">ランサー／螺旋突撃</span>：攻撃力・速度UP＋貫通数が3体に増加。</li>
+        <li><span class="at">バーサーカー／血の渇き</span>：攻撃力・速度UP＋与ダメの35%を自己回復。</li>
+        <li><span class="sh">スナイパー／必殺の一撃</span>：攻撃力2.6倍の超火力狙撃。</li>
+        <li><span class="su">メイジ／魔力爆轟</span>：範囲・威力UP＋スタン付与。</li>
+        <li><span class="tr">アーティラリー／絨毯爆撃</span>：1射ごとに3発の広範囲砲撃を投下。</li>
+        <li><span class="he">アーチャー／連射の雨</span>：攻撃速度が大幅UP。飛行敵を高速で撃墜。</li>
+        <li><span class="sh">フラック／対空弾幕</span>：範囲・威力UP＋スタン付与の対空弾幕。</li>
+        <li><span style="color:#d4a574">ハルバーディア／薙ぎ払い</span>：攻撃力・速度UP＋対空の薙ぎ範囲が拡大。</li>
+      </ul>
+      ショートカット：<b>1〜9</b>＝キャラ選択 / <b>Enter</b>＝ウェーブ開始 / <b>Space</b>＝一時停止 / <b>Q</b>＝選択キャラのスキル発動 / <b>M</b>＝自動/手動切替 / <b>R</b>＝撤退 / <b>Esc</b>＝選択解除
+    </div>
+  </details>
+</div>
+
+<script>
+"use strict";
+
+/* ============ サウンドエンジン（Web Audio合成・外部ファイル不要） ============ */
+const Sound=(()=>{
+  let ctx=null, master=null, sfxGain=null, musicGain=null;
+  let enabled=true, started=false;
+  let musicTimer=null, musicStep=0;
+
+  function init(){
+    if(ctx)return;
+    try{
+      ctx=new (window.AudioContext||window.webkitAudioContext)();
+      master=ctx.createGain(); master.gain.value=0.9; master.connect(ctx.destination);
+      sfxGain=ctx.createGain(); sfxGain.gain.value=0.5; sfxGain.connect(master);
+      musicGain=ctx.createGain(); musicGain.gain.value=0.22; musicGain.connect(master);
+    }catch(e){ctx=null;}
+  }
+  function resume(){ if(ctx&&ctx.state==="suspended")ctx.resume(); }
+
+  // 基本のワンショット音
+  function blip(freq,dur,type,gain,slideTo,destGain){
+    if(!ctx||!enabled)return;
+    const o=ctx.createOscillator(), g=ctx.createGain();
+    o.type=type||"sine"; o.frequency.setValueAtTime(freq,ctx.currentTime);
+    if(slideTo)o.frequency.exponentialRampToValueAtTime(Math.max(20,slideTo),ctx.currentTime+dur);
+    g.gain.setValueAtTime(0.0001,ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(gain||0.4,ctx.currentTime+0.008);
+    g.gain.exponentialRampToValueAtTime(0.0001,ctx.currentTime+dur);
+    o.connect(g); g.connect(destGain||sfxGain);
+    o.start(); o.stop(ctx.currentTime+dur+0.02);
+  }
+  // ノイズ系（爆発・ヒット）
+  function noise(dur,gain,filterFreq){
+    if(!ctx||!enabled)return;
+    const len=Math.floor(ctx.sampleRate*dur);
+    const buf=ctx.createBuffer(1,len,ctx.sampleRate);
+    const d=buf.getChannelData(0);
+    for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*(1-i/len);
+    const src=ctx.createBufferSource(); src.buffer=buf;
+    const f=ctx.createBiquadFilter(); f.type="lowpass"; f.frequency.value=filterFreq||1200;
+    const g=ctx.createGain(); g.gain.value=gain||0.3;
+    src.connect(f); f.connect(g); g.connect(sfxGain);
+    src.start();
+  }
+
+  // 効果音テーブル
+  const SFX={
+    place:   ()=>{ blip(420,0.08,"triangle",0.35); blip(630,0.10,"triangle",0.3,840); },
+    melee:   ()=>{ noise(0.07,0.18,2500); blip(180,0.05,"square",0.12,120); },
+    shoot:   ()=>{ blip(900,0.07,"square",0.16,420); },
+    sniper:  ()=>{ blip(1400,0.05,"sawtooth",0.22,300); noise(0.06,0.12,3000); },
+    arrow:   ()=>{ blip(1100,0.06,"triangle",0.16,1500); },
+    aoe:     ()=>{ blip(300,0.18,"sawtooth",0.2,90); noise(0.18,0.25,800); },
+    shell:   ()=>{ noise(0.3,0.4,500); blip(120,0.3,"sine",0.25,50); },
+    heal:    ()=>{ blip(660,0.12,"sine",0.22,990); blip(990,0.14,"sine",0.16,1320); },
+    skill:   ()=>{ blip(523,0.1,"triangle",0.25,784); blip(784,0.12,"triangle",0.22,1046); blip(1046,0.16,"triangle",0.18); },
+    killcoin:()=>{ blip(880,0.06,"square",0.2,1320); blip(1320,0.09,"square",0.16); },
+    enemyHit:()=>{ blip(160,0.06,"sawtooth",0.1,80); },
+    leak:    ()=>{ blip(200,0.25,"sawtooth",0.3,70); noise(0.2,0.2,500); },
+    win:     ()=>{ [523,659,784,1046].forEach((f,i)=>setTimeout(()=>blip(f,0.3,"triangle",0.3),i*140)); },
+    lose:    ()=>{ [392,330,262,196].forEach((f,i)=>setTimeout(()=>blip(f,0.35,"sawtooth",0.28,f*0.7),i*180)); },
+    click:   ()=>{ blip(520,0.05,"square",0.18,640); },
+    waveStart:()=>{ blip(330,0.15,"sawtooth",0.25,495); blip(495,0.18,"sawtooth",0.2,660); }
+  };
+  const lastPlay={};
+  function play(name){
+    if(!started||!enabled)return; resume();
+    const now=ctx?ctx.currentTime:0;
+    // 同じ効果音の連発を間引く（音割れ・うるささ防止）
+    const minGap=0.04;
+    if(lastPlay[name]!==undefined && now-lastPlay[name]<minGap)return;
+    lastPlay[name]=now;
+    (SFX[name]||(()=>{}))();
+  }
+
+  // BGM：簡易ループのアルペジオ＋ベース
+  const BASS=[55,55,49,49,44,44,49,49];           // A1 G1 ...
+  const ARP =[220,277,330,440,330,277,330,415];   // ペンタトニック風
+  function musicTick(){
+    if(!ctx||!enabled){return;}
+    const step=musicStep%8;
+    // ベース
+    if(step%2===0){
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.type="triangle"; o.frequency.value=BASS[step];
+      g.gain.setValueAtTime(0.0001,ctx.currentTime);
+      g.gain.linearRampToValueAtTime(0.5,ctx.currentTime+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001,ctx.currentTime+0.42);
+      o.connect(g); g.connect(musicGain); o.start(); o.stop(ctx.currentTime+0.45);
+    }
+    // アルペジオ
+    const o2=ctx.createOscillator(),g2=ctx.createGain();
+    o2.type="square"; o2.frequency.value=ARP[step];
+    g2.gain.setValueAtTime(0.0001,ctx.currentTime);
+    g2.gain.linearRampToValueAtTime(0.16,ctx.currentTime+0.01);
+    g2.gain.exponentialRampToValueAtTime(0.0001,ctx.currentTime+0.22);
+    o2.connect(g2); g2.connect(musicGain); o2.start(); o2.stop(ctx.currentTime+0.25);
+    musicStep++;
+  }
+  function startMusic(tempo){
+    if(!ctx||!enabled||musicTimer)return;
+    const beat=(tempo||112);
+    musicTimer=setInterval(musicTick, 60000/beat/2); // 8分音符
+  }
+  function stopMusic(){ if(musicTimer){clearInterval(musicTimer);musicTimer=null;} }
+  function setMusicIntensity(v){ if(musicGain&&ctx)musicGain.gain.setTargetAtTime(v,ctx.currentTime,0.3); }
+
+  function enable(on){
+    enabled=on;
+    if(master&&ctx)master.gain.setTargetAtTime(on?0.9:0,ctx.currentTime,0.05);
+    if(!on)stopMusic();
+  }
+  // 最初のユーザー操作で起動
+  function ensureStarted(){
+    if(started)return;
+    init();
+    if(ctx){ resume(); started=true; }
+  }
+  return {ensureStarted,play,startMusic,stopMusic,setMusicIntensity,enable,
+    get on(){return enabled;}, get ready(){return started;}};
+})();
+
+/* ============ 定数・マップ ============ */
+const COLS=13, ROWS=7, TILE=54;
+const W=COLS*TILE, H=ROWS*TILE;
+
+const cellKey=(c,r)=>c+","+r;
+const center=(c,r)=>({x:c*TILE+TILE/2, y:r*TILE+TILE/2});
+
+/* ============ マップ定義（ステージごとに切替可能） ============ */
+// path: 敵の経路セル列 / hills: 高台セル / in,out: 画面外の出入口セル / fly: 飛行ルートセル
+const MAPS={
+  // 現行S字
+  serpent:{
+    in:[-1,1], out:[13,1],
+    path:[[0,1],[1,1],[2,1],[3,1],[4,1],[4,2],[4,3],[4,4],[5,4],[6,4],[7,4],[8,4],[8,3],[8,2],[8,1],[9,1],[10,1],[11,1],[12,1]],
+    hills:[[1,0],[2,0],[3,0],[2,2],[3,2],[5,1],[6,1],[7,1],[6,2],[7,2],[5,5],[6,5],[7,5],[9,3],[10,3],[10,2],[11,2]],
+    fly:[[-1,5],[2,5],[5,4],[8,3],[10,2],[13,1]]
+  },
+  // まっすぐ一本道・高台が両脇に多い（射撃戦特化）
+  avenue:{
+    in:[-1,3], out:[13,3],
+    path:[[0,3],[1,3],[2,3],[3,3],[4,3],[5,3],[6,3],[7,3],[8,3],[9,3],[10,3],[11,3],[12,3]],
+    hills:[[1,1],[2,1],[3,1],[4,1],[5,1],[6,1],[7,1],[8,1],[9,1],[10,1],[11,1],
+           [1,5],[2,5],[3,5],[4,5],[5,5],[6,5],[7,5],[8,5],[9,5],[10,5],[11,5]],
+    fly:[[-1,5],[3,5],[6,4],[9,3],[13,3]]
+  },
+  // 二股に分岐して合流（ブロック地点が2か所・高台は中央に集中）
+  fork:{
+    in:[-1,3], out:[13,3],
+    path:[[0,3],[1,3],[2,3],
+          [3,2],[4,1],[5,1],[6,1],[7,1],[8,1],[9,2],
+          [3,4],[4,5],[5,5],[6,5],[7,5],[8,5],[9,4],
+          [10,3],[11,3],[12,3]],
+    // 経路は2系統。描画/移動では分岐を扱うため別管理（後述のbranchで定義）
+    branches:[
+      {in:[-1,3], join:[10,3], cells:[[0,3],[1,3],[2,3],[3,2],[4,1],[5,1],[6,1],[7,1],[8,1],[9,2],[10,3],[11,3],[12,3]]},
+      {in:[-1,3], join:[10,3], cells:[[0,3],[1,3],[2,3],[3,4],[4,5],[5,5],[6,5],[7,5],[8,5],[9,4],[10,3],[11,3],[12,3]]}
+    ],
+    out:[13,3],
+    hills:[[3,3],[4,3],[5,3],[6,3],[7,3],[8,3],[9,3],
+           [5,0],[6,0],[7,0],[5,6],[6,6],[7,6],[10,2],[11,2],[10,4],[11,4]],
+    fly:[[-1,0],[3,1],[6,2],[9,3],[13,3]]
+  },
+  // 渦巻き状の長い経路（敵が長く滞在＝火力勝負、高台は中央少なめ）
+  spiral:{
+    in:[-1,0], out:[13,6],
+    path:[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0],[9,0],[10,0],[11,0],
+          [11,1],[11,2],[11,3],[11,4],[11,5],
+          [10,5],[9,5],[8,5],[7,5],[6,5],[5,5],[4,5],[3,5],
+          [3,4],[3,3],[3,2],
+          [4,2],[5,2],[6,2],[7,2],[8,2],
+          [8,3],[8,4],
+          [9,4],[10,4],
+          [10,6],[11,6],[12,6]],
+    hills:[[1,2],[1,4],[2,6],[5,4],[6,4],[6,3],[9,1],[10,2],[5,1],[4,4],[7,4],[2,2]],
+    fly:[[-1,2],[3,3],[6,3],[9,4],[13,6]]
+  },
+  // 高台が極端に少ない関門（前衛主体を強制）
+  gauntlet:{
+    in:[-1,1], out:[13,5],
+    path:[[0,1],[1,1],[2,1],[3,1],[4,1],[5,1],[6,1],
+          [6,2],[6,3],[6,4],[6,5],
+          [7,5],[8,5],[9,5],[10,5],[11,5],[12,5]],
+    hills:[[2,3],[3,3],[9,2],[10,2],[10,3]],
+    fly:[[-1,3],[3,3],[6,4],[9,4],[13,5]]
+  }
+};
+
+// 現在ロード中のマップから派生する可変データ
+let PATH, HILLS, WAY, FLYWAY, BRANCHES, MAP_IN, MAP_OUT;
+let roadSet=new Set(), hillSet=new Set();
+function loadMap(key){
+  const m=MAPS[key]||MAPS.serpent;
+  HILLS=m.hills.slice();
+  MAP_IN=m.in; MAP_OUT=m.out;
+  // 分岐マップ対応：branchesがあれば各系統のWAYを作る。PATH(描画/配置判定用)は全セルの集合
+  if(m.branches){
+    BRANCHES=m.branches.map(b=>[b.in,...b.cells,m.out].map(p=>center(p[0],p[1])));
+    // 描画・配置判定に使う経路セルは重複除去した全セル
+    const seen=new Set(); PATH=[];
+    for(const b of m.branches)for(const c of b.cells){const k=cellKey(c[0],c[1]); if(!seen.has(k)){seen.add(k);PATH.push(c);}}
+    WAY=BRANCHES[0]; // 既定（単一参照用）
+  }else{
+    PATH=m.path.slice();
+    WAY=[m.in,...m.path,m.out].map(p=>center(p[0],p[1]));
+    BRANCHES=null;
+  }
+  FLYWAY=m.fly.map(p=>center(p[0],p[1]));
+  roadSet=new Set(PATH.map(p=>cellKey(p[0],p[1])));
+  hillSet=new Set(HILLS.map(p=>cellKey(p[0],p[1])));
+}
+loadMap("serpent");
+const MAX_UNITS=10;      // フィールドに同時配置できる味方の上限
+const REDEPLOY_CD=20;    // 死亡/撤退後の再出撃クールタイム(秒・ウェーブ中に経過)
+const COST_STEP=5;       // 再出撃ごとに増えるコスト
+
+/* ============ キャラ定義 ============ */
+const TYPES={
+  tank:{name:"タンク",role:"TANK",letter:"T",color:"#5b8dd6",place:"road",cost:14,
+    hp:1600,atk:90,interval:1.5,block:3,kind:"melee",targets:"ground",
+    skill:{name:"鉄壁防御",spMax:16,dur:8,dr:0.55,regen:50}},
+  attacker:{name:"アタッカー",role:"ATTACK",letter:"A",color:"#ff5b6e",place:"road",cost:13,
+    hp:780,atk:230,interval:1.0,block:1,kind:"melee",targets:"ground",
+    skill:{name:"乱れ撃ち",spMax:14,dur:6,atk:1.8,spd:1.6}},
+  shooter:{name:"シューター",role:"SHOOT",letter:"S",color:"#3fc7f4",place:"hill",cost:11,
+    hp:360,atk:140,interval:0.85,block:0,range:3.6,kind:"range",targets:"both",
+    skill:{name:"必中狙撃",spMax:15,dur:7,atk:2.2,spd:1.3}},
+  healer:{name:"ヒーラー",role:"HEAL",letter:"H",color:"#4ade80",place:"hill",cost:12,
+    hp:430,heal:130,interval:1.1,block:0,range:3.2,kind:"heal",targets:"none",
+    skill:{name:"治療領域",spMax:16,dur:8,heal:1.4,spd:1.5,aoe:true}},
+  support:{name:"サポート",role:"SUPPORT",letter:"B",color:"#ff6ba9",place:"hill",cost:13,
+    hp:400,block:0,range:3.0,kind:"support",slow:0.45,spdBuff:1.45,targets:"both",
+    skill:{name:"総攻撃指令",spMax:18,dur:8,slow:0.28,spd:1.85,atk:1.4}},
+  trickster:{name:"トリックスター",role:"TRICK",letter:"X",color:"#ffd24a",place:"hill",cost:17,
+    hp:340,atk:95,interval:2.0,block:0,range:3.3,kind:"aoe",aoe:1.25,stun:0.7,targets:"both",
+    skill:{name:"大爆発",spMax:18,dur:7,atk:2.0,aoe:1.8,spd:1.5,stun:1.2}},
+  breaker:{name:"ブレイカー",role:"BREAK",letter:"$",color:"#ff8c42",place:"road",cost:13,
+    hp:640,atk:195,interval:0.9,block:1,kind:"melee",bonusDP:4,targets:"ground",
+    skill:{name:"資源強奪",spMax:15,dur:7,atk:1.5,spd:1.4,bonusMul:2.5}},
+  guardian:{name:"ガーディアン",role:"GUARD",letter:"G",color:"#6b9bd1",place:"road",cost:16,
+    hp:2200,atk:50,interval:1.8,block:5,kind:"melee",targets:"ground",
+    skill:{name:"絶対防壁",spMax:18,dur:9,dr:0.7,regen:80,block:5}},
+  lancer:{name:"ランサー",role:"LANCE",letter:"L",color:"#7ad0c0",place:"road",cost:15,
+    hp:820,atk:165,interval:1.05,block:1,kind:"melee",pierce:2,targets:"ground",
+    skill:{name:"螺旋突撃",spMax:16,dur:7,atk:1.9,spd:1.35,pierce:3}},
+  berserker:{name:"バーサーカー",role:"BERSERK",letter:"W",color:"#e8504e",place:"road",cost:14,
+    hp:900,atk:170,interval:0.8,block:1,kind:"melee",rage:1.7,targets:"ground",
+    skill:{name:"血の渇き",spMax:15,dur:7,atk:1.5,spd:1.5,lifesteal:0.35}},
+  sniper:{name:"スナイパー",role:"SNIPE",letter:"K",color:"#5ad1f4",place:"hill",cost:14,
+    hp:300,atk:520,interval:2.3,block:0,range:5.0,kind:"range",targets:"both",
+    skill:{name:"必殺の一撃",spMax:18,dur:7,atk:2.6,spd:1.5}},
+  mage:{name:"メイジ",role:"MAGE",letter:"E",color:"#c08bff",place:"hill",cost:15,
+    hp:340,atk:130,interval:1.3,block:0,range:3.4,kind:"aoe",aoe:0.95,stun:0,targets:"both",
+    skill:{name:"魔力爆轟",spMax:17,dur:7,atk:1.8,aoe:1.4,spd:1.4,stun:0.4}},
+  artillery:{name:"アーティラリー",role:"ARTILLERY",letter:"R",color:"#f4a259",place:"hill",cost:17,
+    hp:320,atk:90,interval:2.6,block:0,range:6.0,kind:"barrage",aoe:1.3,delay:1.0,targets:"ground",
+    skill:{name:"絨毯爆撃",spMax:20,dur:8,atk:1.5,aoe:1.7,spd:1.6,shots:3,antiAir:true}},
+  archer:{name:"アーチャー",role:"ANTI-AIR",letter:"Y",color:"#86e0a3",place:"hill",cost:13,
+    hp:330,atk:155,interval:0.8,block:0,range:4.0,kind:"range",targets:"air",
+    skill:{name:"連射の雨",spMax:15,dur:7,atk:1.6,spd:1.8}},
+  flak:{name:"フラック",role:"FLAK",letter:"F",color:"#7fc4ff",place:"hill",cost:16,
+    hp:360,atk:120,interval:1.4,block:0,range:4.2,kind:"aoe",aoe:1.0,stun:0,targets:"air",
+    skill:{name:"対空弾幕",spMax:17,dur:7,atk:1.6,aoe:1.6,spd:1.5,stun:0.4}},
+  halberdier:{name:"ハルバーディア",role:"HALBERD",letter:"V",color:"#d4a574",place:"road",cost:15,
+    hp:980,atk:150,interval:1.1,block:2,kind:"melee",targets:"both",airReach:1.6,
+    skill:{name:"薙ぎ払い",spMax:16,dur:7,atk:1.7,spd:1.4,airReach:2.2}},
+  guardknight:{name:"ガードナイト",role:"AEGIS",letter:"N",color:"#8fb8e0",place:"road",cost:15,
+    hp:1500,atk:80,interval:1.5,block:3,kind:"melee",targets:"ground",deathShield:400,
+    skill:{name:"守護の盾",spMax:16,dur:8,dr:0.5,shieldAura:200}},
+  duelist:{name:"デュエリスト",role:"DUEL",letter:"D",color:"#ff7a45",place:"road",cost:14,
+    hp:760,atk:170,interval:0.85,block:1,kind:"melee",targets:"ground",duelMul:2.4,
+    skill:{name:"決闘",spMax:14,dur:7,atk:1.6,spd:1.4,duelMul:3.4}},
+  revenger:{name:"リベンジャー",role:"REVENGE",letter:"Z",color:"#c0506e",place:"road",cost:14,
+    hp:1050,atk:120,interval:1.0,block:1,kind:"melee",targets:"ground",rage:2.0,spOnHit:0.7,
+    skill:{name:"報復",spMax:16,dur:7,atk:1.7,spd:1.5,lifesteal:0.4}},
+  marksman:{name:"マークスマン",role:"MARKSMAN",letter:"J",color:"#5ad6c0",place:"hill",cost:15,
+    hp:310,atk:420,interval:2.0,block:0,range:5.2,kind:"range",targets:"both",aimMax:true,
+    skill:{name:"徹甲弾",spMax:18,dur:7,atk:2.4,spd:1.4}},
+  poisoner:{name:"ポイズナー",role:"POISON",letter:"P",color:"#9bd44a",place:"hill",cost:13,
+    hp:320,atk:55,interval:1.2,block:0,range:3.6,kind:"range",targets:"both",poison:70,poisonDur:4,
+    skill:{name:"猛毒散布",spMax:17,dur:8,poison:180,poisonDur:5,spd:1.4}},
+  chaincaster:{name:"チェインキャスター",role:"CHAIN",letter:"C",color:"#7ad0ff",place:"hill",cost:16,
+    hp:330,atk:130,interval:1.3,block:0,range:3.8,kind:"chain",targets:"both",chain:3,chainFalloff:0.7,
+    skill:{name:"連鎖雷撃",spMax:18,dur:7,atk:1.6,chain:6,spd:1.4}},
+  freezer:{name:"フリーザー",role:"FREEZE",letter:"I",color:"#9fe0ff",place:"hill",cost:14,
+    hp:320,atk:90,interval:1.5,block:0,range:3.4,kind:"range",targets:"both",freeze:1.4,
+    skill:{name:"絶対零度",spMax:18,dur:7,freeze:2.6,atk:1.4,spd:1.4,aoeFreeze:1.2}},
+  shaman:{name:"シャーマン",role:"SHAMAN",letter:"Q",color:"#caa6ff",place:"hill",cost:13,
+    hp:330,atk:60,interval:1.1,block:0,range:3.6,kind:"multi",targets:"both",multi:3,slowHit:0.55,slowDur:1.5,
+    skill:{name:"呪詛の風",spMax:16,dur:8,atk:1.5,multi:5,slowHit:0.4,spd:1.4}},
+  summoner:{name:"サモナー",role:"SUMMON",letter:"O",color:"#a0e070",place:"hill",cost:16,
+    hp:360,block:0,range:3.0,kind:"summon",targets:"none",summonHp:420,summonAtk:90,summonInterval:1.0,summonBlock:1,summonLife:14,summonCd:8,
+    skill:{name:"大召喚",spMax:18,dur:1,summonBurst:3}},
+  bard:{name:"バードシンガー",role:"BARD",letter:"♪",color:"#ff9ad1",place:"hill",cost:14,
+    hp:360,block:0,range:3.2,kind:"bard",targets:"none",spBoost:1.8,
+    skill:{name:"狂詩曲",spMax:16,dur:8,spBoost:3.2}},
+  alchemist:{name:"アルケミスト",role:"ALCHEMY",letter:"&",color:"#ffd86b",place:"hill",cost:14,
+    hp:340,block:0,range:0,kind:"economy",targets:"none",dpPerSec:2.2,
+    skill:{name:"金属変成",spMax:16,dur:8,dpPerSec:6.5,burst:20}},
+  prospector:{name:"プロスペクター",role:"SCOUT",letter:"¥",color:"#e0c060",place:"hill",cost:6,
+    hp:200,block:0,range:0,kind:"economy",targets:"none",dpPerSec:0,deployDP:14,
+    skill:{name:"埋蔵金",spMax:15,dur:1,burst:18}}
+};
+const ORDER=["tank","attacker","shooter","healer","support","trickster","breaker","guardian","lancer","berserker","sniper","mage","artillery","archer","flak","halberdier","guardknight","duelist","revenger","marksman","poisoner","chaincaster","freezer","shaman","summoner","bard","alchemist","prospector"];
+
+/* ============ 敵定義 ============ */
+const ENEMY={
+  grunt :{name:"歩兵", hp:260, spd:1.05, atk:80,  interval:1.0, life:1, r:13, col:"#9aa7b4"},
+  runner:{name:"高速", hp:140, spd:2.1,  atk:45,  interval:0.9, life:1, r:10, col:"#f4d35e"},
+  brute :{name:"重装", hp:1050,spd:0.62, atk:170, interval:1.2, life:2, r:18, col:"#c97b5a"},
+  swarm :{name:"群体", hp:75,  spd:1.55, atk:25,  interval:0.8, life:1, r:8,  col:"#a78bfa"},
+  gunner:{name:"砲兵", hp:340, spd:0.8,  atk:70,  interval:1.4, life:1, r:14, col:"#d98cff", ranged:2.4},
+  flyer :{name:"飛行", hp:230, spd:1.35, atk:60,  interval:1.1, life:1, r:12, col:"#67d8e8", fly:true, ranged:2.6},
+  raptor:{name:"飛竜", hp:620, spd:1.0,  atk:130, interval:1.2, life:2, r:17, col:"#4fb0c4", fly:true, ranged:2.8},
+  boss  :{name:"BOSS", hp:7000,spd:0.5,  atk:420, interval:1.3, life:5, r:24, col:"#ff5b6e", ranged:3.0}
+};
+// ステージ定義（複数ステージ）
+// map: 使用マップ / mods: ギミック（fog=射程低下, dpRate=DP獲得倍率, costScale=配置コスト倍率, redeploy=再出撃CT倍率, lifeLeak=漏れダメ倍率）
+const STAGES=[
+  {id:"1-1",name:"前哨基地",desc:"歩兵が単純なルートで来る訓練戦。基本を確認しよう。",
+    diff:1,life:20,map:"serpent",
+    waves:[
+      [{t:"grunt",n:6,gap:0.9,start:0.4}],
+      [{t:"grunt",n:6,gap:0.9,start:0.4},{t:"runner",n:4,gap:0.7,start:5}],
+      [{t:"grunt",n:8,gap:0.8,start:0.4},{t:"runner",n:5,gap:0.6,start:5}]
+    ]},
+  {id:"1-2",name:"群れの通り道",desc:"高速・群体が大量に押し寄せる。範囲攻撃とブロックが鍵。",
+    diff:2,life:18,map:"serpent",
+    waves:[
+      [{t:"swarm",n:12,gap:0.45,start:0.4}],
+      [{t:"runner",n:8,gap:0.6,start:0.4},{t:"swarm",n:10,gap:0.4,start:4}],
+      [{t:"swarm",n:14,gap:0.35,start:0.4},{t:"brute",n:1,gap:1,start:5}],
+      [{t:"runner",n:10,gap:0.5,start:0.4},{t:"swarm",n:12,gap:0.35,start:4}]
+    ]},
+  {id:"1-3",name:"空からの襲撃",desc:"飛行敵が初登場。対空キャラ（スナイパー/アーチャー/メイジ等）が無いと撃ち落とせない！",
+    diff:2,life:18,map:"serpent",
+    waves:[
+      [{t:"grunt",n:5,gap:0.9,start:0.4},{t:"flyer",n:3,gap:1.2,start:3}],
+      [{t:"flyer",n:6,gap:0.9,start:0.4}],
+      [{t:"grunt",n:6,gap:0.8,start:0.4},{t:"flyer",n:5,gap:0.8,start:4},{t:"gunner",n:2,gap:1.5,start:6}],
+      [{t:"flyer",n:8,gap:0.6,start:0.4},{t:"runner",n:6,gap:0.6,start:3}]
+    ]},
+  {id:"2-1",name:"狙撃回廊",desc:"一本道の両脇に高台がずらり。射撃キャラで撃ち抜く射撃戦マップ。",
+    diff:2,life:18,map:"avenue",
+    waves:[
+      [{t:"grunt",n:8,gap:0.7,start:0.4}],
+      [{t:"runner",n:10,gap:0.5,start:0.4},{t:"brute",n:1,gap:1,start:5}],
+      [{t:"brute",n:2,gap:2.2,start:0.4},{t:"flyer",n:5,gap:0.8,start:3}],
+      [{t:"grunt",n:8,gap:0.6,start:0.4},{t:"brute",n:2,gap:2,start:4},{t:"gunner",n:3,gap:1.2,start:6}]
+    ]},
+  {id:"2-2",name:"二股の関",desc:"経路が2手に分岐して合流する。両ルートをブロックで止めねば突破される。",
+    diff:3,life:16,map:"fork",
+    waves:[
+      [{t:"grunt",n:8,gap:0.6,start:0.4}],
+      [{t:"runner",n:10,gap:0.45,start:0.4},{t:"grunt",n:6,gap:0.7,start:4}],
+      [{t:"brute",n:2,gap:2.2,start:0.4},{t:"swarm",n:12,gap:0.4,start:3}],
+      [{t:"grunt",n:8,gap:0.6,start:0.4},{t:"flyer",n:5,gap:0.8,start:3},{t:"brute",n:2,gap:2,start:6}],
+      [{t:"brute",n:3,gap:1.8,start:0.4},{t:"runner",n:10,gap:0.4,start:3},{t:"gunner",n:3,gap:1.2,start:6}]
+    ]},
+  {id:"2-3",name:"濃霧の渦",desc:"渦巻く長い経路＋濃霧で全キャラの射程が低下。火力で押し切れ。",
+    diff:3,life:16,map:"spiral",mods:{fog:0.7},
+    waves:[
+      [{t:"grunt",n:8,gap:0.7,start:0.4}],
+      [{t:"swarm",n:14,gap:0.35,start:0.4},{t:"brute",n:1,gap:1,start:5}],
+      [{t:"brute",n:2,gap:2.2,start:0.4},{t:"runner",n:8,gap:0.5,start:3}],
+      [{t:"brute",n:3,gap:1.8,start:0.4},{t:"flyer",n:6,gap:0.7,start:3},{t:"gunner",n:2,gap:1.5,start:6}]
+    ]},
+  {id:"3-1",name:"兵糧攻め",desc:"高台が極端に少なく、DP収入も渋い関門。前衛中心の編成で凌げ。",
+    diff:4,life:14,map:"gauntlet",mods:{dpRate:0.7,costScale:1.0},
+    waves:[
+      [{t:"grunt",n:8,gap:0.7,start:0.4},{t:"brute",n:1,gap:1,start:5}],
+      [{t:"brute",n:3,gap:2.2,start:0.4},{t:"runner",n:8,gap:0.5,start:3}],
+      [{t:"swarm",n:14,gap:0.35,start:0.4},{t:"brute",n:2,gap:2,start:4}],
+      [{t:"brute",n:4,gap:1.8,start:0.4},{t:"gunner",n:3,gap:1.2,start:3},{t:"flyer",n:5,gap:0.8,start:6}]
+    ]},
+  {id:"3-2",name:"制空権争奪",desc:"一本道の上空を飛行敵の大群が支配する。対空火力をどれだけ積めるかが勝敗を分ける。",
+    diff:4,life:16,map:"avenue",
+    waves:[
+      [{t:"flyer",n:8,gap:0.6,start:0.4}],
+      [{t:"flyer",n:6,gap:0.6,start:0.4},{t:"raptor",n:2,gap:2,start:3}],
+      [{t:"raptor",n:4,gap:1.6,start:0.4},{t:"flyer",n:8,gap:0.5,start:3}],
+      [{t:"flyer",n:10,gap:0.4,start:0.4},{t:"raptor",n:3,gap:1.8,start:4},{t:"gunner",n:3,gap:1.2,start:7}],
+      [{t:"raptor",n:5,gap:1.5,start:0.4},{t:"flyer",n:12,gap:0.35,start:3}]
+    ]},
+  {id:"3-3",name:"凍てつく隘路",desc:"渦巻く長い経路を、重装と群体が延々と進む消耗戦。足止めと継続火力が要。",
+    diff:4,life:15,map:"spiral",mods:{redeploy:1.4},
+    waves:[
+      [{t:"brute",n:2,gap:2.5,start:0.4},{t:"swarm",n:12,gap:0.4,start:3}],
+      [{t:"brute",n:4,gap:2.0,start:0.4},{t:"runner",n:8,gap:0.5,start:4}],
+      [{t:"swarm",n:18,gap:0.3,start:0.4},{t:"brute",n:3,gap:2,start:5}],
+      [{t:"brute",n:5,gap:1.6,start:0.4},{t:"flyer",n:6,gap:0.7,start:3},{t:"gunner",n:3,gap:1.2,start:7}],
+      [{t:"brute",n:6,gap:1.5,start:0.4},{t:"swarm",n:16,gap:0.3,start:3},{t:"raptor",n:3,gap:1.8,start:8}]
+    ]},
+  {id:"4-1",name:"分岐の濃霧",desc:"二股の経路に濃霧が立ちこめ、射程が低下。両ルートの管理と近接火力が試される高難度戦。",
+    diff:5,life:14,map:"fork",mods:{fog:0.65},
+    waves:[
+      [{t:"grunt",n:10,gap:0.5,start:0.4}],
+      [{t:"runner",n:12,gap:0.4,start:0.4},{t:"brute",n:2,gap:2,start:4}],
+      [{t:"brute",n:3,gap:2.0,start:0.4},{t:"swarm",n:14,gap:0.35,start:3},{t:"flyer",n:5,gap:0.8,start:6}],
+      [{t:"brute",n:4,gap:1.8,start:0.4},{t:"runner",n:12,gap:0.35,start:3},{t:"gunner",n:3,gap:1.2,start:7}],
+      [{t:"brute",n:5,gap:1.6,start:0.4},{t:"raptor",n:4,gap:1.5,start:3},{t:"swarm",n:16,gap:0.3,start:6}]
+    ]},
+  {id:"4-2",name:"兵糧攻め・極",desc:"高台が少なくDP収入も配置コストも厳しい極限の関門。編成と配置の最適化が必須。",
+    diff:5,life:12,map:"gauntlet",mods:{dpRate:0.65,costScale:1.15,redeploy:1.3},
+    waves:[
+      [{t:"brute",n:2,gap:2.5,start:0.4},{t:"grunt",n:8,gap:0.6,start:3}],
+      [{t:"brute",n:4,gap:2.0,start:0.4},{t:"flyer",n:5,gap:0.8,start:4}],
+      [{t:"swarm",n:16,gap:0.3,start:0.4},{t:"brute",n:3,gap:2,start:4}],
+      [{t:"brute",n:5,gap:1.7,start:0.4},{t:"gunner",n:4,gap:1.1,start:3},{t:"raptor",n:3,gap:1.8,start:7}],
+      [{t:"brute",n:6,gap:1.5,start:0.4},{t:"swarm",n:18,gap:0.28,start:3},{t:"flyer",n:8,gap:0.5,start:8}]
+    ]},
+  {id:"4-3",name:"双頭の竜王",desc:"あらゆる敵に加え、2体のBOSSが時間差で襲来する最終決戦。全戦力を注ぎ込め。",
+    diff:5,life:18,map:"serpent",
+    waves:[
+      [{t:"grunt",n:8,gap:0.6,start:0.4},{t:"runner",n:8,gap:0.5,start:4}],
+      [{t:"flyer",n:8,gap:0.5,start:0.4},{t:"raptor",n:3,gap:1.6,start:4},{t:"gunner",n:3,gap:1.2,start:7}],
+      [{t:"brute",n:4,gap:1.8,start:0.4},{t:"swarm",n:16,gap:0.3,start:3},{t:"raptor",n:4,gap:1.5,start:7}],
+      [{t:"brute",n:5,gap:1.6,start:0.4},{t:"boss",n:1,gap:1,start:5},{t:"runner",n:10,gap:0.4,start:8}],
+      [{t:"flyer",n:10,gap:0.4,start:0.4},{t:"brute",n:4,gap:1.8,start:3},{t:"boss",n:1,gap:1,start:7},{t:"raptor",n:4,gap:1.4,start:10},{t:"boss",n:1,gap:1,start:16}]
+    ]}
+];
+let WAVES=STAGES[0].waves;        // 選択中ステージのウェーブ（バトルが参照）
+let currentStage=STAGES[0];
+let squad=ORDER.slice();          // 出撃に選んだキャラ（最大枠まで）
+const SQUAD_MAX=12;               // 編成に入れられる最大人数
+
+/* ============ クリア記録（星評価）の保存 ============ */
+const SAVE_KEY="td_clear_v1";
+let clearData={};                 // {stageId: bestStars}
+function loadClearData(){
+  try{ const s=localStorage.getItem(SAVE_KEY); clearData=s?JSON.parse(s):{}; }
+  catch(e){ clearData={}; }       // localStorage不可環境ではメモリ保持
+}
+function saveClearData(){
+  try{ localStorage.setItem(SAVE_KEY,JSON.stringify(clearData)); }catch(e){}
+}
+// 残ライフから星を算出（ノーダメ=★3）
+function calcStars(stage,lifeLeft){
+  const max=stage.life;
+  if(lifeLeft>=max) return 3;            // ノーダメージ
+  if(lifeLeft>=Math.ceil(max*0.6)) return 2; // 6割以上維持
+  return 1;                               // クリアはした
+}
+function recordClear(stageId,stars){
+  if(!clearData[stageId]||stars>clearData[stageId]){ clearData[stageId]=stars; saveClearData(); }
+}
+loadClearData();
+
+/* ============ 状態 ============ */
+let G;
+function newGame(){
+  return {
+    dp:25, dpRate:1.05, dpMax:99, killDP:1, combatStarted:false,
+    life:currentStage.life, waveIndex:-1, state:"ready", // ready|wave|won|lost
+    units:[], enemies:[], shots:[], fx:[],
+    roster: Object.fromEntries(squad.map(t=>[t,{state:"ready",cd:0,times:0}])),
+    spawnQ:[], waveTime:0, selectedType:null, selectedUnit:null,
+    speed:1, paused:false, t:0, defaultSkillMode:"auto"
+  };
+}
+
+/* ============ 補助 ============ */
+function dist(a,b){const dx=a.x-b.x,dy=a.y-b.y;return Math.hypot(dx,dy);}
+function unitAtCell(c,r){return G.units.find(u=>u.c===c&&u.r===r);}
+function cellOfPx(x,y){return [Math.floor(x/TILE),Math.floor(y/TILE)];}
+function addFx(o){o.life=o.life||0.4;o.age=0;G.fx.push(o);}
+function clearTransient(){G.fx=[];G.shots=[];} // ダメージ表記・弾・着弾などを一掃
+
+/* ============ 配置 ============ */
+function unitCost(t){return Math.round((TYPES[t].cost + COST_STEP*G.roster[t].times)*mod("costScale",1));}
+function mod(key,def){const m=currentStage&&currentStage.mods; return (m&&m[key]!=null)?m[key]:def;}
+function unitRange(u){return u.cfg.range?u.cfg.range*TILE*mod("fog",1):0;}
+function tryPlace(c,r){
+  const t=G.selectedType; if(!t)return;
+  const cfg=TYPES[t];
+  const ok=cfg.place==="road"? roadSet.has(cellKey(c,r)) : hillSet.has(cellKey(c,r));
+  if(!ok||unitAtCell(c,r))return;
+  const rs=G.roster[t];
+  if(rs.state!=="ready"){flash(rs.state==="deployed"?"そのキャラは出撃中です":"再出撃クールタイム中です");return;}
+  if(G.units.length>=MAX_UNITS){flash("出撃上限 ("+MAX_UNITS+"体) です");return;}
+  const cost=unitCost(t);
+  if(G.dp<cost){flash("DPが足りません");return;}
+  G.dp-=cost;
+  rs.state="deployed"; rs.times++;
+  const p=center(c,r);
+  G.units.push({
+    type:t,cfg,c,r,x:p.x,y:p.y,
+    hp:cfg.hp,maxHp:cfg.hp,cd:0,blocking:[],spdBuff:1,atkBuff:1,
+    sp:0,skillActive:false,skillTimer:0,skillMode:G.defaultSkillMode||"auto",shield:0
+  });
+  // 出撃時DP生産（プロスペクター等）
+  if(cfg.deployDP){ G.dp=Math.min(G.dpMax,G.dp+cfg.deployDP); floatNum(p.x,p.y-12,cfg.deployDP,"#ffd24a","+"); }
+  G.selectedType=null;
+  refreshBar();
+  Sound.play("place");
+}
+function retreat(u){
+  // ガードナイト：倒れる/撤退時に周囲の味方へダメージシールドを残す
+  if(u.cfg.deathShield && u.hp<=0){
+    for(const a of G.units){ if(a!==u && dist(u,a)<=2.2*TILE) a.shield=Math.max(a.shield||0,u.cfg.deathShield); }
+    addFx({type:"ring",x:u.x,y:u.y,r:2.2*TILE,col:"#8fb8e0",life:0.5});
+  }
+  G.units=G.units.filter(x=>x!==u);
+  const rs=G.roster[u.type];
+  if(rs){rs.state="cooldown"; rs.cd=REDEPLOY_CD*mod("redeploy",1);} // 死亡・撤退とも再出撃CTへ
+  if(G.selectedUnit===u)G.selectedUnit=null;
+  syncRetreatBtn();
+}
+// スキルが発動可能か（満タン・未発動）
+function skillReady(u){ const sk=u.cfg.skill; return sk && !u.skillActive && u.sp>=sk.spMax; }
+// 味方へのダメージ適用（シールドを先に削る）
+function applyToUnit(u,dmg){
+  if(u.shield>0){ const a=Math.min(u.shield,dmg); u.shield-=a; dmg-=a;
+    addFx({type:"hit",x:u.x,y:u.y,col:"#8fb8e0",life:0.22}); }
+  if(dmg>0){ u.hp-=dmg; addFx({type:"hit",x:u.x,y:u.y,col:"#ff5b6e",life:0.25});
+    // リベンジャー：被ダメに応じてSPチャージ
+    if(u.cfg.spOnHit && u.cfg.skill && !u.skillActive){ u.sp=Math.min(u.cfg.skill.spMax, u.sp + u.cfg.spOnHit); }
+  }
+  return dmg;
+}
+// 召喚トークン（使い捨て前衛）を生成
+function spawnToken(summoner){
+  // サモナー周囲の空き通路セルを探す
+  const cands=[];
+  for(const [c,r] of PATH){ if(!unitAtCell(c,r)){ const p=center(c,r); cands.push({c,r,p,d:dist(summoner,p)}); } }
+  if(!cands.length)return;
+  cands.sort((a,b)=>a.d-b.d);
+  const spot=cands[0]; const cfg=summoner.cfg;
+  G.units.push({
+    type:"_token",isToken:true,cfg:{name:"召喚兵",kind:"melee",block:cfg.summonBlock,targets:"ground",
+      atk:cfg.summonAtk,interval:cfg.summonInterval,color:"#bfe89a",hp:cfg.summonHp,letter:"o"},
+    c:spot.c,r:spot.r,x:spot.p.x,y:spot.p.y,
+    hp:cfg.summonHp,maxHp:cfg.summonHp,cd:0,blocking:[],spdBuff:1,atkBuff:1,
+    sp:0,skillActive:false,skillTimer:0,skillMode:"auto",ttl:cfg.summonLife
+  });
+}
+// スキル発動
+function fireSkill(u){
+  const sk=u.cfg.skill; if(!sk||u.skillActive||u.sp<sk.spMax)return false;
+  u.skillActive=true; u.skillTimer=sk.dur; u.sp=sk.spMax;
+  addFx({type:"skill",x:u.x,y:u.y,col:u.cfg.color,life:0.7}); Sound.play("skill");
+  return true;
+}
+
+/* ============ ウェーブ ============ */
+function startWave(){
+  if(G.state==="wave"||G.state==="won"||G.state==="lost")return;
+  G.waveIndex++;
+  if(G.waveIndex>=WAVES.length)return;
+  const specs=WAVES[G.waveIndex];
+  G.spawnQ=[];
+  for(const s of specs){
+    for(let i=0;i<s.n;i++) G.spawnQ.push({t:s.start+i*s.gap,type:s.t});
+  }
+  G.spawnQ.sort((a,b)=>a.t-b.t);
+  G.waveTime=0; G.state="wave"; G.combatStarted=true;
+  Sound.play("waveStart"); Sound.setMusicIntensity(0.3);
+  updateHUD();
+}
+function spawnEnemy(type){
+  const e=ENEMY[type];
+  // ウェーブが進むほど少し強化
+  const scale=1+G.waveIndex*0.06;
+  const fly=!!e.fly;
+  // 地上敵：分岐マップなら経路をランダムに選ぶ
+  let way;
+  if(fly){ way=FLYWAY; }
+  else if(BRANCHES){ way=BRANCHES[Math.floor(Math.random()*BRANCHES.length)]; }
+  else { way=WAY; }
+  G.enemies.push({
+    type,e,fly,way,x:way[0].x,y:way[0].y,wp:1,
+    hp:e.hp*scale,maxHp:e.hp*scale,spd:e.spd,
+    atk:e.atk,cd:Math.random()*0.5,acd:Math.random()*0.5,
+    blockedBy:null,slow:1,stun:0,progress:0,poisonT:0,poisonDmg:0,freezeT:0,slowHitT:0,slowHitF:1
+  });
+}
+
+/* ============ 更新 ============ */
+function update(dt){
+  if(G.state==="won"||G.state==="lost")return;
+  G.dp=Math.min(G.dpMax,G.dp+G.dpRate*mod("dpRate",1)*dt);
+
+  // 再出撃クールタイム
+  for(const t of squad){
+    const rs=G.roster[t];
+    if(rs.state==="cooldown"){ rs.cd-=dt; if(rs.cd<=0){rs.cd=0; rs.state="ready";} }
+  }
+
+  // スポーン
+  if(G.state==="wave"){
+    G.waveTime+=dt;
+    while(G.spawnQ.length&&G.spawnQ[0].t<=G.waveTime){
+      spawnEnemy(G.spawnQ.shift().type);
+    }
+  }
+
+  // --- スキル チャージ（蓄積のみ。発動は自動=攻撃時／手動=タップ） ---
+  for(const u of G.units){
+    const sk=u.cfg.skill; if(!sk)continue;
+    if(u.skillActive){
+      u.skillTimer-=dt;
+      if(sk.regen)u.hp=Math.min(u.maxHp,u.hp+sk.regen*dt);
+      if(u.skillTimer<=0){u.skillActive=false;u.sp=0;}
+    }else{
+      if(u.sp<sk.spMax) u.sp=Math.min(sk.spMax,u.sp+dt); // 満タンで待機（自動/手動で発動）
+    }
+  }
+
+  // --- オーラ初期化（サポート） ---
+  for(const e of G.enemies)e.slow=1;
+  for(const u of G.units){u.spdBuff=1;u.atkBuff=1;u.shield=u.shield||0;}
+  for(const u of G.units){
+    if(u.cfg.kind!=="support")continue;
+    const sk=u.cfg.skill, active=u.skillActive;
+    const slowF=active?sk.slow:u.cfg.slow;
+    const spdB=active?sk.spd:u.cfg.spdBuff;
+    const atkB=active&&sk.atk?sk.atk:1;
+    const R=unitRange(u);
+    for(const e of G.enemies) if(dist(u,e)<=R) e.slow=Math.min(e.slow,slowF);
+    for(const a of G.units) if(a!==u && dist(u,a)<=R){a.spdBuff=Math.max(a.spdBuff,spdB); a.atkBuff=Math.max(a.atkBuff,atkB);}
+  }
+
+  // --- ガードナイト：スキル中の周囲シールド付与 ---
+  for(const u of G.units){
+    if(u.skillActive && u.cfg.skill && u.cfg.skill.shieldAura){
+      const R=2.2*TILE, amt=u.cfg.skill.shieldAura;
+      for(const a of G.units) if(dist(u,a)<=R) a.shield=Math.max(a.shield,amt);
+    }
+  }
+
+  // --- バードシンガー：射程内の味方SPチャージ加速 ---
+  for(const u of G.units){
+    if(u.cfg.kind!=="bard")continue;
+    const boost=(u.skillActive?u.cfg.skill.spBoost:u.cfg.spBoost)-1;
+    const R=unitRange(u);
+    for(const a of G.units){
+      if(a===u||!a.cfg.skill||a.skillActive)continue;
+      if(dist(u,a)<=R) a.sp=Math.min(a.cfg.skill.spMax,a.sp+boost*dt);
+    }
+  }
+
+  // --- 経済（アルケミスト/プロスペクター）：時間でDP生産 ---
+  for(const u of G.units){
+    if(u.cfg.kind!=="economy")continue;
+    const rate=u.skillActive?(u.cfg.skill.dpPerSec||u.cfg.dpPerSec):u.cfg.dpPerSec;
+    if(rate){ u._dpAcc=(u._dpAcc||0)+rate*dt;
+      if(u._dpAcc>=1){const g=Math.floor(u._dpAcc);u._dpAcc-=g;G.dp=Math.min(G.dpMax,G.dp+g);
+        floatNum(u.x,u.y-10,g,"#ffd24a","+");} }
+  }
+
+  // --- 召喚ユニット（サモナーのトークン）の生成 ---
+  for(const u of G.units){
+    if(u.cfg.kind!=="summon")continue;
+    u._scd=(u._scd==null?0:u._scd-dt);
+    let toSpawn=0;
+    if(u._scd<=0){ toSpawn=1; u._scd=u.cfg.summonCd; }
+    if(u.skillActive && !u._burstDone){ toSpawn+=u.cfg.skill.summonBurst||0; u._burstDone=true; }
+    if(!u.skillActive) u._burstDone=false;
+    for(let i=0;i<toSpawn;i++) spawnToken(u);
+  }
+
+  // --- 毒(DoT)・凍結の経過処理 ---
+  for(const en of G.enemies){
+    if(en.poisonT>0){
+      en.poisonT-=dt;
+      en.hp-=en.poisonDmg*dt;
+      if(Math.random()<dt*4) addFx({type:"hit",x:en.x+(Math.random()*8-4),y:en.y-en.e.r,col:"#9bd44a",life:0.2});
+    }
+    if(en.freezeT>0){ en.freezeT-=dt; }
+    // シャーマンのヒット減速（時間経過で解除）
+    if(en.slowHitT>0){ en.slowHitT-=dt; en.slow=Math.min(en.slow,en.slowHitF); if(en.slowHitT<=0)en.slowHitF=1; }
+  }
+
+
+  // --- ブロック割り当て ---
+  for(const u of G.units)u.blocking=[];
+  const ordered=[...G.enemies].sort((a,b)=>b.progress-a.progress);
+  for(const en of ordered){
+    en.blockedBy=null;
+    if(en.fly)continue; // 飛行敵はブロックされない
+    const [c,r]=cellOfPx(en.x,en.y);
+    const u=unitAtCell(c,r);
+    if(!u||u.cfg.kind!=="melee")continue;
+    const blockCap=(u.skillActive&&u.cfg.skill&&u.cfg.skill.block)?u.cfg.skill.block:u.cfg.block;
+    if(blockCap>0&&u.blocking.length<blockCap){
+      u.blocking.push(en); en.blockedBy=u;
+    }
+  }
+
+  // --- 敵 移動・攻撃 ---
+  for(const en of G.enemies){
+    if(en.stun>0)en.stun-=dt;
+    const frozen=en.freezeT>0;
+    // ブロックされている地上敵：前衛を殴る（凍結中は殴らない）
+    if(en.blockedBy){
+      if(!frozen){
+        en.cd-=dt;
+        if(en.cd<=0){
+          en.cd=en.e.interval;
+          const u=en.blockedBy;
+          let dmg=en.atk;
+          if(u.skillActive&&u.cfg.skill&&u.cfg.skill.dr)dmg*=(1-u.cfg.skill.dr);
+          dmg=applyToUnit(u,dmg);
+          if(u.hp<=0)retreat(u);
+        }
+      }
+      continue;
+    }
+    if(en.stun>0||frozen)continue;
+
+    // 遠隔攻撃を持つ敵：射程内の味方（高台含む）を攻撃しながら進む
+    if(en.e.ranged){
+      en.acd-=dt;
+      if(en.acd<=0){
+        const R=en.e.ranged*TILE;
+        // 射程内で最も近い味方を狙う
+        let tgt=null,best=1e9;
+        for(const u of G.units){const d=dist(en,u); if(d<=R&&d<best){best=d;tgt=u;}}
+        if(tgt){
+          en.acd=en.e.interval;
+          G.shots.push({x:en.x,y:en.y,target:tgt,dmg:en.atk,col:en.e.col,kind:"ebolt",spd:430,enemy:true});
+        }
+      }
+    }
+
+    // ウェイポイントへ移動
+    const way=en.way||(en.fly?FLYWAY:WAY);
+    const tgt=way[en.wp];
+    if(!tgt){ // 抜けた
+      G.life-=en.e.life; en._dead=true;
+      addFx({type:"leak",x:en.x,y:en.y,life:0.5}); Sound.play("leak");
+      continue;
+    }
+    const step=en.spd*TILE*en.slow*dt;
+    const dx=tgt.x-en.x, dy=tgt.y-en.y, d=Math.hypot(dx,dy);
+    if(d<=step){ en.x=tgt.x; en.y=tgt.y; en.wp++; }
+    else { en.x+=dx/d*step; en.y+=dy/d*step; }
+    en.progress=en.wp + (1-d/Math.max(1,TILE));
+  }
+
+  // --- 味方 行動 ---
+  for(const u of G.units){
+    const k=u.cfg.kind;
+    u.cd-=dt;
+    // この瞬間に「行動できる状態か」を判定（自動スキルの発動条件に使う）
+    let willAct=false;
+    if(u.cd<=0){
+      if(k==="melee"){
+        if(u.blocking.length)willAct=true;
+        else if(u.cfg.airReach){
+          const aR=u.cfg.airReach*TILE*2.2; // スキル拡大分も見越して広めに判定
+          willAct=G.enemies.some(e=>e.fly && dist(u,e)<=aR);
+        }
+      } else if(k==="range"||k==="aoe"||k==="barrage"||k==="chain"||k==="multi"){
+        willAct=!!pickEnemy(u);
+      } else if(k==="heal"){
+        // 範囲回復スキル中以外は負傷者がいれば行動
+        willAct=!!pickHeal(u) || (skillReady(u) && u.cfg.skill.aoe);
+      }
+      // 常時稼働（オーラ/経済/合唱/召喚）は満タンで発動扱い
+      if(k==="support"||k==="economy"||k==="bard"||k==="summon") willAct=true;
+    }
+    // 自動モード：行動できる状態でSP満タンなら発動
+    if(willAct && u.skillMode==="auto" && skillReady(u)) fireSkill(u);
+
+    const sk=u.cfg.skill, active=u.skillActive;
+    const spdTotal=u.spdBuff*(active&&sk&&sk.spd?sk.spd:1);
+    const atkMult=u.atkBuff*(active&&sk&&sk.atk?sk.atk:1);
+    const itv=(u.cfg.interval||1)/spdTotal;
+    if(k==="melee"){
+      // ハルバーディア等：airReachを持つ近接は周囲の低空飛行敵も攻撃対象に
+      let airTarget=null;
+      if(u.cfg.airReach){
+        const aR=(active&&sk&&sk.airReach?sk.airReach:u.cfg.airReach)*TILE;
+        let bp=-1;
+        for(const e of G.enemies){ if(e.fly && dist(u,e)<=aR && e.progress>bp){bp=e.progress;airTarget=e;} }
+      }
+      if((u.blocking.length||airTarget)&&u.cd<=0){
+        u.cd=itv;
+        // バーサーカー/リベンジャー：HPが減るほど攻撃力UP
+        let rageMult=1;
+        if(u.cfg.rage){ rageMult=1+(u.cfg.rage-1)*(1-u.hp/u.maxHp); }
+        // デュエリスト：ブロック対象への与ダメ激増
+        let duelMul=1;
+        if(u.cfg.duelMul){ duelMul=(active&&sk&&sk.duelMul)?sk.duelMul:u.cfg.duelMul; }
+        const dmg=u.cfg.atk*atkMult*rageMult*duelMul;
+        const tg=u.blocking[0]||airTarget;
+        // ランサー：自分のマス＋進路後方の敵も貫通攻撃
+        const pierce=(active&&sk&&sk.pierce)?sk.pierce:(u.cfg.pierce||1);
+        let hits=[tg];
+        if(pierce>1){
+          const extra=G.enemies
+            .filter(e=>e!==tg && !e.fly && Math.abs(e.x-u.x)<TILE*0.7 && Math.abs(e.y-u.y)<pierce*TILE && dist(e,u)<=pierce*TILE)
+            .sort((a,b)=>dist(a,u)-dist(b,u))
+            .slice(0,pierce-1);
+          hits=hits.concat(extra);
+        }
+        // ハルバーディア：ブロック中の地上敵と低空の敵を同時に薙ぐ
+        if(u.cfg.airReach && u.blocking.length && airTarget && !hits.includes(airTarget)) hits.push(airTarget);
+        for(const h of hits){
+          h.hp-=dmg;
+          addFx({type:"slash",x:h.x,y:h.y,col:u.cfg.color,life:0.2});
+          floatNum(h.x,h.y,dmg,u.cfg.color);
+        }
+        Sound.play("melee");
+        // バーサーカー：スキル中はライフスティール
+        if(active&&sk&&sk.lifesteal){ u.hp=Math.min(u.maxHp,u.hp+dmg*sk.lifesteal); }
+        // ブレイカー：とどめを刺すと追加DPを生産
+        if(u.cfg.bonusDP && tg.hp<=0){
+          const mul=(active&&sk&&sk.bonusMul)?sk.bonusMul:1;
+          const gain=Math.round(u.cfg.bonusDP*mul);
+          G.dp=Math.min(G.dpMax,G.dp+gain);
+          floatNum(tg.x,tg.y-14,gain,"#ffb340","+");
+          addFx({type:"pop",x:tg.x,y:tg.y,col:"#ffb340",life:0.45});
+          Sound.play("killcoin");
+        }
+      }
+    } else if(k==="range"){
+      if(u.cd<=0){
+        const tg=pickEnemy(u);
+        if(tg){u.cd=itv;
+          const s=shot(u,tg,u.cfg.atk*atkMult,u.cfg.color,"bolt");
+          // ポイズナー：毒を付与
+          if(u.cfg.poison){ s.poison=(active&&sk.poison?sk.poison:u.cfg.poison); s.poisonDur=(active&&sk.poisonDur?sk.poisonDur:u.cfg.poisonDur); }
+          // フリーザー：凍結を付与
+          if(u.cfg.freeze){ s.freeze=(active&&sk.freeze?sk.freeze:u.cfg.freeze); s.aoeFreeze=active&&sk.aoeFreeze?sk.aoeFreeze*TILE:0; }
+          G.shots.push(s);
+          Sound.play(u.type==="sniper"||u.type==="marksman"?"sniper":u.type==="archer"?"arrow":u.type==="freezer"?"shoot":"shoot");
+        }
+      }
+    } else if(k==="multi"){
+      // シャーマン：複数の敵に同時に低威力＋減速
+      if(u.cd<=0){
+        const n=(active&&sk&&sk.multi?sk.multi:u.cfg.multi);
+        const R=unitRange(u);
+        const targets=G.enemies.filter(e=>canHit(u,e)&&dist(u,e)<=R)
+          .sort((a,b)=>b.progress-a.progress).slice(0,n);
+        if(targets.length){ u.cd=itv;
+          for(const tg of targets){
+            const s=shot(u,tg,u.cfg.atk*atkMult,u.cfg.color,"bolt");
+            s.slowHit=(active&&sk.slowHit?sk.slowHit:u.cfg.slowHit); s.slowDur=u.cfg.slowDur;
+            G.shots.push(s);
+          }
+          Sound.play("shoot");
+        }
+      }
+    } else if(k==="chain"){
+      // チェインキャスター：敵から敵へ連鎖
+      if(u.cd<=0){
+        const tg=pickEnemy(u);
+        if(tg){ u.cd=itv;
+          const s=shot(u,tg,u.cfg.atk*atkMult,u.cfg.color,"chain");
+          s.chain=(active&&sk&&sk.chain?sk.chain:u.cfg.chain); s.falloff=u.cfg.chainFalloff;
+          G.shots.push(s); Sound.play("sniper");
+        }
+      }
+    } else if(k==="aoe"){
+      if(u.cd<=0){
+        const tg=pickEnemy(u);
+        if(tg){u.cd=itv;
+          const s=shot(u,tg,u.cfg.atk*atkMult,u.cfg.color,"aoe");
+          s.aoeR=(active&&sk.aoe?sk.aoe:u.cfg.aoe)*TILE;
+          s.stun=(active&&sk.stun?sk.stun:u.cfg.stun);
+          G.shots.push(s); Sound.play("aoe");
+        }
+      }
+    } else if(k==="barrage"){
+      if(u.cd<=0){
+        const tg=pickEnemy(u);
+        if(tg){
+          u.cd=itv;
+          Sound.play("shell");
+          const shots=(active&&sk&&sk.shots)?sk.shots:1;
+          const aoeR=(active&&sk.aoe?sk.aoe:u.cfg.aoe)*TILE;
+          for(let i=0;i<shots;i++){
+            // 着弾予定地点（敵の現在位置に少しばらつき）を時間差で砲撃
+            const en=i===0?tg:(G.enemies[Math.floor(Math.random()*G.enemies.length)]||tg);
+            G.fx.push({type:"shell",x:en.x+(Math.random()*2-1)*TILE*0.5,
+              y:en.y+(Math.random()*2-1)*TILE*0.5,col:u.cfg.color,
+              life:u.cfg.delay+0.01,age:0,delay:u.cfg.delay,
+              dmg:u.cfg.atk*atkMult,aoeR,fromU:u});
+          }
+        }
+      }
+    } else if(k==="heal"){
+      const healAmt=u.cfg.heal*(active&&sk.heal?sk.heal:1);
+      const R=unitRange(u);
+      if(u.cd<=0){
+        if(active&&sk.aoe){ // 範囲回復
+          u.cd=itv;
+          let healed=false;
+          for(const a of G.units){
+            if(a!==u && a.hp<a.maxHp && dist(u,a)<=R){
+              a.hp=Math.min(a.maxHp,a.hp+healAmt);
+              addFx({type:"heal",x:a.x,y:a.y,life:0.5});
+              floatNum(a.x,a.y-6,healAmt,"#4ade80","+");
+              addFx({type:"beam",x1:u.x,y1:u.y,x2:a.x,y2:a.y,col:"#4ade80",life:0.2});
+              healed=true;
+            }
+          }
+          if(healed)Sound.play("heal");
+        } else {
+          const tg=pickHeal(u);
+          if(tg){
+            u.cd=itv;
+            tg.hp=Math.min(tg.maxHp,tg.hp+healAmt);
+            addFx({type:"heal",x:tg.x,y:tg.y,life:0.5});
+            floatNum(tg.x,tg.y-6,healAmt,"#4ade80","+");
+            addFx({type:"beam",x1:u.x,y1:u.y,x2:tg.x,y2:tg.y,col:"#4ade80",life:0.2});
+            Sound.play("heal");
+          }
+        }
+      }
+    }
+  }
+
+  // --- 弾 ---
+  for(const s of G.shots){
+    if(!s.target||s.target._dead){s._dead=true;continue;}
+    if(s.enemy && !G.units.includes(s.target)){s._dead=true;continue;} // 撤退済みの味方狙い弾は消滅
+    const reach = s.enemy ? 16 : (s.target.e?s.target.e.r:14);
+    const d=dist(s,s.target), step=s.spd*dt;
+    if(d<=step+reach){
+      if(s.enemy){
+        // 敵の弾が味方に命中（シールド/被ダメSP処理）
+        applyToUnit(s.target,s.dmg);
+        floatNum(s.target.x,s.target.y,s.dmg,s.col);
+        Sound.play("enemyHit");
+        if(s.target.hp<=0)retreat(s.target);
+      } else if(s.kind==="aoe"){
+        const R=s.aoeR;
+        for(const en of G.enemies){
+          if(canHit(s.owner,en) && dist(en,s.target)<=R){en.hp-=s.dmg; en.stun=Math.max(en.stun,s.stun); floatNum(en.x,en.y,s.dmg,s.col);}
+        }
+        addFx({type:"ring",x:s.target.x,y:s.target.y,r:R,col:s.col,life:0.4});
+      } else if(s.kind==="chain"){
+        // 連鎖：命中した敵から近い敵へ次々と飛ぶ（威力減衰）
+        let cur=s.target, dmg=s.dmg, hit=new Set([cur]);
+        applyBolt(s,cur,dmg);
+        addFx({type:"hit",x:cur.x,y:cur.y,col:s.col,life:0.2});
+        for(let j=1;j<s.chain;j++){
+          dmg*=s.falloff;
+          let nxt=null,bd=2.4*TILE;
+          for(const en of G.enemies){ if(hit.has(en)||en._dead)continue; const dd=dist(cur,en); if(dd<bd){bd=dd;nxt=en;} }
+          if(!nxt)break;
+          addFx({type:"beam",x1:cur.x,y1:cur.y,x2:nxt.x,y2:nxt.y,col:s.col,life:0.18});
+          applyBolt(s,nxt,dmg); hit.add(nxt); cur=nxt;
+        }
+      }else{
+        applyBolt(s,s.target,s.dmg);
+        addFx({type:"hit",x:s.target.x,y:s.target.y,col:s.col,life:0.2});
+      }
+      s._dead=true;
+    }else{
+      s.x+=(s.target.x-s.x)/d*step; s.y+=(s.target.y-s.y)/d*step;
+    }
+  }
+
+  // --- 死亡処理 ---
+  for(const en of G.enemies){
+    if(en.hp<=0&&!en._dead){en._dead=true; G.dp=Math.min(G.dpMax,G.dp+G.killDP);
+      addFx({type:"pop",x:en.x,y:en.y,col:en.e.col,life:0.35});}
+  }
+  G.enemies=G.enemies.filter(e=>!e._dead);
+  G.shots=G.shots.filter(s=>!s._dead);
+  // 召喚トークンの寿命・死亡
+  for(const u of G.units){
+    if(u.isToken){ u.ttl-=dt; if(u.ttl<=0||u.hp<=0){u._gone=true; addFx({type:"pop",x:u.x,y:u.y,col:"#bfe89a",life:0.3});} }
+  }
+  if(G.units.some(u=>u._gone)) G.units=G.units.filter(u=>!u._gone);
+
+  // --- エフェクト ---
+  for(const f of G.fx){
+    f.age+=dt;
+    // 砲弾：遅延後に着弾爆発
+    if(f.type==="shell" && !f._blown && f.age>=f.delay){
+      f._blown=true;
+      for(const en of G.enemies){
+        if((!f.fromU||canHit(f.fromU,en)) && dist(en,f)<=f.aoeR){ en.hp-=f.dmg; floatNum(en.x,en.y,f.dmg,f.col); }
+      }
+      addFx({type:"ring",x:f.x,y:f.y,r:f.aoeR,col:f.col,life:0.4});
+      addFx({type:"pop",x:f.x,y:f.y,col:f.col,life:0.4});
+    }
+  }
+  G.fx=G.fx.filter(f=>f.age<f.life);
+
+  // --- 勝敗・ウェーブクリア ---
+  if(G.life<=0){G.life=0;G.state="lost";clearTransient();Sound.stopMusic();Sound.play("lose");showOverlay("lose");}
+  else if(G.state==="wave"&&G.spawnQ.length===0&&G.enemies.length===0){
+    clearTransient();
+    if(G.waveIndex>=WAVES.length-1){G.state="won";G.clearStars=calcStars(currentStage,G.life);recordClear(currentStage.id,G.clearStars);Sound.stopMusic();Sound.play("win");showOverlay("win");}
+    else{G.state="ready";Sound.setMusicIntensity(0.16);flash("ウェーブクリア！ 次へ進めます");}
+  }
+  updateHUD();
+}
+
+function canHit(u,e){ // uの攻撃がeに当たるか（地上/空中）
+  let t=u.cfg.targets;
+  // アーティラリーはスキル中のみ対空可
+  if(u.skillActive && u.cfg.skill && u.cfg.skill.antiAir) t="both";
+  if(t==="both")return true;
+  if(t==="air")return e.fly;
+  if(t==="ground")return !e.fly;
+  return false;
+}
+function pickEnemy(u){ // 射程内の対象敵を選ぶ
+  const R=unitRange(u); let best=null,bv=-Infinity;
+  for(const e of G.enemies){
+    if(!canHit(u,e)||dist(u,e)>R)continue;
+    // マークスマンは最大HPの敵、それ以外は最も進んだ敵を狙う
+    const v=u.cfg.aimMax? e.hp : e.progress;
+    if(v>bv){bv=v;best=e;}
+  }
+  return best;
+}
+function pickHeal(u){ // 射程内で最もHP割合の低い負傷味方
+  const R=unitRange(u); let best=null,br=1;
+  for(const a of G.units){ if(a===u)continue; const ratio=a.hp/a.maxHp;
+    if(ratio<1 && dist(u,a)<=R && ratio<br){br=ratio;best=a;} }
+  return best;
+}
+function shot(u,tg,dmg,col,kind){return {x:u.x,y:u.y,target:tg,dmg,col,kind,spd:520,owner:u};}
+// 弾の命中効果（ダメージ＋毒/凍結/減速）を敵に適用
+function applyBolt(s,en,dmg){
+  en.hp-=dmg; floatNum(en.x,en.y,dmg,s.col);
+  if(s.poison){ en.poisonDmg=s.poison; en.poisonT=Math.max(en.poisonT||0,s.poisonDur); }
+  if(s.freeze){
+    en.freezeT=Math.max(en.freezeT||0,s.freeze);
+    if(s.aoeFreeze){ for(const o of G.enemies){ if(o!==en && dist(o,en)<=s.aoeFreeze) o.freezeT=Math.max(o.freezeT||0,s.freeze*0.7); } }
+  }
+  if(s.slowHit){ en.slowHitT=Math.max(en.slowHitT||0,s.slowDur||1.5); en.slowHitF=Math.min(en.slowHitF||1,s.slowHit); }
+}
+function floatNum(x,y,v,col,pre){addFx({type:"num",x,y,v:Math.round(v),col,pre:pre||"",life:0.7,vy:-26});}
+
+/* ============ 描画 ============ */
+const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+const dpr=Math.min(2,window.devicePixelRatio||1);
+cv.width=W*dpr; cv.height=H*dpr; ctx.scale(dpr,dpr);
+cv.style.aspectRatio=W+"/"+H;
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  // 背景
+  ctx.fillStyle="#0a1019"; ctx.fillRect(0,0,W,H);
+  // グリッド
+  ctx.strokeStyle="rgba(120,150,180,.06)"; ctx.lineWidth=1;
+  for(let c=0;c<=COLS;c++){ctx.beginPath();ctx.moveTo(c*TILE,0);ctx.lineTo(c*TILE,H);ctx.stroke();}
+  for(let r=0;r<=ROWS;r++){ctx.beginPath();ctx.moveTo(0,r*TILE);ctx.lineTo(W,r*TILE);ctx.stroke();}
+
+  // ルート
+  for(const [c,r] of PATH){
+    ctx.fillStyle="#15212e";
+    ctx.fillRect(c*TILE+1,r*TILE+1,TILE-2,TILE-2);
+  }
+  // ルートの中心ライン（分岐があれば各系統を描画）
+  const lanes=BRANCHES||[WAY];
+  ctx.strokeStyle="rgba(63,199,244,.18)"; ctx.lineWidth=18; ctx.lineCap="round"; ctx.lineJoin="round";
+  for(const lane of lanes){
+    ctx.beginPath();
+    for(let i=1;i<lane.length-1;i++){const p=lane[i]; i===1?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y);}
+    ctx.stroke();
+  }
+  // 流れる矢印
+  ctx.fillStyle="rgba(63,199,244,.5)";
+  const flow=(G.t*40)%40;
+  for(const lane of lanes){
+    for(let i=1;i<lane.length-2;i++){
+      const a=lane[i],b=lane[i+1],seg=dist(a,b);
+      for(let d=flow%40;d<seg;d+=40){
+        const t=d/seg,x=a.x+(b.x-a.x)*t,y=a.y+(b.y-a.y)*t;
+        ctx.beginPath();ctx.arc(x,y,2.2,0,7);ctx.fill();
+      }
+    }
+  }
+  // 高台
+  for(const [c,r] of HILLS){
+    const x=c*TILE,y=r*TILE;
+    ctx.fillStyle="#1c2a1e"; ctx.fillRect(x+2,y+2,TILE-4,TILE-4);
+    ctx.strokeStyle="rgba(74,222,128,.25)";ctx.lineWidth=1;ctx.strokeRect(x+3.5,y+3.5,TILE-7,TILE-7);
+  }
+  // 飛行ルート（破線・薄い）
+  ctx.strokeStyle="rgba(103,216,232,.22)"; ctx.lineWidth=2; ctx.setLineDash([7,7]);
+  ctx.beginPath();
+  for(let i=0;i<FLYWAY.length;i++){const p=FLYWAY[i]; i===0?ctx.moveTo(p.x,p.y-16):ctx.lineTo(p.x,p.y-16);}
+  ctx.stroke(); ctx.setLineDash([]);
+  // 入口・出口
+  drawGate(WAY[1].x-TILE/2,WAY[1].y,"#ff5b6e","IN");
+  drawGate(WAY[WAY.length-1].x-TILE/2,WAY[WAY.length-1].y,"#4ade80","OUT");
+
+  // 配置可能マスのハイライト
+  if(G.selectedType){
+    const cfg=TYPES[G.selectedType];
+    const set=cfg.place==="road"?PATH:HILLS;
+    const can=G.dp>=unitCost(G.selectedType);
+    for(const [c,r] of set){
+      if(unitAtCell(c,r))continue;
+      ctx.fillStyle=can?hexA(cfg.color,.16):"rgba(120,120,120,.12)";
+      ctx.fillRect(c*TILE+2,r*TILE+2,TILE-4,TILE-4);
+      ctx.strokeStyle=can?cfg.color:"#555";ctx.lineWidth=1.5;
+      ctx.strokeRect(c*TILE+2.5,r*TILE+2.5,TILE-5,TILE-5);
+    }
+  }
+
+  // 選択ユニットの射程
+  if(G.selectedUnit){
+    const u=G.selectedUnit;
+    if(u.cfg.range){
+      ctx.beginPath();ctx.arc(u.x,u.y,unitRange(u),0,7);
+      ctx.fillStyle=hexA(u.cfg.color,.08);ctx.fill();
+      ctx.strokeStyle=hexA(u.cfg.color,.5);ctx.setLineDash([5,4]);ctx.lineWidth=1.5;ctx.stroke();ctx.setLineDash([]);
+    }else{
+      ctx.strokeStyle=hexA(u.cfg.color,.6);ctx.lineWidth=2;
+      ctx.strokeRect(u.c*TILE+2,u.r*TILE+2,TILE-4,TILE-4);
+    }
+  }
+
+  // 弾(下層)
+  for(const s of G.shots){
+    ctx.strokeStyle=s.col;ctx.lineWidth=s.kind==="aoe"?3:2;
+    const a=Math.atan2(s.target.y-s.y,s.target.x-s.x);
+    ctx.beginPath();ctx.moveTo(s.x,s.y);ctx.lineTo(s.x-Math.cos(a)*10,s.y-Math.sin(a)*10);ctx.stroke();
+    ctx.fillStyle=s.col;ctx.beginPath();ctx.arc(s.x,s.y,s.kind==="aoe"?4:2.6,0,7);ctx.fill();
+  }
+
+  // ユニット
+  for(const u of G.units)drawUnit(u);
+  // 敵
+  for(const en of G.enemies)drawEnemy(en);
+  // エフェクト
+  for(const f of G.fx)drawFx(f);
+  // 霧ギミックの視覚演出
+  if(mod("fog",1)<1){
+    const g=ctx.createRadialGradient(W/2,H/2,H*0.18,W/2,H/2,W*0.6);
+    g.addColorStop(0,"rgba(180,200,220,0.02)");
+    g.addColorStop(1,"rgba(150,170,190,0.16)");
+    ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+    // ゆっくり流れる霧の帯
+    ctx.fillStyle="rgba(200,215,230,0.05)";
+    for(let i=0;i<3;i++){
+      const yy=((G.t*12+i*90)%(H+120))-60;
+      ctx.beginPath();ctx.ellipse(W*0.5,yy,W*0.7,34,0,0,7);ctx.fill();
+    }
+  }
+}
+
+function drawGate(x,y,col,label){
+  ctx.fillStyle=hexA(col,.16);ctx.fillRect(x,y-TILE/2,TILE/2,TILE);
+  ctx.strokeStyle=col;ctx.lineWidth=2;ctx.strokeRect(x+1,y-TILE/2+1,TILE/2-2,TILE-2);
+  ctx.fillStyle=col;ctx.font="700 9px 'Chakra Petch'";ctx.textAlign="center";
+  ctx.fillText(label,x+TILE/4,y+3);
+}
+function drawUnit(u){
+  const x=u.x,y=u.y,s=TILE*0.74,col=u.cfg.color;
+  // スキル発動中グロー
+  if(u.skillActive){
+    const pulse=0.5+0.5*Math.sin(G.t*9);
+    ctx.fillStyle=hexA(col,0.14+0.16*pulse);
+    ctx.beginPath();ctx.arc(x,y,s*0.92,0,7);ctx.fill();
+  }
+  // 台座
+  ctx.fillStyle="rgba(0,0,0,.35)";ctx.beginPath();ctx.ellipse(x,y+s/2-2,s/2,7,0,0,7);ctx.fill();
+  // 本体
+  ctx.fillStyle=col; roundRect(x-s/2,y-s/2,s,s,8);ctx.fill();
+  ctx.fillStyle="rgba(255,255,255,.14)";roundRect(x-s/2,y-s/2,s,s/2,8);ctx.fill();
+  ctx.strokeStyle="rgba(0,0,0,.4)";ctx.lineWidth=2;roundRect(x-s/2,y-s/2,s,s,8);ctx.stroke();
+  // 文字
+  ctx.fillStyle="#08131c";ctx.font="700 17px 'Chakra Petch'";ctx.textAlign="center";ctx.textBaseline="middle";
+  ctx.fillText(u.cfg.letter,x,y+1);
+  ctx.textBaseline="alphabetic";
+  // ブロック中マーク
+  if(u.blocking&&u.blocking.length){
+    ctx.fillStyle="#ff5b6e";ctx.font="700 9px 'Chakra Petch'";
+    ctx.fillText("⚔"+u.blocking.length,x,y-s/2-3);
+  }
+  // 強化中
+  if(u.spdBuff>1){ctx.strokeStyle=hexA("#ff6ba9",.8);ctx.lineWidth=2;
+    ctx.beginPath();ctx.arc(x,y,s/2+3,0,7);ctx.stroke();}
+  // HPバー
+  if(u.cfg.kind==="melee"||u.hp<u.maxHp) hpBar(x,y-s/2-7,s,u.hp/u.maxHp,"#4ade80");
+  // SP（スキル）バー
+  if(u.cfg.skill){
+    const sk=u.cfg.skill;
+    const ratio=u.skillActive?(u.skillTimer/sk.dur):Math.min(1,u.sp/sk.spMax);
+    spBar(x,y+s/2+1,s,ratio,u.skillActive?"#ffd24a":(u.skillMode==="manual"&&ratio>=1?"#ffd24a":"#3fc7f4"));
+    // 手動モードで発動可能：点滅する★アイコン
+    if(u.skillMode==="manual" && skillReady(u)){
+      const blink=0.5+0.5*Math.sin(G.t*7);
+      ctx.fillStyle=hexA("#ffd24a",0.5+0.5*blink);
+      ctx.font="700 14px 'Chakra Petch'";ctx.textAlign="center";
+      ctx.fillText("★",x,y-s/2-13);
+      ctx.strokeStyle=hexA("#ffd24a",blink);ctx.lineWidth=2;
+      ctx.beginPath();ctx.arc(x,y,s/2+5,0,7);ctx.stroke();
+    }
+  }
+}
+function spBar(cx,y,w,ratio,col){
+  ratio=Math.max(0,Math.min(1,ratio));
+  ctx.fillStyle="rgba(0,0,0,.55)";ctx.fillRect(cx-w/2,y,w,3);
+  ctx.fillStyle=col;ctx.fillRect(cx-w/2,y,w*ratio,3);
+}
+function drawEnemy(en){
+  const r=en.e.r;
+  const lift=en.fly?16:0;       // 飛行敵は浮かせて描画
+  const x=en.x, y=en.y-lift;
+  // 影（飛行敵は地面に影）
+  if(en.fly){
+    const bob=Math.sin(G.t*5+en.x*0.1)*2;
+    ctx.fillStyle="rgba(0,0,0,.28)";
+    ctx.beginPath();ctx.ellipse(en.x,en.y+6,r*0.8,4,0,0,7);ctx.fill();
+  }
+  if(en.type==="boss"){
+    ctx.fillStyle=hexA(en.e.col,.25);ctx.beginPath();ctx.arc(x,y,r+6,0,7);ctx.fill();
+  }
+  // 飛行敵：翼
+  if(en.fly){
+    const flap=Math.sin(G.t*12+en.x*0.2)*0.5;
+    ctx.fillStyle=hexA(en.e.col,.55);
+    ctx.beginPath();ctx.ellipse(x-r,y,r*0.9,r*0.4,flap,0,7);ctx.fill();
+    ctx.beginPath();ctx.ellipse(x+r,y,r*0.9,r*0.4,-flap,0,7);ctx.fill();
+  }
+  ctx.fillStyle=en.e.col;
+  if(en.type==="runner"){ // ダイヤ
+    ctx.beginPath();ctx.moveTo(x,y-r);ctx.lineTo(x+r,y);ctx.lineTo(x,y+r);ctx.lineTo(x-r,y);ctx.closePath();ctx.fill();
+  }else if(en.type==="brute"||en.type==="boss"){ // 四角
+    ctx.fillRect(x-r,y-r,r*2,r*2);
+    ctx.strokeStyle="rgba(0,0,0,.4)";ctx.lineWidth=2;ctx.strokeRect(x-r,y-r,r*2,r*2);
+  }else if(en.fly){ // 飛行体（三角形）
+    ctx.beginPath();ctx.moveTo(x,y-r);ctx.lineTo(x+r*0.85,y+r*0.7);ctx.lineTo(x-r*0.85,y+r*0.7);ctx.closePath();ctx.fill();
+    ctx.strokeStyle="rgba(0,0,0,.35)";ctx.lineWidth=1.5;ctx.stroke();
+  }else{ // 円
+    ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill();
+  }
+  // 遠隔攻撃持ちのマーク
+  if(en.e.ranged){
+    ctx.fillStyle="rgba(255,255,255,.85)";ctx.beginPath();ctx.arc(x,y,2.4,0,7);ctx.fill();
+  }
+  // 減速/スタン表示
+  if(en.slow<1){ctx.strokeStyle="#3fc7f4";ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,r+3,0,7);ctx.stroke();}
+  if(en.stun>0){ctx.fillStyle="#ffd24a";ctx.font="11px sans-serif";ctx.textAlign="center";ctx.fillText("✦",x,y-r-4);}
+  if(en.freezeT>0){ctx.strokeStyle="#9fe0ff";ctx.lineWidth=3;ctx.beginPath();ctx.arc(x,y,r+2,0,7);ctx.stroke();
+    ctx.fillStyle="rgba(159,224,255,.28)";ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill();}
+  if(en.poisonT>0){ctx.fillStyle="#9bd44a";ctx.font="10px sans-serif";ctx.textAlign="center";ctx.fillText("☣",x+r,y-r);}
+  // HPバー
+  hpBar(x,y-r-7,Math.max(20,r*2),en.hp/en.maxHp,en.fly?"#67d8e8":"#ff5b6e");
+}
+function hpBar(cx,y,w,ratio,col){
+  ratio=Math.max(0,Math.min(1,ratio));
+  ctx.fillStyle="rgba(0,0,0,.55)";ctx.fillRect(cx-w/2,y,w,4);
+  ctx.fillStyle=col;ctx.fillRect(cx-w/2,y,w*ratio,4);
+}
+function drawFx(f){
+  const p=f.age/f.life;
+  if(f.type==="hit"||f.type==="slash"){
+    ctx.strokeStyle=hexA(f.col,1-p);ctx.lineWidth=3;
+    ctx.beginPath();ctx.arc(f.x,f.y,4+p*12,0,7);ctx.stroke();
+  }else if(f.type==="shell"){
+    const tp=Math.min(1,f.age/f.delay);
+    ctx.strokeStyle=hexA(f.col,.85);ctx.lineWidth=2;
+    ctx.beginPath();ctx.arc(f.x,f.y,f.aoeR*(1-tp*0.85),0,7);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(f.x-7,f.y);ctx.lineTo(f.x+7,f.y);
+    ctx.moveTo(f.x,f.y-7);ctx.lineTo(f.x,f.y+7);ctx.stroke();
+  }else if(f.type==="ring"){
+    ctx.strokeStyle=hexA(f.col,1-p);ctx.lineWidth=4;
+    ctx.beginPath();ctx.arc(f.x,f.y,f.r*p,0,7);ctx.stroke();
+  }else if(f.type==="pop"){
+    ctx.fillStyle=hexA(f.col,1-p);
+    for(let i=0;i<6;i++){const a=i/6*7,d=p*16;
+      ctx.beginPath();ctx.arc(f.x+Math.cos(a)*d,f.y+Math.sin(a)*d,2.5*(1-p),0,7);ctx.fill();}
+  }else if(f.type==="heal"){
+    ctx.fillStyle=hexA("#4ade80",1-p);ctx.font="700 14px 'Chakra Petch'";ctx.textAlign="center";
+    ctx.fillText("+",f.x,f.y-p*14);
+  }else if(f.type==="beam"){
+    ctx.strokeStyle=hexA(f.col,1-p);ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(f.x1,f.y1);ctx.lineTo(f.x2,f.y2);ctx.stroke();
+  }else if(f.type==="leak"){
+    ctx.strokeStyle=hexA("#ff5b6e",1-p);ctx.lineWidth=3;
+    ctx.beginPath();ctx.arc(f.x,f.y,p*22,0,7);ctx.stroke();
+  }else if(f.type==="skill"){
+    ctx.strokeStyle=hexA(f.col,1-p);ctx.lineWidth=3;
+    ctx.beginPath();ctx.arc(f.x,f.y,8+p*34,0,7);ctx.stroke();
+    ctx.strokeStyle=hexA("#fff",(1-p)*0.7);ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.arc(f.x,f.y,4+p*22,0,7);ctx.stroke();
+  }else if(f.type==="num"){
+    ctx.fillStyle=hexA(f.col,1-p);ctx.font="700 13px 'Chakra Petch'";ctx.textAlign="center";
+    ctx.fillText(f.pre+f.v,f.x,f.y+f.vy*p);
+  }
+}
+function roundRect(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+function hexA(hex,a){const h=hex.replace("#","");const n=parseInt(h,16);
+  return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`;}
+
+/* ============ HUD ============ */
+const dpVal=document.getElementById("dpVal"),lifeVal=document.getElementById("lifeVal"),
+  waveVal=document.getElementById("waveVal"),statusVal=document.getElementById("statusVal");
+const unitCountEl=document.getElementById("unitCount");
+let flashMsg="",flashT=0;
+function flash(m){flashMsg=m;flashT=2.2;}
+function updateHUD(){
+  dpVal.textContent=Math.floor(G.dp);
+  lifeVal.textContent=G.life;
+  waveVal.textContent=Math.max(0,G.waveIndex+ (G.state==="wave"?1:0))+" / "+WAVES.length;
+  let s;
+  if(G.state==="ready")s=G.waveIndex<0?"配置して戦闘開始":"次のウェーブ準備中";
+  else if(G.state==="wave")s="ウェーブ "+(G.waveIndex+1)+" 進行中  残:"+(G.enemies.length+G.spawnQ.length);
+  else if(G.state==="won")s="作戦成功！";
+  else s="防衛失敗…";
+  if(flashT>0){s=flashMsg;}
+  statusVal.textContent=s;
+  unitCountEl.textContent=G.units.length;
+  unitCountEl.parentElement.classList.toggle("full",G.units.length>=MAX_UNITS);
+  startBtn.disabled=!(G.state==="ready"&&G.waveIndex<WAVES.length-1);
+  startBtn.textContent=G.waveIndex<0?"▶ 戦闘開始":"▶ 次のウェーブ ("+(G.waveIndex+2)+")";
+}
+
+/* ============ 入力 ============ */
+function canvasXY(ev){
+  const r=cv.getBoundingClientRect();
+  const cx=(ev.touches?ev.touches[0].clientX:ev.clientX)-r.left;
+  const cy=(ev.touches?ev.touches[0].clientY:ev.clientY)-r.top;
+  return [cx/r.width*W, cy/r.height*H];
+}
+function onTap(ev){
+  ev.preventDefault();
+  const [x,y]=canvasXY(ev); const [c,r]=cellOfPx(x,y);
+  // 既存ユニット
+  const u=unitAtCell(c,r);
+  if(u && !G.selectedType){
+    // 手動モードでスキルが溜まっていればタップで発動
+    if(u.skillMode==="manual" && skillReady(u)){ fireSkill(u); G.selectedUnit=u; syncRetreatBtn(); refreshSkillBtn(); return; }
+    G.selectedUnit=(G.selectedUnit===u?null:u); syncRetreatBtn(); refreshSkillBtn(); return;
+  }
+  if(G.selectedType){ tryPlace(c,r); G.selectedUnit=null; syncRetreatBtn(); refreshSkillBtn(); return; }
+  if(u){G.selectedUnit=u;syncRetreatBtn();refreshSkillBtn();return;}
+  G.selectedUnit=null; syncRetreatBtn(); refreshSkillBtn();
+}
+cv.addEventListener("mousedown",onTap);
+cv.addEventListener("touchstart",onTap,{passive:false});
+
+function syncRetreatBtn(){retreatBtn.disabled=!G.selectedUnit; refreshSkillBtn();}
+
+/* ----- スキル操作パネル ----- */
+const unitPanel=document.getElementById("unitPanel"),
+      upName=document.getElementById("upName"), upSP=document.getElementById("upSP"),
+      modeToggle=document.getElementById("modeToggle"), skillBtn=document.getElementById("skillBtn");
+function refreshSkillBtn(){
+  const u=G.selectedUnit;
+  if(!u || !u.cfg.skill){ unitPanel.classList.remove("show"); return; }
+  unitPanel.classList.add("show");
+  upName.textContent=u.cfg.name+" ／ "+u.cfg.skill.name;
+  // SP状態表示
+  if(u.skillActive) upSP.textContent="発動中 "+u.skillTimer.toFixed(1)+"s";
+  else { const p=Math.min(1,u.sp/u.cfg.skill.spMax); upSP.textContent="SP "+Math.floor(p*100)+"%"; }
+  // モードトグル反映
+  [...modeToggle.children].forEach(b=>b.classList.toggle("on",b.dataset.m===u.skillMode));
+  // 発動ボタン：手動モードかつ準備完了で有効
+  const ready=skillReady(u);
+  skillBtn.disabled=!(u.skillMode==="manual" && ready);
+  skillBtn.classList.toggle("ready", u.skillMode==="manual" && ready);
+}
+modeToggle.querySelectorAll("button").forEach(b=>{
+  b.onclick=()=>{
+    if(G.selectedUnit){ G.selectedUnit.skillMode=b.dataset.m; }
+    G.defaultSkillMode=b.dataset.m; // 以後の配置の既定にもする
+    refreshSkillBtn();
+  };
+});
+skillBtn.onclick=()=>{ if(G.selectedUnit && skillReady(G.selectedUnit)){ fireSkill(G.selectedUnit); refreshSkillBtn(); } };
+
+/* ----- 全体スキルモード一括切替 ----- */
+const allModeToggle=document.getElementById("allModeToggle");
+function setAllSkillMode(m){
+  G.defaultSkillMode=m;                       // 今後配置するキャラの既定
+  for(const u of G.units) u.skillMode=m;      // 配置済み全員に適用
+  [...allModeToggle.children].forEach(b=>b.classList.toggle("on",b.dataset.m===m));
+  refreshSkillBtn();
+}
+allModeToggle.querySelectorAll("button").forEach(b=>{
+  b.onclick=()=>setAllSkillMode(b.dataset.m);
+});
+function syncAllModeToggle(){
+  // 全員同じモードならそれを、混在なら既定モードをハイライト
+  let m=G.defaultSkillMode||"auto";
+  if(G.units.length){
+    const modes=new Set(G.units.map(u=>u.skillMode));
+    if(modes.size===1) m=[...modes][0];
+  }
+  [...allModeToggle.children].forEach(b=>b.classList.toggle("on",b.dataset.m===m));
+}
+
+/* ============ ユニットバー ============ */
+const bar=document.getElementById("bar");
+function buildBar(){
+  bar.innerHTML="";
+  squad.forEach((t,i)=>{
+    const cfg=TYPES[t];
+    const d=document.createElement("div");
+    d.className="card";d.dataset.t=t;d.style.setProperty("--c",cfg.color);
+    d.innerHTML=`<div class="key">${i<9?i+1:""}</div>
+      <div class="ico">${cfg.letter}</div>
+      <div class="nm">${cfg.name}</div>
+      <div class="ro">${cfg.role}</div>
+      <div class="cost"><span class="cv">${cfg.cost}</span><span> DP</span></div>
+      <div class="skill">★${cfg.skill.name}</div>
+      <div class="state"></div>`;
+    d.addEventListener("click",()=>{
+      if(G.roster[t].state!=="ready")return;
+      G.selectedType=(G.selectedType===t?null:t); G.selectedUnit=null; syncRetreatBtn(); refreshBar();
+    });
+    bar.appendChild(d);
+  });
+}
+function refreshBar(){
+  [...bar.children].forEach(d=>{
+    const t=d.dataset.t,rs=G.roster[t],cost=unitCost(t);
+    d.querySelector(".cv").textContent=cost;
+    d.querySelector(".cost").classList.toggle("up",rs.times>0);
+    const st=d.querySelector(".state");
+    d.classList.remove("deployed","cooldown","sel","poor");
+    if(rs.state==="deployed"){d.classList.add("deployed"); st.innerHTML='<span>出撃中</span>';}
+    else if(rs.state==="cooldown"){d.classList.add("cooldown");
+      st.innerHTML='<span class="l">再出撃まで</span><span class="t">'+Math.ceil(rs.cd)+'</span>';}
+    else { st.innerHTML="";
+      d.classList.toggle("sel",G.selectedType===t);
+      d.classList.toggle("poor",G.dp<cost);
+    }
+  });
+}
+
+/* ============ ボタン類 ============ */
+const startBtn=document.getElementById("startBtn"),pauseBtn=document.getElementById("pauseBtn"),
+  retreatBtn=document.getElementById("retreatBtn"),ov=document.getElementById("ov"),
+  ovTitle=document.getElementById("ovTitle"),ovText=document.getElementById("ovText"),ovBtn=document.getElementById("ovBtn");
+startBtn.onclick=startWave;
+pauseBtn.onclick=()=>{G.paused=!G.paused;pauseBtn.textContent=G.paused?"▶ 再開":"⏸ 一時停止";
+  if(Sound.on){ G.paused?Sound.stopMusic():Sound.startMusic(112); }};
+retreatBtn.onclick=()=>{if(G.selectedUnit)retreat(G.selectedUnit);};
+document.getElementById("soundBtn").onclick=function(){
+  Sound.ensureStarted();
+  const on=!Sound.on; Sound.enable(on);
+  this.textContent=on?"🔊 音 ON":"🔇 音 OFF";
+  this.classList.toggle("muted",!on);
+  if(on && battleEl.style.display!=="none" && !G.paused)Sound.startMusic(112);
+};
+document.querySelectorAll("#spd button").forEach(b=>b.onclick=()=>{
+  G.speed=+b.dataset.s;document.querySelectorAll("#spd button").forEach(x=>x.classList.toggle("on",x===b));
+});
+ovBtn.onclick=()=>{reset(); if(Sound.on){Sound.setMusicIntensity(0.16);Sound.startMusic(112);}};
+document.getElementById("ovMenuBtn").onclick=()=>{ov.className="overlay";gotoMenu("stage");};
+function showOverlay(kind){
+  ov.className="overlay show "+kind;
+  const starsEl=document.getElementById("ovStars");
+  if(kind==="win"){
+    ovTitle.textContent="MISSION COMPLETE";
+    const s=G.clearStars||1;
+    starsEl.innerHTML=[1,2,3].map(i=>`<span class="star ${i<=s?'on':''}">★</span>`).join("");
+    starsEl.style.display="flex";
+    const rate = s===3?"★★★ 完全防衛（ノーダメージ）！":s===2?"★★ 見事な防衛！":"★ 防衛成功";
+    ovText.textContent=rate+"  ／  残ライフ "+G.life+"/"+currentStage.life;
+  } else {
+    ovTitle.textContent="MISSION FAILED";
+    starsEl.style.display="none";
+    ovText.textContent="防衛ラインが突破されました。配置を見直して再挑戦を。";
+  }
+}
+function reset(){G=newGame();ov.className="overlay";buildBar();refreshBar();syncRetreatBtn();updateHUD();}
+
+/* ============ キーボード ============ */
+addEventListener("keydown",e=>{
+  if(e.key>="1"&&e.key<="9"){const t=squad[+e.key-1]; if(!t)return;
+    if(G.roster[t]&&G.roster[t].state==="ready"){G.selectedType=(G.selectedType===t?null:t);G.selectedUnit=null;refreshBar();syncRetreatBtn();}}
+  else if(e.key==="Enter")startWave();
+  else if(e.key===" "){e.preventDefault();pauseBtn.onclick();}
+  else if(e.key==="r"||e.key==="R"){if(G.selectedUnit)retreat(G.selectedUnit);}
+  else if(e.key==="q"||e.key==="Q"){ if(G.selectedUnit && skillReady(G.selectedUnit)){fireSkill(G.selectedUnit);refreshSkillBtn();} }
+  else if(e.key==="m"||e.key==="M"){ if(G.selectedUnit){G.selectedUnit.skillMode=G.selectedUnit.skillMode==="auto"?"manual":"auto";G.defaultSkillMode=G.selectedUnit.skillMode;refreshSkillBtn();} }
+  else if(e.key==="Escape"){G.selectedType=null;G.selectedUnit=null;refreshBar();syncRetreatBtn();}
+});
+
+/* ============ 画面遷移 ============ */
+const menuEl=document.getElementById("menu"), battleEl=document.getElementById("battle");
+const screens={title:"scTitle",codex:"scCodex",squad:"scSquad",stage:"scStage"};
+function showScreen(name){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("show"));
+  document.getElementById(screens[name]).classList.add("show");
+  if(name==="codex")buildCodex();
+  if(name==="squad")buildSquad();
+  if(name==="stage")buildStageList();
+  window.scrollTo(0,0);
+}
+function gotoMenu(name){battleEl.style.display="none";menuEl.style.display="block";Sound.stopMusic();showScreen(name);}
+function gotoBattle(stage){
+  currentStage=stage; WAVES=stage.waves;
+  loadMap(stage.map||"serpent");
+  if(squad.length===0)squad=ORDER.slice(0,SQUAD_MAX); // 念のため
+  menuEl.style.display="none"; battleEl.style.display="block";
+  document.getElementById("battleStage").textContent="STAGE "+stage.id+" — "+stage.name;
+  reset();
+  Sound.ensureStarted(); Sound.setMusicIntensity(0.16); Sound.startMusic(112);
+  window.scrollTo(0,0);
+}
+// メニュー内の data-go ボタン
+document.querySelectorAll("[data-go]").forEach(b=>{
+  b.addEventListener("click",()=>{Sound.ensureStarted();Sound.play("click");showScreen(b.dataset.go);});
+});
+document.getElementById("quitBtn").onclick=()=>gotoMenu("stage");
+
+/* ----- キャラ性能確認 ----- */
+function buildCodex(){
+  const g=document.getElementById("codexGrid"); g.innerHTML="";
+  for(const t of ORDER){
+    const c=TYPES[t];
+    const rows=[];
+    rows.push(["HP",c.hp]);
+    if(c.atk)rows.push(["攻撃力",c.atk]);
+    if(c.heal)rows.push(["回復量",c.heal]);
+    if(c.interval)rows.push(["攻撃間隔",c.interval+"s"]);
+    if(c.range)rows.push(["射程",c.range.toFixed(1)]);
+    if(c.block!=null&&c.place==="road")rows.push(["ブロック",c.block+"体"]);
+    if(c.bonusDP)rows.push(["撃破DP","+"+c.bonusDP]);
+    if(c.deployDP)rows.push(["出撃時DP","+"+c.deployDP]);
+    if(c.dpPerSec)rows.push(["DP生産","+"+c.dpPerSec+"/s"]);
+    if(c.poison)rows.push(["毒/秒",c.poison]);
+    if(c.freeze)rows.push(["凍結",c.freeze+"s"]);
+    if(c.chain)rows.push(["連鎖",c.chain+"体"]);
+    if(c.multi)rows.push(["同時攻撃",c.multi+"体"]);
+    if(c.duelMul)rows.push(["決闘倍率","×"+c.duelMul]);
+    rows.push(["コスト",c.cost+" DP"]);
+    const statHTML=rows.map(r=>`<div class="row"><span>${r[0]}</span><span>${r[1]}</span></div>`).join("");
+    const d=document.createElement("div");
+    d.className="codex"; d.style.setProperty("--c",c.color);
+    d.innerHTML=`
+      <div class="ch">
+        <div class="cico">${c.letter}</div>
+        <div><div class="cn">${c.name}</div><div class="cr">${c.role}</div></div>
+        <span class="place ${c.place}">${c.place==="road"?"通路":"高台"}</span>
+      </div>
+      <div class="tgt">${targetBadge(c.targets)}</div>
+      <div class="stats">${statHTML}</div>
+      <div class="desc">${CODEX_DESC[t]||""}</div>
+      <div class="sk">★ <b>${c.skill.name}</b>：${SKILL_DESC[t]||""}</div>`;
+    g.appendChild(d);
+  }
+}
+function targetBadge(t){
+  if(t==="ground")return '<span class="tb g">攻撃: 地上のみ</span>';
+  if(t==="air")return '<span class="tb a">攻撃: 空中のみ</span>';
+  if(t==="both")return '<span class="tb b">攻撃: 地上＋空中</span>';
+  return '<span class="tb n">攻撃しない（支援）</span>';
+}
+const CODEX_DESC={
+  tank:"通路を塞ぐ壁役。最大3体を足止めしつつ高HPで耐える。攻撃は控えめ。",
+  attacker:"1体ブロックしながら高い単体火力で前線を削る近接アタッカー。",
+  shooter:"高台からの長射程・高火力の遠距離単体。前衛の後ろから支援。",
+  healer:"射程内で最も傷ついた味方を回復。前衛を長く戦わせる要。",
+  support:"敵を減速させ、近くの味方の攻撃速度を上げるオーラ役。",
+  trickster:"範囲攻撃＋短時間スタンで群れを足止めしながらまとめて削る特殊型。",
+  breaker:"敵を倒すたびに追加DPを生産する経済役。仕留め役の位置に。",
+  guardian:"最大5体ブロック・HP最大級の超壁役。群れを丸ごと受け止める。",
+  lancer:"後方に並んだ敵も貫通して攻撃。縦列で来る敵に滅法強い。",
+  berserker:"HPが減るほど攻撃力が上がるハイリスク前衛。回復との相性◎。",
+  sniper:"超長射程・単発特大火力。連射は遅く、ボスや重装狙撃向き。",
+  mage:"着弾点に小範囲の魔法ダメージ。固まった敵に効く遠距離。",
+  artillery:"超長射程＋時間差の範囲砲撃。群れを一掃する制圧火力。",
+  archer:"対空特化の遠距離。飛行敵を撃ち落とす要。地上は撃てない。",
+  flak:"対空の範囲攻撃。空に群がる飛行敵をまとめて撃ち落とす。地上は撃てない。",
+  halberdier:"地上をブロックしつつ低空の飛行敵も薙ぎ払える両対応の前衛。空の壁役。",
+  guardknight:"高HPの壁役。倒れる時に周囲の味方へダメージシールドを残す守り特化。",
+  duelist:"1体しかブロックしないが、ブロック対象への与ダメが激増するタイマン特化。",
+  revenger:"殴られるほどSPが溜まり、HPが減るほど攻撃力UP。被弾上等の前衛。",
+  marksman:"射程内で最もHPの高い敵を優先狙撃する重装・ボスキラー。",
+  poisoner:"継続毒(DoT)を与える。直接火力は低いが高HPの敵をじわじわ溶かす。",
+  chaincaster:"攻撃が敵から敵へ連鎖する。固まった群れにまとめてダメージ。",
+  freezer:"命中した敵を凍結（長時間停止）させる足止め特化の遠距離。",
+  shaman:"3体同時に攻撃し、当たった敵を減速させる範囲妨害役。",
+  summoner:"使い捨ての召喚兵（前衛トークン）を定期生成。実質ブロック枠を増やす。",
+  bard:"射程内の味方のSPチャージを加速。手動スキル運用と好相性。",
+  alchemist:"撃破に関係なく、時間経過でDPを生産し続ける経済役。",
+  prospector:"低HP・無攻撃だが、出撃した瞬間にまとまったDPを生む格安の資源要員。"
+};
+const SKILL_DESC={
+  tank:"一定時間ダメージを大幅軽減し自己回復する。",
+  attacker:"攻撃力と攻撃速度を大きく強化する。",
+  shooter:"攻撃力が約2.2倍になる集中砲火。",
+  healer:"射程内の味方全員を高速回復する。",
+  support:"減速・攻撃速度・攻撃力バフがすべて強化される。",
+  trickster:"範囲・威力・スタンが増した連続爆撃。",
+  breaker:"攻撃・速度UPに加え撃破DPが2.5倍に。",
+  guardian:"ダメージ70%カット＋自己回復でブロックを維持。",
+  lancer:"攻撃・速度UP＋貫通数が3体に増加。",
+  berserker:"攻撃・速度UP＋与ダメの35%を自己回復。",
+  sniper:"攻撃力2.6倍の超火力狙撃。",
+  mage:"範囲・威力UP＋スタンを付与。",
+  artillery:"1射ごとに3発の広範囲砲撃を投下。",
+  archer:"攻撃速度が大幅UP。飛行敵を高速で撃ち落とす。",
+  flak:"範囲・威力UP＋スタン付与の対空弾幕。",
+  halberdier:"攻撃力・速度UP＋対空の薙ぎ範囲が拡大。",
+  guardknight:"ダメージ50%カット＋周囲の味方へ継続的にシールドを付与。",
+  duelist:"攻撃力・速度UP＋ブロック対象への与ダメ倍率がさらに増加。",
+  revenger:"攻撃力・速度UP＋与ダメの40%を自己回復。",
+  marksman:"攻撃力2.4倍の徹甲弾で重装を貫く。",
+  poisoner:"猛毒を散布し、毒のダメージと持続が大幅強化。",
+  chaincaster:"連鎖数が6体に増え、群れを一掃する。",
+  freezer:"凍結時間が延長＋周囲の敵も巻き込んで凍結。",
+  shaman:"同時攻撃数が5体に増え、減速も強化。",
+  summoner:"発動と同時に召喚兵を一気に3体追加召喚。",
+  bard:"SPチャージ加速が大幅に強化される。",
+  alchemist:"DP生産が急増＋発動時にまとまったDPを即獲得。",
+  prospector:"発動時にまとまったDPを即獲得する。"
+};
+
+/* ----- 編成 ----- */
+function targetMark(t){
+  if(t==="ground")return '<span class="tm g">⊕ 地上</span>';
+  if(t==="air")return '<span class="tm a">✈ 対空</span>';
+  if(t==="both")return '<span class="tm b">⊕✈ 両方</span>';
+  return '<span class="tm n">支援</span>';
+}
+function buildSquad(){
+  document.getElementById("squadMax").textContent=SQUAD_MAX;
+  const g=document.getElementById("squadGrid"); g.innerHTML="";
+  for(const t of ORDER){
+    const c=TYPES[t];
+    const d=document.createElement("div");
+    d.className="scard"; d.dataset.t=t; d.style.setProperty("--c",c.color);
+    d.innerHTML=`<div class="num"></div>
+      <div class="cico">${c.letter}</div>
+      <div class="cn">${c.name}</div>
+      <div class="cr">${c.role} / ${c.place==="road"?"通路":"高台"}</div>
+      <div class="cc">${c.cost} DP</div>
+      <div class="tgmark">${targetMark(c.targets)}</div>`;
+    d.addEventListener("click",()=>toggleSquad(t));
+    g.appendChild(d);
+  }
+  refreshSquad();
+}
+function toggleSquad(t){
+  const i=squad.indexOf(t);
+  if(i>=0){ squad.splice(i,1); }
+  else{
+    if(squad.length>=SQUAD_MAX){ return; }
+    squad.push(t);
+  }
+  refreshSquad();
+}
+function refreshSquad(){
+  document.getElementById("squadCount").textContent="("+squad.length+"/"+SQUAD_MAX+")";
+  [...document.getElementById("squadGrid").children].forEach(d=>{
+    const t=d.dataset.t, idx=squad.indexOf(t);
+    d.classList.toggle("on",idx>=0); d.classList.toggle("off",idx<0);
+    d.querySelector(".num").textContent = idx>=0 ? (idx+1) : "";
+  });
+}
+
+/* ----- ステージ選択 ----- */
+function gimmickTags(st){
+  const tags=[];
+  const mp={serpent:"S字経路",avenue:"一本道・高台多",fork:"二股分岐",spiral:"渦巻き長経路",gauntlet:"高台少"};
+  if(st.map&&mp[st.map])tags.push(mp[st.map]);
+  const m=st.mods||{};
+  if(m.fog)tags.push("濃霧（射程低下）");
+  if(m.dpRate&&m.dpRate<1)tags.push("DP収入減");
+  if(m.dpRate&&m.dpRate>1)tags.push("DP収入増");
+  if(m.costScale&&m.costScale>1)tags.push("配置コスト増");
+  if(m.redeploy&&m.redeploy>1)tags.push("再出撃CT長");
+  return tags.map(t=>`<span class="gtag">${t}</span>`).join("");
+}
+function buildStageList(){
+  const g=document.getElementById("stageList"); g.innerHTML="";
+  STAGES.forEach(st=>{
+    const d=document.createElement("div");
+    const best=clearData[st.id]||0;
+    d.className="stagecard"+(best>0?" cleared":"");
+    const dots=Math.min(5,st.diff);
+    const starHTML=[1,2,3].map(i=>`<span class="ms ${i<=best?'on':''}">★</span>`).join("");
+    d.innerHTML=`
+      <div class="sid">${st.id}${best===3?'<div class="crown">👑</div>':''}</div>
+      <div class="sinfo"><div class="sname">${st.name} <span class="ministars">${starHTML}</span></div>
+        <div class="sdesc">${st.desc}</div>
+        <div class="gtags">${gimmickTags(st)}</div></div>
+      <div class="smeta">難易度<br><span class="dots">${"●".repeat(dots)}${"○".repeat(5-dots)}</span><br>
+        ${st.waves.length} WAVE / LIFE ${st.life}</div>
+      <div class="go">▶</div>`;
+    d.addEventListener("click",()=>{
+      if(squad.length===0){ alert("先に編成でキャラを1体以上選んでください。"); showScreen("squad"); return; }
+      gotoBattle(st);
+    });
+    g.appendChild(d);
+  });
+  // 総獲得星を見出しに表示
+  const total=Object.values(clearData).reduce((a,b)=>a+b,0), max=STAGES.length*3;
+  const h=document.querySelector("#scStage .sc-top h2");
+  if(h) h.innerHTML='ステージ選択 <span style="font-size:13px;color:var(--gold)">★'+total+' / '+max+'</span>';
+}
+
+/* ============ ループ ============ */
+let last=performance.now();
+function loop(now){
+  let dt=(now-last)/1000; last=now; dt=Math.min(0.05,dt);
+  if(battleEl.style.display!=="none"){
+    G.t+=dt;
+    if(flashT>0)flashT-=dt;
+    if(!G.paused && G.state==="wave"){ for(let i=0;i<G.speed;i++) update(dt); }
+    refreshBar(); updateHUD(); draw(); refreshSkillBtn(); syncAllModeToggle();
+  }
+  requestAnimationFrame(loop);
+}
+
+/* ============ 起動 ============ */
+squad=ORDER.slice(0,SQUAD_MAX);   // 初期編成：先頭12体
+G=newGame();                       // ダミー初期化（バトル開始時にreset）
+showScreen("title");
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
