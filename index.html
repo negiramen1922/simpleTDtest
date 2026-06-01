@@ -167,6 +167,65 @@
     header h1{font-size:16px}
     .overlay h2{font-size:30px}
   }
+
+  /* ============ スマホ横画面 専用レイアウト ============ */
+  /* タッチ端末かつ横向き、または高さの低い画面でバトルUIをコンパクト化して見切れを防ぐ */
+  @media (orientation:landscape) and (hover:none) and (pointer:coarse){
+    body{padding:0}
+    #battle.wrap{max-width:none;height:100vh;height:100dvh;display:flex;flex-direction:column;
+      padding:5px 7px;gap:4px;overflow:hidden}
+    /* ヘッダーは1行に圧縮 */
+    #battle header{margin:0;gap:8px;flex-wrap:nowrap;align-items:center}
+    #battle header h1{font-size:13px;letter-spacing:.08em}
+    #battle #quitBtn{padding:5px 9px;font-size:11px}
+    #battle header .tag{font-size:9px;letter-spacing:.12em;margin-left:auto;white-space:nowrap}
+    /* HUDは小さな横並び1行 */
+    #battle .hud{gap:5px;margin:0;flex-wrap:nowrap}
+    #battle .hud .stat{min-width:0;padding:3px 8px;flex:1}
+    #battle .hud .stat .k{font-size:8px;letter-spacing:.08em}
+    #battle .hud .stat .v{font-size:14px}
+    #battle #sStatus{flex:1.6;min-width:0}
+    #battle #sStatus .v{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    /* キャンバスは“高さ基準”で収め、横にはみ出さない */
+    #battle .stage{flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center;
+      background:#0b1119}
+    #battle .stage canvas{width:auto;height:100%;max-width:100%;max-height:100%;margin:0 auto}
+    #battle .corner{display:none}
+    /* コントロールは1行・小さめ。ラベルや一部は隠す */
+    #battle .controls{margin:0;gap:5px;flex-wrap:nowrap;overflow-x:auto;align-items:center}
+    #battle .controls button{padding:6px 10px;font-size:12px}
+    #battle .controls .spd button{padding:6px 9px}
+    #battle .controls .modelabel{display:none}
+    #battle .controls .ucount{font-size:11px;white-space:nowrap}
+    #battle .controls .grow{flex:0 0 4px}
+    /* ユニットバーは横スクロールの帯にして全カードへアクセス可能に */
+    #battle .bar{display:flex;grid-template-columns:none;gap:6px;margin:0;
+      overflow-x:auto;overflow-y:hidden;padding-bottom:4px;-webkit-overflow-scrolling:touch;
+      scrollbar-width:thin;flex:0 0 auto}
+    #battle .bar .card{flex:0 0 88px;padding:5px 4px}
+    #battle .bar .card .ico{width:24px;height:24px;font-size:13px;margin:0 auto 3px}
+    #battle .bar .card .nm{font-size:10px}
+    #battle .bar .card .ro{display:none}
+    #battle .bar .card .skill{display:none}
+    #battle .bar .card .cost{font-size:12px;margin-top:2px}
+    /* ユニットパネルもコンパクト1行 */
+    #battle .unitpanel{margin:0;padding:5px 9px;gap:7px;flex-wrap:nowrap;overflow-x:auto}
+    #battle .unitpanel .upname{font-size:12px;white-space:nowrap}
+    #battle .unitpanel .modelabel{display:none}
+    #battle .unitpanel .modetoggle button{padding:5px 10px;font-size:12px}
+    #battle .unitpanel .btn-skill{padding:6px 10px;font-size:12px;white-space:nowrap}
+    /* 遊び方アコーディオンはバトル中は隠す（メニューで読める） */
+    #battle details{display:none}
+    /* オーバーレイ文字を縮小 */
+    #battle .overlay h2{font-size:26px}
+    #battle .ovstars .star{font-size:32px}
+    #battle .overlay p{font-size:12px;margin-bottom:12px}
+  }
+  /* 非常に低い高さのビューでも同様（横画面のノッチ機種など） */
+  @media (orientation:landscape) and (max-height:430px){
+    #battle .bar .card .skill,#battle .bar .card .ro{display:none}
+    #battle details{display:none}
+  }
   /* ============ メニュー画面 ============ */
   .screens{width:100%;max-width:980px}
   .mhead{display:flex;align-items:baseline;gap:14px;margin-bottom:18px;flex-wrap:wrap}
