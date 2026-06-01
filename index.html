@@ -2,6 +2,22 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-JCB5LQ30XK"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-JCB5LQ30XK');
+  // ゲーム内イベント送信用のヘルパー（gtag未読込でも安全に動作）
+  window.track = function(name, params){
+    try{ if(typeof gtag==="function") gtag('event', name, params||{}); }catch(e){}
+  };
+</script>
+<!-- Firebase（ランキング用）。compat版でグローバル firebase を使う -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>シンプルTD</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -69,9 +85,12 @@
   .corner.bl{bottom:6px;left:6px;border-right:0;border-top:0}
   .corner.br{bottom:6px;right:6px;border-left:0;border-top:0}
 
-  .overlay{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;
-    background:rgba(6,10,15,.82);text-align:center;z-index:5;backdrop-filter:blur(2px)}
+  .overlay{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:flex-start;
+    background:rgba(6,10,15,.82);text-align:center;z-index:5;backdrop-filter:blur(2px);
+    padding:14px;overflow-y:auto;box-sizing:border-box}
   .overlay.show{display:flex}
+  .ov-inner{margin:auto;display:flex;flex-direction:column;align-items:center;width:100%}
+  .ovbtns{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
   .overlay h2{font-family:'Chakra Petch';font-size:42px;letter-spacing:.1em;margin-bottom:6px;text-transform:uppercase}
   .ovstars{display:flex;gap:10px;margin:4px 0 12px;justify-content:center}
   .ovstars .star{font-size:46px;color:#2c3744;transition:transform .3s;text-shadow:0 0 0 transparent}
@@ -168,64 +187,14 @@
     .card .ico{width:28px;height:28px;font-size:14px;margin:2px auto 5px}
     .card .ro{font-size:9px}
     header h1{font-size:16px}
-    .overlay h2{font-size:30px}
-  }
-
-  /* ============ 横画面プレイ用レイアウト（仮） ============ */
-  /* スマホ等の横向き：全要素を1画面に収め、キャンバスは高さ基準・バーは横スクロール一列 */
-  @media (orientation:landscape) and (max-height:560px){
-    body{padding:0}
-    #battle.wrap{max-width:none;height:100vh;height:100dvh;display:flex;flex-direction:column;
-      padding:4px 8px 6px;gap:4px;overflow:hidden;box-sizing:border-box}
-    /* ヘッダー＋HUDを薄く */
-    #battle header{margin:0;gap:8px;flex-wrap:nowrap;align-items:center;flex:0 0 auto}
-    #battle header h1{font-size:13px;letter-spacing:.06em}
-    #battle #quitBtn{padding:4px 9px;font-size:11px;white-space:nowrap}
-    #battle header .tag{font-size:9px;letter-spacing:.1em;margin-left:auto;white-space:nowrap;
-      overflow:hidden;text-overflow:ellipsis;max-width:38vw}
-    #battle .hud{gap:5px;margin:0;flex-wrap:nowrap;flex:0 0 auto}
-    #battle .hud .stat{min-width:0;padding:2px 8px;flex:1}
-    #battle .hud .stat::before{width:2px}
-    #battle .hud .stat .k{font-size:8px;letter-spacing:.06em}
-    #battle .hud .stat .v{font-size:13px;margin-top:0}
-    #battle #sStatus{flex:1.5;min-width:0}
-    #battle #sStatus .v{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    /* キャンバスは残り高さに“高さ基準”で収める（横にもはみ出さない） */
-    #battle .stage{flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center;background:#0b1119}
-    #battle .stage canvas{width:auto;height:100%;max-width:100%;max-height:100%;margin:0 auto}
-    #battle .corner{display:none}
-    /* コントロールは1行・横スクロール可 */
-    #battle .controls{margin:0;gap:5px;flex-wrap:nowrap;overflow-x:auto;align-items:center;flex:0 0 auto;
-      -webkit-overflow-scrolling:touch}
-    #battle .controls button{padding:5px 10px;font-size:12px;white-space:nowrap}
-    #battle .controls .spd button{padding:5px 9px}
-    #battle .controls .modelabel{display:none}
-    #battle .controls .ucount{font-size:11px;white-space:nowrap}
-    #battle .controls .grow{flex:0 0 2px}
-    /* ユニット選択パネルもコンパクト1行 */
-    #battle .unitpanel{margin:0;padding:5px 9px;gap:7px;flex-wrap:nowrap;overflow-x:auto;flex:0 0 auto}
-    #battle .unitpanel .upname{font-size:12px;white-space:nowrap}
-    #battle .unitpanel .modelabel{display:none}
-    #battle .unitpanel .modetoggle button{padding:4px 10px;font-size:12px}
-    #battle .unitpanel .btn-skill{padding:5px 10px;font-size:12px;white-space:nowrap}
-    /* キャラバーは横スクロール一列・小さめカード（必ず画面内に残す） */
-    #battle .bar{display:flex;grid-template-columns:none;gap:6px;margin:0;flex:0 0 auto;
-      overflow-x:auto;overflow-y:hidden;padding-bottom:3px;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
-    #battle .bar .card{flex:0 0 84px;padding:4px 4px}
-    #battle .bar .card .ico{width:22px;height:22px;font-size:12px;margin:0 auto 3px}
-    #battle .bar .card .nm{font-size:9.5px}
-    #battle .bar .card .ro{display:none}
-    #battle .bar .card .skill{display:none}
-    #battle .bar .card .cost{font-size:11px;margin-top:2px}
-    #battle .bar .card .key{font-size:8px}
-    /* バトル中の遊び方アコーディオンは隠す（メニューで読める） */
-    #battle details{display:none}
-    /* 勝敗オーバーレイの縮小 */
-    #battle .overlay h2{font-size:24px;margin-bottom:2px}
-    #battle .ovstars{margin:2px 0 8px}
-    #battle .ovstars .star{font-size:30px}
-    #battle .overlay p{font-size:12px;margin-bottom:10px}
-    #battle .overlay button{padding:7px 14px;font-size:13px}
+    /* クリア/敗北ポップアップをスマホ幅で詰めて見切れ防止 */
+    .overlay{padding:10px}
+    .overlay h2{font-size:26px;margin-bottom:2px}
+    .ovstars{gap:6px;margin:2px 0 8px}
+    .ovstars .star{font-size:34px}
+    .overlay p{font-size:12px;margin-bottom:12px;line-height:1.5}
+    .overlay button{padding:9px 14px;font-size:13px}
+    .ovbtns{flex-wrap:wrap;justify-content:center}
   }
 
   /* ============ メニュー画面 ============ */
@@ -255,6 +224,26 @@
     -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
   .title-art .sub{color:var(--dim);margin-top:12px;letter-spacing:.06em}
   .menu-btns{display:flex;flex-direction:column;gap:12px;max-width:340px;margin:0 auto}
+  /* ホームのステータス（スタミナ・メダル・XP） */
+  .home-stats{max-width:560px;margin:0 auto 20px}
+  .home-stats .home-stam{margin:0 0 10px}
+  .home-stats .home-res{display:flex;gap:10px;flex-wrap:wrap}
+  .home-stats .hstat{flex:1;min-width:150px;background:linear-gradient(180deg,var(--panel),var(--panel2));
+    border:1px solid var(--line);border-radius:10px;padding:12px 14px;position:relative;overflow:hidden}
+  .home-stats .hstat::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent,var(--line2))}
+  .home-stats .medal{--accent:var(--gold)} .home-stats .xp{--accent:var(--green)}
+  .home-stats .hk{font-size:11px;letter-spacing:.08em;color:var(--dim)}
+  .home-stats .hv{font-family:'Chakra Petch';font-weight:700;font-size:24px;line-height:1.1;margin-top:3px}
+  .home-stats .medal .hv{color:var(--gold)} .home-stats .xp .hv{color:var(--green)}
+  .home-stats .hsub{font-size:10px;color:var(--dim);margin-top:3px;font-family:'Chakra Petch'}
+  @media(max-width:680px){
+    .home-stats{margin-bottom:16px}
+    .home-stats .home-res{gap:7px}
+    .home-stats .hstat{min-width:0;flex:1 1 45%;padding:9px 10px}
+    .home-stats .hk{font-size:9.5px}
+    .home-stats .hv{font-size:18px}
+    .home-stats .hsub{font-size:8.5px}
+  }
   .big-btn{padding:15px;font-size:16px;letter-spacing:.06em}
   .big-btn.btn-go{font-size:18px}
 
@@ -306,6 +295,11 @@
   .tbtns{display:flex;gap:6px}
   .tbtns .tbtn{flex:1;width:auto}
   .detailbtn{font-size:12px;padding:8px 12px;border-color:var(--line2);color:var(--cyan)}
+  .tcard.locked{opacity:.92;border-style:dashed;border-color:var(--line2)}
+  .tcard.locked .cico.locked{background:#1a2230;color:#8aa0b4;box-shadow:none;font-size:18px}
+  .tbtn.unlock{border-color:#ffd24a;color:#ffd24a}
+  .tbtn.unlock.ok{background:linear-gradient(180deg,#3a2f08,#241d0a)}
+  .tbtn.unlock.ok:hover{background:#4a3a0a;color:#fff}
   .detailbtn:hover{border-color:var(--cyan);color:#fff}
   /* 詳細モーダル */
   .detail-modal{position:fixed;inset:0;background:rgba(5,9,14,.78);backdrop-filter:blur(3px);
@@ -318,6 +312,27 @@
   .detail-close{position:absolute;top:10px;right:10px;width:32px;height:32px;padding:0;border-radius:8px;z-index:2;
     font-size:15px;border-color:var(--line2);color:var(--dim)}
   .detail-close:hover{border-color:var(--red);color:#fff}
+  /* ランキング */
+  .rank-box{max-width:460px}
+  .rank-title{font-family:'Chakra Petch';font-size:18px;color:var(--gold);margin:0 32px 12px 0;letter-spacing:.04em}
+  .rank-account{margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+  .rank-note{font-size:12px;color:var(--dim);line-height:1.6}
+  .rank-me{font-size:13px;color:var(--txt);display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px}
+  .rank-me b{color:var(--cyan)}
+  .minibtn{font-size:11px;padding:4px 9px;border-radius:7px;border:1px solid var(--line2);
+    background:#0e151d;color:var(--dim)}
+  .minibtn:hover{border-color:var(--cyan);color:#fff}
+  .rank-login{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+  .rank-login .tbtn{flex:1;min-width:130px;width:auto}
+  .rank-list{display:flex;flex-direction:column;gap:5px}
+  .rank-row{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;
+    background:#0e151d;border:1px solid var(--line)}
+  .rank-row.mine{border-color:var(--cyan);background:#0d1c25}
+  .rank-row .rk{flex:0 0 34px;text-align:center;font-family:'Chakra Petch';font-weight:700;font-size:15px;color:var(--gold)}
+  .rank-row .rn{flex:1;font-weight:700;font-size:13px;color:#e7eef5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .rank-row .rs{text-align:right;font-family:'Chakra Petch';display:flex;flex-direction:column;line-height:1.2}
+  .rank-row .rs b{color:var(--cyan);font-size:15px}
+  .rank-row .rs small{color:var(--dim);font-size:10px}
   .dxp{font-size:12px;color:var(--gold);font-family:'Chakra Petch';margin-bottom:10px;display:flex;align-items:center;gap:10px}
   .dxp .tbtn{flex:0 0 auto;width:auto;padding:7px 14px}
   .rolebadge{display:inline-block;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;
@@ -348,6 +363,22 @@
     border:1px solid var(--line);border-radius:11px;padding:15px 18px;cursor:pointer;transition:.12s}
   .stagecard:hover{border-color:var(--amber);transform:translateX(3px)}
   .stagecard.cleared{border-color:rgba(255,210,74,.35)}
+  .stagecard.endless{border-color:var(--pink);background:linear-gradient(180deg,#1a1420,#12101a)}
+  /* スタミナバー */
+  .stamina-bar{display:flex;align-items:center;gap:10px;margin:4px 0 10px;
+    background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line2);
+    border-radius:9px;padding:8px 12px}
+  .stam-ico{font-size:18px}
+  .stam-track{position:relative;flex:1;height:18px;background:#0c1218;border-radius:9px;overflow:hidden;border:1px solid var(--line)}
+  .stam-fill{position:absolute;inset:0;width:100%;background:linear-gradient(90deg,#3fc7f4,#67e8c0);transition:width .3s}
+  .stam-text{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    font-family:'Chakra Petch';font-weight:700;font-size:11px;color:#04161f;letter-spacing:.04em}
+  .stam-regen{font-size:11px;color:var(--dim);font-family:'Chakra Petch';white-space:nowrap;min-width:96px;text-align:right}
+  /* 一括周回ボタン */
+  .farmbtn{margin-top:7px;font-size:12px;padding:6px 12px;border-color:var(--cyan);color:var(--cyan);
+    background:linear-gradient(180deg,#0d2630,#0a1a22)}
+  .farmbtn:hover{background:#103442;color:#fff;border-color:var(--cyan)}
+  .stagecard.endless .sid{color:var(--pink);font-size:34px}
   .stagecard.cleared .sid{color:var(--gold)}
   .stagecard .sid{position:relative}
   .stagecard .sid .crown{position:absolute;top:-14px;right:-6px;font-size:16px}
@@ -388,10 +419,31 @@
       <div class="big mono">シンプルTD</div>
       <p class="sub">経路にキャラを配置し、迫る敵を迎撃せよ。</p>
     </div>
+    <div class="home-stats" id="homeStats">
+      <div class="stamina-bar home-stam">
+        <span class="stam-ico">⚡</span>
+        <div class="stam-track"><div class="stam-fill" id="homeStamFill"></div>
+          <span class="stam-text" id="homeStam">200 / 200</span></div>
+        <span class="stam-regen" id="homeStamRegen"></span>
+      </div>
+      <div class="home-res">
+        <div class="hstat medal">
+          <div class="hk">🏅 メダル</div>
+          <div class="hv" id="homeMedals">0</div>
+          <div class="hsub">キャラ解放に使用</div>
+        </div>
+        <div class="hstat xp">
+          <div class="hk">✦ 経験値(XP)</div>
+          <div class="hv" id="homeXP">0</div>
+          <div class="hsub">キャラ育成に使用</div>
+        </div>
+      </div>
+    </div>
     <div class="menu-btns">
       <button class="btn-go big-btn" data-go="stage">▶ 出撃する</button>
       <button class="big-btn" data-go="squad">編成を組む</button>
       <button class="big-btn" data-go="train">キャラ図鑑・育成</button>
+      <button class="big-btn" id="rankBtn">🏆 無限ダンジョン ランキング</button>
     </div>
   </section>
 
@@ -424,6 +476,13 @@
       <h2>ステージ選択</h2>
       <button class="back" data-go="squad">編成へ</button>
     </div>
+    <div class="stamina-bar" id="staminaBar">
+      <span class="stam-ico">⚡</span>
+      <div class="stam-track"><div class="stam-fill" id="stamFill"></div>
+        <span class="stam-text" id="stamText">200 / 200</span></div>
+      <span class="stam-regen" id="stamRegen"></span>
+    </div>
+    <p class="hint">ステージ挑戦には<b>スタミナ ⚡</b>を<b>20</b>消費します（時間で回復）。★3クリア済みのステージは「<b>一括周回</b>」でスタミナを使い、戦闘せずにXPを獲得できます。</p>
     <div class="stage-list" id="stageList"></div>
   </section>
 
@@ -432,6 +491,17 @@
     <div class="detail-box">
       <button class="detail-close" id="detailClose">✕</button>
       <div id="detailBody"></div>
+    </div>
+  </div>
+
+  <!-- ランキングモーダル -->
+  <div class="detail-modal" id="rankModal">
+    <div class="detail-box rank-box">
+      <button class="detail-close" id="rankClose">✕</button>
+      <h3 class="rank-title">🏆 無限ダンジョン ランキング</h3>
+      <div class="rank-account" id="rankAccount"></div>
+      <div class="rank-list" id="rankList"></div>
+      <button class="tbtn" id="rankMore" style="width:100%;margin-top:10px;display:none">もっと表示 (+10)</button>
     </div>
   </div>
 </div>
@@ -455,12 +525,14 @@
     <canvas id="cv"></canvas>
     <div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>
     <div class="overlay" id="ov">
-      <h2 id="ovTitle"></h2>
-      <div class="ovstars" id="ovStars"></div>
-      <p id="ovText"></p>
-      <div style="display:flex;gap:10px">
-        <button id="ovBtn" class="btn-go">もう一度</button>
-        <button id="ovMenuBtn">ステージ選択へ</button>
+      <div class="ov-inner">
+        <h2 id="ovTitle"></h2>
+        <div class="ovstars" id="ovStars"></div>
+        <p id="ovText"></p>
+        <div class="ovbtns">
+          <button id="ovBtn" class="btn-go">もう一度</button>
+          <button id="ovMenuBtn">ステージ選択へ</button>
+        </div>
       </div>
     </div>
   </div>
@@ -613,7 +685,10 @@ const Sound=(()=>{
     win:     ()=>{ [523,659,784,1046].forEach((f,i)=>setTimeout(()=>blip(f,0.3,"triangle",0.3),i*140)); },
     lose:    ()=>{ [392,330,262,196].forEach((f,i)=>setTimeout(()=>blip(f,0.35,"sawtooth",0.28,f*0.7),i*180)); },
     click:   ()=>{ blip(520,0.05,"square",0.18,640); },
-    waveStart:()=>{ blip(330,0.15,"sawtooth",0.25,495); blip(495,0.18,"sawtooth",0.2,660); }
+    waveStart:()=>{ blip(330,0.15,"sawtooth",0.25,495); blip(495,0.18,"sawtooth",0.2,660); },
+    bossSpawn:()=>{ noise(0.5,0.4,400); [110,98,87].forEach((f,i)=>setTimeout(()=>blip(f,0.45,"sawtooth",0.32,f*0.6),i*160)); },
+    split:   ()=>{ blip(700,0.08,"square",0.18,400); blip(500,0.1,"square",0.14,260); },
+    shieldBreak:()=>{ blip(800,0.1,"triangle",0.2,1400); noise(0.12,0.16,3500); }
   };
   const lastPlay={};
   function play(name){
@@ -868,9 +943,13 @@ const TYPES={
     skill:{name:"聖域",spMax:18,dur:9,heal:1.8,spd:1.6,aoe:true,regen:0}},
   archon:{name:"アルコーン",role:"ARCHON",letter:"統",color:"#ff8ad8",place:"hill",cost:30,
     hp:640,block:0,range:3.6,kind:"support",slow:0.4,spdBuff:1.6,targets:"both",
-    skill:{name:"軍神の威光",spMax:20,dur:9,slow:0.22,spd:2.1,atk:1.8}}
+    skill:{name:"軍神の威光",spMax:20,dur:9,slow:0.22,spd:2.1,atk:1.8}},
+  // 空中ブロッカー：投網で飛行敵を地上に引きずり下ろして足止め＆攻撃する。空の壁役
+  netcaster:{name:"投網兵",role:"NET",letter:"網",color:"#4fd0a0",place:"road",cost:17,
+    hp:1050,atk:140,interval:1.1,block:1,kind:"melee",targets:"air",airBlock:true,airBlockCap:2,airReach:1.5,
+    skill:{name:"大投網",spMax:16,dur:7,atk:1.6,airBlockCap:3,airReach:2.0}}
 };
-const ORDER=["tank","attacker","shooter","healer","support","trickster","breaker","guardian","lancer","berserker","sniper","mage","artillery","archer","flak","halberdier","guardknight","duelist","revenger","marksman","poisoner","chaincaster","freezer","shaman","summoner","bard","alchemist","prospector","warlord","archmage","valkyrie","highpriest","archon"];
+const ORDER=["tank","attacker","shooter","healer","support","trickster","breaker","guardian","lancer","berserker","sniper","mage","artillery","archer","flak","halberdier","guardknight","duelist","revenger","marksman","poisoner","chaincaster","freezer","shaman","summoner","bard","alchemist","prospector","netcaster","warlord","archmage","valkyrie","highpriest","archon"];
 
 /* ============ 敵定義 ============ */
 const ENEMY={
@@ -881,6 +960,19 @@ const ENEMY={
   gunner:{name:"砲兵", hp:340, spd:0.8,  atk:70,  interval:1.4, life:1, r:14, col:"#d98cff", ranged:2.4},
   flyer :{name:"飛行", hp:230, spd:1.35, atk:60,  interval:1.1, life:1, r:12, col:"#67d8e8", fly:true, ranged:2.6},
   raptor:{name:"飛竜", hp:620, spd:1.0,  atk:130, interval:1.2, life:2, r:17, col:"#4fb0c4", fly:true, ranged:2.8},
+  // 自己回復する敵：徐々にHPを回復し続ける。継続火力(毒)で押し切るのが有効
+  mender:{name:"治癒兵", hp:520, spd:0.9, atk:60, interval:1.2, life:1, r:14, col:"#7ee0a0", selfHeal:28},
+  // シールド持ち：一定のシールドを持ち、まずそれを削る必要がある
+  shielder:{name:"盾兵", hp:480, spd:0.85, atk:90, interval:1.1, life:2, r:15, col:"#88c0ff", shield:600},
+  // 隊長：周囲の敵の移動速度と攻撃力を強化する。優先的に倒したい
+  captain:{name:"隊長", hp:700, spd:0.8, atk:110, interval:1.2, life:2, r:16, col:"#ffd24a", auraR:2.2, auraSpd:1.35, auraAtk:1.4},
+  // 分裂体：倒すと小型の分裂体を2体生み出す
+  splitter:{name:"分裂体", hp:560, spd:0.95, atk:70, interval:1.0, life:2, r:16, col:"#ff9ad1", splitInto:"splitling", splitN:2},
+  splitling:{name:"分裂子", hp:120, spd:1.5, atk:35, interval:0.9, life:1, r:9, col:"#ffc2e6"},
+  // 大型砲撃艦：大型・高火力・長射程で地上ユニットを一方的に砲撃する空中要塞。対空でないと反撃できない
+  gunship:{name:"砲撃艦", hp:1600, spd:0.55, atk:180, interval:1.5, life:3, r:22, col:"#7b9cff", fly:true, ranged:3.4},
+  // 空雷：素早く硬めの小型飛行。群れで押し寄せる空のラッシュ役
+  stinger:{name:"空雷", hp:300, spd:1.9, atk:50, interval:0.8, life:1, r:11, col:"#5be0c8", fly:true, ranged:2.2},
   boss  :{name:"BOSS", hp:7000,spd:0.5,  atk:420, interval:1.3, life:5, r:24, col:"#ff5b6e", ranged:3.0}
 };
 // ステージ定義（複数ステージ）
@@ -985,12 +1077,15 @@ const STAGES=[
       [{t:"flyer",n:8,gap:0.5,start:0.4},{t:"raptor",n:3,gap:1.6,start:4},{t:"gunner",n:3,gap:1.2,start:7}],
       [{t:"brute",n:4,gap:1.8,start:0.4},{t:"swarm",n:16,gap:0.3,start:3},{t:"raptor",n:4,gap:1.5,start:7}],
       [{t:"brute",n:5,gap:1.6,start:0.4},{t:"boss",n:1,gap:1,start:5},{t:"runner",n:10,gap:0.4,start:8}],
-      [{t:"flyer",n:10,gap:0.4,start:0.4},{t:"brute",n:4,gap:1.8,start:3},{t:"boss",n:1,gap:1,start:7},{t:"raptor",n:4,gap:1.4,start:10},{t:"boss",n:1,gap:1,start:16}]
-    ]}
+      [{t:"flyer",n:10,gap:0.4,start:0.4},{t:"brute",n:4,gap:1.8,start:3},{t:"boss",n:1,gap:1,start:7},{t:"raptor",n:4,gap:1.4,start:10},{t:"boss",n:1,gap:1,start:16},{t:"gunship",n:1,gap:1,start:12},{t:"stinger",n:8,gap:0.4,start:5}]
+    ]},
+  {id:"∞",name:"エンドレス",desc:"ウェーブが延々と続く無限モード。敵は徐々に強くなる。何ウェーブ耐えられるか挑戦！記録は保存されます。",
+    diff:5,life:20,map:"serpent",endless:true,
+    waves:[[]]}  // 実際のウェーブは genEndlessWave で手続き生成
 ];
 let WAVES=STAGES[0].waves;        // 選択中ステージのウェーブ（バトルが参照）
 let currentStage=STAGES[0];
-let squad=ORDER.slice();          // 出撃に選んだキャラ（最大枠まで）
+let squad=[];                     // 出撃に選んだキャラ（所持済みから・最大枠まで）
 const SQUAD_MAX=12;               // 編成に入れられる最大人数
 
 /* ============ クリア記録（星評価）の保存 ============ */
@@ -1014,6 +1109,174 @@ function recordClear(stageId,stars){
   if(!clearData[stageId]||stars>clearData[stageId]){ clearData[stageId]=stars; saveClearData(); }
 }
 loadClearData();
+
+/* ============ エンドレスのハイスコア ============ */
+const ENDLESS_KEY="td_endless_v1";
+let endlessBest={wave:0,kills:0,score:0};
+// 合算スコア：WAVE重視（1WAVE=100点）＋撃破数
+function endlessScore(wave,kills){ return wave*100 + kills; }
+function loadEndless(){
+  try{ endlessBest=JSON.parse(localStorage.getItem(ENDLESS_KEY))||{wave:0,kills:0,score:0}; }catch(e){ endlessBest={wave:0,kills:0,score:0}; }
+  if(endlessBest.score==null) endlessBest.score=endlessScore(endlessBest.wave||0,endlessBest.kills||0);
+}
+function recordEndless(wave,kills){
+  const score=endlessScore(wave,kills);
+  const prevScore=endlessBest.score||0;
+  if(score>prevScore){
+    endlessBest={wave,kills,score};
+    try{ localStorage.setItem(ENDLESS_KEY,JSON.stringify(endlessBest)); }catch(e){}
+  }
+  // ランキングへ送信（ログイン済みかつ自己ベスト更新時のみ。未設定/未ログインなら内部でスキップ）
+  if(typeof submitScore==="function") submitScore(wave,kills,score);
+  return score>prevScore;
+}
+loadEndless();
+
+/* ============ オンラインランキング（Firebase） ============ */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyAeg_DIMzZTt7c2NNddIntasDHvpDmuUz8",
+  authDomain: "simple-td-82e0b.firebaseapp.com",
+  projectId: "simple-td-82e0b",
+  storageBucket: "simple-td-82e0b.firebasestorage.app",
+  messagingSenderId: "1024351612597",
+  appId: "1:1024351612597:web:ea9d5137a8f3f8743b58fc",
+  measurementId: "G-6D2GB9D305"
+};
+
+let fbReady=false, fbAuth=null, fbDB=null, fbUser=null;
+let rankName = localStorage.getItem("td_rank_name") || "";
+function fbConfigured(){ return !!(FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.projectId); }
+function initFirebase(){
+  if(!fbConfigured() || typeof firebase==="undefined") return;
+  try{
+    firebase.initializeApp(FIREBASE_CONFIG);
+    fbAuth=firebase.auth(); fbDB=firebase.firestore();
+    fbReady=true;
+    fbAuth.onAuthStateChanged(u=>{ fbUser=u||null; onAuthChanged(); });
+  }catch(e){ console.warn("Firebase init失敗",e); fbReady=false; }
+}
+function onAuthChanged(){
+  // ランキング画面が開いていれば再描画
+  if(document.getElementById("rankModal")&&document.getElementById("rankModal").classList.contains("show")) renderRank();
+  updateAccountUI();
+}
+async function loginGoogle(){
+  if(!fbReady) return;
+  try{ const p=new firebase.auth.GoogleAuthProvider(); await fbAuth.signInWithPopup(p); }
+  catch(e){ alert("Googleログインに失敗しました：\n"+(e.message||e)); }
+}
+async function loginEmail(){
+  if(!fbReady) return;
+  const email=prompt("メールアドレスを入力してください：");
+  if(!email) return;
+  const pw=prompt("パスワード（6文字以上）を入力してください：");
+  if(!pw) return;
+  try{
+    // 既存アカウントでログイン、なければ新規作成
+    try{ await fbAuth.signInWithEmailAndPassword(email,pw); }
+    catch(e){
+      if(e.code==="auth/user-not-found"){ await fbAuth.createUserWithEmailAndPassword(email,pw); }
+      else throw e;
+    }
+  }catch(e){ alert("メールログインに失敗しました：\n"+(e.message||e)); }
+}
+async function logoutFb(){ if(fbReady&&fbAuth) try{ await fbAuth.signOut(); }catch(e){} }
+function ensureName(){
+  if(rankName) return rankName;
+  let n=prompt("ランキングに表示する名前を入力してください（12文字まで）：","プレイヤー");
+  if(n==null) return null;
+  n=n.trim().slice(0,12) || "プレイヤー";
+  rankName=n; localStorage.setItem("td_rank_name",n);
+  return n;
+}
+// スコア送信（自己ベスト更新時にrecordEndlessから呼ばれる）
+async function submitScore(wave,kills,score){
+  if(!fbReady || !fbUser) return;      // 未ログインなら送らない
+  const name=rankName || ("プレイヤー"+(fbUser.uid||"").slice(0,4));
+  try{
+    const ref=fbDB.collection("endless_ranking").doc(fbUser.uid);
+    const snap=await ref.get();
+    const prev=snap.exists?(snap.data().score||0):0;
+    if(score>prev){
+      await ref.set({ name, wave, kills, score, uid:fbUser.uid, updated: firebase.firestore.FieldValue.serverTimestamp() });
+      track("rank_submit",{wave,kills,score});
+    }
+  }catch(e){ console.warn("スコア送信失敗",e); }
+}
+// 自分の名前を変更（ランキング上の表示名も更新）
+async function changeRankName(){
+  let n=prompt("新しい表示名（12文字まで）：", rankName||"プレイヤー");
+  if(n==null) return;
+  n=n.trim().slice(0,12)||"プレイヤー";
+  rankName=n; localStorage.setItem("td_rank_name",n);
+  if(fbReady&&fbUser){
+    try{ await fbDB.collection("endless_ranking").doc(fbUser.uid).set({name:n},{merge:true}); }catch(e){}
+  }
+  updateAccountUI();
+  if(document.getElementById("rankModal").classList.contains("show")) renderRank();
+}
+let rankShown=20;
+async function fetchTop(n){
+  if(!fbReady) return null;
+  const q=await fbDB.collection("endless_ranking").orderBy("score","desc").limit(n).get();
+  const rows=[]; q.forEach(d=>rows.push(d.data()));
+  return rows;
+}
+window.initFirebase=initFirebase;
+window.submitScore=submitScore;
+
+// ランキングUI
+function openRank(){ rankShown=20; document.getElementById("rankModal").classList.add("show"); renderRank(); }
+function closeRank(){ document.getElementById("rankModal").classList.remove("show"); }
+function updateAccountUI(){
+  const el=document.getElementById("rankAccount"); if(!el)return;
+  if(!fbConfigured()){
+    el.innerHTML='<div class="rank-note">ランキングは現在準備中です（オンライン設定が未完了）。</div>';
+    return;
+  }
+  if(!fbReady){ el.innerHTML='<div class="rank-note">オンライン接続中…</div>'; return; }
+  if(fbUser){
+    const nm=rankName||"（名前未設定）";
+    el.innerHTML=`<div class="rank-me">ログイン中：<b>${nm}</b>
+      <button class="minibtn" id="accName">名前変更</button>
+      <button class="minibtn" id="accLogout">ログアウト</button></div>
+      <div class="rank-note">自己ベスト：WAVE ${endlessBest.wave} ／ 撃破 ${endlessBest.kills} ／ スコア ${endlessBest.score}</div>`;
+    el.querySelector("#accName").onclick=changeRankName;
+    el.querySelector("#accLogout").onclick=logoutFb;
+  }else{
+    el.innerHTML=`<div class="rank-note">ログインするとあなたのスコアがランキングに登録されます。</div>
+      <div class="rank-login">
+        <button class="tbtn ok" id="liGoogle">Googleでログイン</button>
+        <button class="tbtn" id="liEmail">メールでログイン</button>
+      </div>`;
+    el.querySelector("#liGoogle").onclick=async()=>{ if(ensureName()!==null) await loginGoogle(); };
+    el.querySelector("#liEmail").onclick=async()=>{ if(ensureName()!==null) await loginEmail(); };
+  }
+}
+async function renderRank(){
+  updateAccountUI();
+  const list=document.getElementById("rankList"), more=document.getElementById("rankMore");
+  if(!fbConfigured()){ list.innerHTML='<div class="rank-note" style="padding:14px 0">設定が完了すると、全プレイヤーのランキングが表示されます。</div>'; more.style.display="none"; return; }
+  if(!fbReady){ list.innerHTML='<div class="rank-note" style="padding:14px 0">接続中…</div>'; more.style.display="none"; return; }
+  list.innerHTML='<div class="rank-note" style="padding:14px 0">読み込み中…</div>';
+  let rows;
+  try{ rows=await fetchTop(rankShown+1); }catch(e){ list.innerHTML='<div class="rank-note" style="padding:14px 0">読み込みに失敗しました。</div>'; more.style.display="none"; return; }
+  const hasMore=rows.length>rankShown;
+  rows=rows.slice(0,rankShown);
+  if(rows.length===0){ list.innerHTML='<div class="rank-note" style="padding:14px 0">まだ記録がありません。最初の挑戦者になろう！</div>'; more.style.display="none"; return; }
+  const myUid=fbUser&&fbUser.uid;
+  list.innerHTML=rows.map((r,i)=>{
+    const rk=i+1;
+    const medal = rk===1?"🥇":rk===2?"🥈":rk===3?"🥉":rk;
+    const mine = r.uid===myUid ? " mine":"";
+    return `<div class="rank-row${mine}">
+      <span class="rk">${medal}</span>
+      <span class="rn">${(r.name||"プレイヤー").replace(/[<>&]/g,"")}</span>
+      <span class="rs"><b>${r.score}</b><small>W${r.wave}・撃${r.kills}</small></span>
+    </div>`;
+  }).join("");
+  more.style.display=hasMore?"block":"none";
+}
 
 /* ============ レベル・育成システム ============ */
 const LVL_KEY="td_levels_v1";
@@ -1044,11 +1307,102 @@ function levelUp(type){
   const need=xpToNext(lv);
   if(playerXP<need) return "poor";
   playerXP-=need; unitLevels[type]=lv+1; saveProgress();
+  track("unit_levelup", {unit:type, level:lv+1});
   return "ok";
 }
 // ステージクリア報酬XP（星に応じて）
 function clearXP(stage,stars){ return Math.round((40+stage.diff*25)*(0.6+stars*0.2)); }
 loadProgress();
+
+/* ============ メダル・キャラ解放システム ============ */
+const MEDAL_KEY="td_medals_v1";
+const OWNED_KEY="td_owned_v1";
+// 初期所持：先頭10キャラ
+const STARTER=ORDER.slice(0,10);
+// アンロック価格（コスト/性能で段階）。未指定は既定値を後で補完
+const UNLOCK_COST={
+  // 中堅：200〜300
+  healer:200, support:200, trickster:250, breaker:250, guardian:300, lancer:250, berserker:300,
+  // 上位：300〜450
+  mage:350, artillery:400, archer:300, flak:350, halberdier:350, guardknight:400, duelist:350,
+  revenger:400, marksman:400, poisoner:400, chaincaster:450, freezer:450, shaman:450,
+  summoner:500, bard:450, alchemist:400, prospector:350, netcaster:400,
+  // 高コスト最上位：500〜600
+  warlord:600, archmage:600, valkyrie:550, highpriest:550, archon:600
+};
+function unlockCost(type){ return UNLOCK_COST[type]||300; }
+let medals=0;          // 所持メダル
+let owned={};          // {type:true} 解放済み
+function loadEconomy(){
+  try{ medals=parseInt(localStorage.getItem(MEDAL_KEY)); if(isNaN(medals))medals=0; }catch(e){ medals=0; }
+  try{ owned=JSON.parse(localStorage.getItem(OWNED_KEY))||null; }catch(e){ owned=null; }
+  if(!owned){ owned={}; for(const t of STARTER) owned[t]=true; saveEconomy(); }
+}
+function saveEconomy(){
+  try{ localStorage.setItem(MEDAL_KEY,String(medals)); localStorage.setItem(OWNED_KEY,JSON.stringify(owned)); }catch(e){}
+}
+function isOwned(type){ return !!owned[type]; }
+function ownedList(){ return ORDER.filter(t=>owned[t]); }
+// メダルを払って解放（成功でtrue）
+function unlockUnit(type){
+  if(owned[type]) return "owned";
+  const c=unlockCost(type);
+  if(medals<c) return "poor";
+  medals-=c; owned[type]=true; saveEconomy();
+  track("unit_unlock", {unit:type, cost:c, medals_left:medals});
+  return "ok";
+}
+// クリア報酬メダル：100枚＋★毎+25
+function clearMedals(stars){ return 100+stars*25; }
+loadEconomy();
+
+/* ============ スタミナシステム ============ */
+const STAM_KEY="td_stamina_v1";
+const STAMINA_MAX=200;        // 上限
+const STAMINA_COST=20;        // ステージ挑戦の消費
+const STAMINA_REGEN_MS=180000;// 1回復にかかる実時間（3分）
+let stamina=STAMINA_MAX;      // 現在のスタミナ
+let staminaTs=Date.now();     // 最後に保存した時刻（回復計算の基準）
+function loadStamina(){
+  try{
+    const raw=JSON.parse(localStorage.getItem(STAM_KEY));
+    if(raw && typeof raw.v==="number"){ stamina=raw.v; staminaTs=raw.t||Date.now(); }
+    else { stamina=STAMINA_MAX; staminaTs=Date.now(); }
+  }catch(e){ stamina=STAMINA_MAX; staminaTs=Date.now(); }
+  regenStamina();
+}
+function saveStamina(){ try{ localStorage.setItem(STAM_KEY,JSON.stringify({v:stamina,t:staminaTs})); }catch(e){} }
+// 経過した実時間からスタミナを回復（オフライン中も加算）
+function regenStamina(){
+  const now=Date.now();
+  if(stamina>=STAMINA_MAX){ staminaTs=now; saveStamina(); return; }
+  const elapsed=now-staminaTs;
+  const gained=Math.floor(elapsed/STAMINA_REGEN_MS);
+  if(gained>0){
+    stamina=Math.min(STAMINA_MAX,stamina+gained);
+    staminaTs += gained*STAMINA_REGEN_MS; // 余り時間は持ち越し
+    if(stamina>=STAMINA_MAX) staminaTs=now;
+    saveStamina();
+  }
+}
+// 次の1回復までの残り秒
+function staminaNextSec(){
+  if(stamina>=STAMINA_MAX) return 0;
+  const rem=STAMINA_REGEN_MS-((Date.now()-staminaTs)%STAMINA_REGEN_MS);
+  return Math.ceil(rem/1000);
+}
+function canAfford(n){ regenStamina(); return stamina>=n; }
+function spendStamina(n){
+  regenStamina();
+  if(stamina<n) return false;
+  const wasFull = stamina>=STAMINA_MAX;
+  stamina-=n;
+  // 満タンから減らした瞬間は、回復タイマーを今から開始
+  if(wasFull) staminaTs=Date.now();
+  saveStamina();
+  return true;
+}
+loadStamina();
 
 /* ============ 状態 ============ */
 let G;
@@ -1059,7 +1413,8 @@ function newGame(){
     units:[], enemies:[], shots:[], fx:[],
     roster: Object.fromEntries(squad.map(t=>[t,{state:"ready",cd:0,times:0}])),
     spawnQ:[], waveTime:0, selectedType:null, selectedUnit:null,
-    speed:1, paused:false, t:0, defaultSkillMode:"auto"
+    speed:1, paused:false, t:0, defaultSkillMode:"auto",
+    endless: !!currentStage.endless, kills:0
   };
 }
 
@@ -1098,6 +1453,7 @@ function tryPlace(c,r){
   G.selectedType=null;
   refreshBar();
   Sound.play("place");
+  track("unit_place", {unit:t, stage_id:currentStage&&currentStage.id});
 }
 function retreat(u){
   // ガードナイト：倒れる/撤退時に周囲の味方へダメージシールドを残す
@@ -1150,36 +1506,75 @@ function fireSkill(u){
 }
 
 /* ============ ウェーブ ============ */
+// エンドレス用：ウェーブ番号に応じて敵編成を手続き生成
+function genEndlessWave(idx){
+  const specs=[];
+  const tier=Math.floor(idx/3); // 3ウェーブごとに難度アップ
+  const base=6+idx;             // 数も増える
+  // 基本の地上ラッシュ
+  specs.push({t:0.4,n:Math.min(20,base),gap:Math.max(0.3,0.9-idx*0.03),type: idx%2?"runner":"grunt"});
+  if(idx>=2) specs.push({t:3,n:Math.min(16,3+tier*2),gap:0.4,type:"swarm"});
+  if(idx>=3) specs.push({t:5,n:1+Math.floor(tier/1),gap:2,type:"brute"});
+  if(idx>=4) specs.push({t:4,n:2+tier,gap:0.8,type:"flyer"});
+  if(idx>=5) specs.push({t:6,n:1+Math.floor(tier/2),gap:1.6,type:"mender"});
+  if(idx>=6) specs.push({t:5,n:1+Math.floor(tier/2),gap:2,type:"shielder"});
+  if(idx>=7) specs.push({t:7,n:1,gap:1,type:"captain"});
+  if(idx>=8) specs.push({t:6,n:1+Math.floor(tier/3),gap:1.8,type:"splitter"});
+  if(idx>=9) specs.push({t:8,n:Math.floor(tier/2),gap:1.6,type:"raptor"});
+  if(idx>=9) specs.push({t:6,n:2+tier,gap:1.0,type:"gunner"});
+  if(idx>=6) specs.push({t:7,n:2+tier,gap:0.7,type:"stinger"});   // 高速空中ラッシュ
+  if(idx>=10) specs.push({t:9,n:1+Math.floor(tier/3),gap:3,type:"gunship"}); // 大型砲撃艦
+  // 5の倍数ウェーブはボス
+  if(idx>0 && idx%5===4) specs.push({t:10,n:1,gap:1,type:"boss"});
+  return specs;
+}
 function startWave(){
   if(G.state==="wave"||G.state==="won"||G.state==="lost")return;
   G.waveIndex++;
-  if(G.waveIndex>=WAVES.length)return;
-  const specs=WAVES[G.waveIndex];
+  let specs;
+  if(G.endless){
+    specs=genEndlessWave(G.waveIndex);
+  }else{
+    if(G.waveIndex>=WAVES.length)return;
+    specs=WAVES[G.waveIndex];
+  }
   G.spawnQ=[];
   for(const s of specs){
-    for(let i=0;i<s.n;i++) G.spawnQ.push({t:s.start+i*s.gap,type:s.t});
+    for(let i=0;i<s.n;i++) G.spawnQ.push({t:s.start!=null?s.start+i*s.gap:s.t+i*s.gap,type:s.type||s.t});
   }
   G.spawnQ.sort((a,b)=>a.t-b.t);
   G.waveTime=0; G.state="wave"; G.combatStarted=true;
   Sound.play("waveStart"); Sound.setMusicIntensity(0.3);
   updateHUD();
 }
-function spawnEnemy(type){
+function spawnEnemy(type, opts){
   const e=ENEMY[type];
-  // ウェーブが進むほど少し強化
-  const scale=1+G.waveIndex*0.06;
+  // ウェーブが進むほど少し強化（エンドレスはより急峻）
+  const scale=1+G.waveIndex*0.06 + (G.endless?G.waveIndex*0.04:0);
   const fly=!!e.fly;
   // 地上敵：分岐マップなら経路をランダムに選ぶ
   let way;
   if(fly){ way=FLYWAY; }
   else if(BRANCHES){ way=BRANCHES[Math.floor(Math.random()*BRANCHES.length)]; }
   else { way=WAY; }
-  G.enemies.push({
+  const en={
     type,e,fly,way,x:way[0].x,y:way[0].y,wp:1,
     hp:e.hp*scale,maxHp:e.hp*scale,spd:e.spd,
-    atk:e.atk,cd:Math.random()*0.5,acd:Math.random()*0.5,
+    atk:e.atk*(G.endless?1+G.waveIndex*0.03:1),cd:Math.random()*0.5,acd:Math.random()*0.5,
+    shield:e.shield?e.shield*scale:0, shieldMax:e.shield?e.shield*scale:0,
     blockedBy:null,slow:1,stun:0,progress:0,poisonT:0,poisonDmg:0,freezeT:0,slowHitT:0,slowHitF:1
-  });
+  };
+  // 分裂で生まれた子は指定位置・経路を引き継ぐ
+  if(opts){
+    if(opts.way){ en.way=opts.way; }
+    if(opts.wp!=null){ en.wp=opts.wp; }
+    if(opts.x!=null){ en.x=opts.x; en.y=opts.y; }
+    if(opts.progress!=null){ en.progress=opts.progress; }
+  }
+  G.enemies.push(en);
+  // ボス級の登場演出
+  if(e.r>=22 && !opts){ Sound.play("bossSpawn"); flash("⚠ "+e.name+" 出現！"); addFx({type:"ring",x:en.x,y:en.y,r:60,col:e.col,life:0.8}); }
+  return en;
 }
 
 /* ============ 更新 ============ */
@@ -1214,7 +1609,18 @@ function update(dt){
   }
 
   // --- オーラ初期化（サポート） ---
-  for(const e of G.enemies)e.slow=1;
+  for(const e of G.enemies){e.slow=1;e.enAtkBuff=1;}
+  // --- 敵・隊長オーラ：周囲の敵を加速＆攻撃強化 ---
+  for(const cap of G.enemies){
+    if(!cap.e.auraR)continue;
+    const R=cap.e.auraR*TILE;
+    for(const e of G.enemies){ if(e===cap)continue; if(dist(cap,e)<=R){
+      e.captainSpd=Math.max(e.captainSpd||1,cap.e.auraSpd||1);
+      e.enAtkBuff=Math.max(e.enAtkBuff,cap.e.auraAtk||1);
+    }}
+  }
+  // 隊長が射程外になった敵のバフは毎フレーム減衰（captainSpdを一旦リセットして上で再付与）
+  for(const e of G.enemies){ if(!G.enemies.some(c=>c.e.auraR && c!==e && dist(c,e)<=c.e.auraR*TILE)) e.captainSpd=1; }
   for(const u of G.units){u.spdBuff=1;u.atkBuff=1;u.shield=u.shield||0;}
   for(const u of G.units){
     if(u.cfg.kind!=="support")continue;
@@ -1266,12 +1672,17 @@ function update(dt){
     for(let i=0;i<toSpawn;i++) spawnToken(u);
   }
 
-  // --- 毒(DoT)・凍結の経過処理 ---
+  // --- 毒(DoT)・凍結・自己回復の経過処理 ---
   for(const en of G.enemies){
     if(en.poisonT>0){
       en.poisonT-=dt;
       en.hp-=en.poisonDmg*dt;
       if(Math.random()<dt*4) addFx({type:"hit",x:en.x+(Math.random()*8-4),y:en.y-en.e.r,col:"#9bd44a",life:0.2});
+    }
+    // 自己回復する敵（毒を受けている間は回復しない＝毒が有効）
+    if(en.e.selfHeal && en.poisonT<=0 && en.hp<en.maxHp){
+      en.hp=Math.min(en.maxHp,en.hp+en.e.selfHeal*dt);
+      if(Math.random()<dt*3) addFx({type:"hit",x:en.x+(Math.random()*8-4),y:en.y-en.e.r,col:"#7ee0a0",life:0.25});
     }
     if(en.freezeT>0){ en.freezeT-=dt; }
     // シャーマンのヒット減速（時間経過で解除）
@@ -1282,17 +1693,32 @@ function update(dt){
   // --- ブロック割り当て ---
   for(const u of G.units)u.blocking=[];
   const ordered=[...G.enemies].sort((a,b)=>b.progress-a.progress);
+  // まず地上敵を通常ブロック
   for(const en of ordered){
     en.blockedBy=null;
-    if(en.fly)continue; // 飛行敵はブロックされない
+    if(en.fly)continue; // 飛行敵は通常ブロック対象外（下の空中ブロックで処理）
     const [c,r]=cellOfPx(en.x,en.y);
     const u=unitAtCell(c,r);
-    if(!u||u.cfg.kind!=="melee")continue;
+    if(!u||u.cfg.kind!=="melee"||u.cfg.airBlock&&u.cfg.targets==="air")continue;
     const blockCap=(u.skillActive&&u.cfg.skill&&u.cfg.skill.block)?u.cfg.skill.block:u.cfg.block;
     if(blockCap>0&&u.blocking.length<blockCap){
       u.blocking.push(en); en.blockedBy=u;
     }
   }
+  // 空中ブロック：airBlockユニットが射程内の飛行敵を引きずり下ろして足止め
+  for(const u of G.units){
+    if(!u.cfg.airBlock)continue;
+    const cap=(u.skillActive&&u.cfg.skill&&u.cfg.skill.airBlockCap)?u.cfg.skill.airBlockCap:u.cfg.airBlockCap;
+    const R=((u.skillActive&&u.cfg.skill&&u.cfg.skill.airReach)?u.cfg.skill.airReach:u.cfg.airReach)*TILE;
+    // 進行度の高い（出口に近い）飛行敵から優先的に捕捉
+    for(const en of ordered){
+      if(u.blocking.length>=cap)break;
+      if(!en.fly||en.blockedBy)continue;
+      if(dist(u,en)<=R){ u.blocking.push(en); en.blockedBy=u; en.airPinned=true; }
+    }
+  }
+  // 捕捉が解けた飛行敵のピン解除
+  for(const en of G.enemies){ if(en.fly && !en.blockedBy) en.airPinned=false; }
 
   // --- 敵 移動・攻撃 ---
   for(const en of G.enemies){
@@ -1305,7 +1731,7 @@ function update(dt){
         if(en.cd<=0){
           en.cd=en.e.interval;
           const u=en.blockedBy;
-          let dmg=en.atk;
+          let dmg=en.atk*(en.enAtkBuff||1);
           if(u.skillActive&&u.cfg.skill&&u.cfg.skill.dr)dmg*=(1-u.cfg.skill.dr);
           dmg=applyToUnit(u,dmg);
           if(u.hp<=0)retreat(u);
@@ -1325,7 +1751,7 @@ function update(dt){
         for(const u of G.units){const d=dist(en,u); if(d<=R&&d<best){best=d;tgt=u;}}
         if(tgt){
           en.acd=en.e.interval;
-          G.shots.push({x:en.x,y:en.y,target:tgt,dmg:en.atk,col:en.e.col,kind:"ebolt",spd:430,enemy:true});
+          G.shots.push({x:en.x,y:en.y,target:tgt,dmg:en.atk*(en.enAtkBuff||1),col:en.e.col,kind:"ebolt",spd:430,enemy:true});
         }
       }
     }
@@ -1338,7 +1764,7 @@ function update(dt){
       addFx({type:"leak",x:en.x,y:en.y,life:0.5}); Sound.play("leak");
       continue;
     }
-    const step=en.spd*TILE*en.slow*dt;
+    const step=en.spd*TILE*en.slow*(en.captainSpd||1)*dt;
     const dx=tgt.x-en.x, dy=tgt.y-en.y, d=Math.hypot(dx,dy);
     if(d<=step){ en.x=tgt.x; en.y=tgt.y; en.wp++; }
     else { en.x+=dx/d*step; en.y+=dy/d*step; }
@@ -1405,9 +1831,8 @@ function update(dt){
         // ハルバーディア：ブロック中の地上敵と低空の敵を同時に薙ぐ
         if(u.cfg.airReach && u.blocking.length && airTarget && !hits.includes(airTarget)) hits.push(airTarget);
         for(const h of hits){
-          h.hp-=dmg;
           addFx({type:"slash",x:h.x,y:h.y,col:u.cfg.color,life:0.2});
-          floatNum(h.x,h.y,dmg,u.cfg.color);
+          hurtEnemy(h,dmg,u.cfg.color);
         }
         Sound.play("melee");
         // バーサーカー：スキル中はライフスティール
@@ -1537,7 +1962,7 @@ function update(dt){
       } else if(s.kind==="aoe"){
         const R=s.aoeR;
         for(const en of G.enemies){
-          if(canHit(s.owner,en) && dist(en,s.target)<=R){en.hp-=s.dmg; en.stun=Math.max(en.stun,s.stun); floatNum(en.x,en.y,s.dmg,s.col);}
+          if(canHit(s.owner,en) && dist(en,s.target)<=R){en.stun=Math.max(en.stun,s.stun); hurtEnemy(en,s.dmg,s.col);}
         }
         addFx({type:"ring",x:s.target.x,y:s.target.y,r:R,col:s.col,life:0.4});
       } else if(s.kind==="chain"){
@@ -1565,8 +1990,28 @@ function update(dt){
 
   // --- 死亡処理 ---
   for(const en of G.enemies){
-    if(en.hp<=0&&!en._dead){en._dead=true; G.dp=Math.min(G.dpMax,G.dp+G.killDP);
-      addFx({type:"pop",x:en.x,y:en.y,col:en.e.col,life:0.35});}
+    if(en.hp<=0&&!en._dead){
+      en._dead=true; G.dp=Math.min(G.dpMax,G.dp+G.killDP);
+      if(G.endless) G.kills=(G.kills||0)+1;
+      // 撃破エフェクト強化：破片＋リング＋ボスは大爆発
+      const big=en.e.r>=22;
+      addFx({type:"pop",x:en.x,y:en.y,col:en.e.col,life:big?0.6:0.38});
+      addFx({type:"ring",x:en.x,y:en.y,r:big?en.e.r*2.4:en.e.r*1.4,col:en.e.col,life:big?0.55:0.35});
+      const nFrag=big?12:5;
+      for(let i=0;i<nFrag;i++){
+        const a=Math.random()*Math.PI*2, sp=40+Math.random()*(big?160:90);
+        addFx({type:"frag",x:en.x,y:en.y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,col:en.e.col,life:0.4+Math.random()*0.3,r:big?3:2});
+      }
+      if(big){ Sound.play("aoe"); flash(en.e.name+" を撃破！"); }
+      // 分裂体：小型を生み出す
+      if(en.e.splitInto){
+        Sound.play("split");
+        for(let i=0;i<(en.e.splitN||2);i++){
+          spawnEnemy(en.e.splitInto,{way:en.way,wp:en.wp,x:en.x+(Math.random()*20-10),y:en.y+(Math.random()*20-10),progress:en.progress});
+        }
+        addFx({type:"ring",x:en.x,y:en.y,r:en.e.r*1.8,col:"#ff9ad1",life:0.4});
+      }
+    }
   }
   G.enemies=G.enemies.filter(e=>!e._dead);
   G.shots=G.shots.filter(s=>!s._dead);
@@ -1583,7 +2028,7 @@ function update(dt){
     if(f.type==="shell" && !f._blown && f.age>=f.delay){
       f._blown=true;
       for(const en of G.enemies){
-        if((!f.fromU||canHit(f.fromU,en)) && dist(en,f)<=f.aoeR){ en.hp-=f.dmg; floatNum(en.x,en.y,f.dmg,f.col); }
+        if((!f.fromU||canHit(f.fromU,en)) && dist(en,f)<=f.aoeR){ hurtEnemy(en,f.dmg,f.col); }
       }
       addFx({type:"ring",x:f.x,y:f.y,r:f.aoeR,col:f.col,life:0.4});
       addFx({type:"pop",x:f.x,y:f.y,col:f.col,life:0.4});
@@ -1592,10 +2037,37 @@ function update(dt){
   G.fx=G.fx.filter(f=>f.age<f.life);
 
   // --- 勝敗・ウェーブクリア ---
-  if(G.life<=0){G.life=0;G.state="lost";clearTransient();Sound.stopMusic();Sound.play("lose");showOverlay("lose");}
+  if(G.life<=0){
+    G.life=0;G.state="lost";clearTransient();Sound.stopMusic();Sound.play("lose");
+    if(G.endless){ G.prevBest={...endlessBest}; recordEndless(G.waveIndex+1, G.kills||0);
+      track("endless_gameover", {wave_reached:G.waveIndex+1, kills:G.kills||0});
+    } else {
+      track("battle_lose", {stage_id:currentStage.id, stage_name:currentStage.name, wave:G.waveIndex+1});
+    }
+    showOverlay("lose");
+  }
   else if(G.state==="wave"&&G.spawnQ.length===0&&G.enemies.length===0){
     clearTransient();
-    if(G.waveIndex>=WAVES.length-1){G.state="won";G.clearStars=calcStars(currentStage,G.life);recordClear(currentStage.id,G.clearStars);G.gainedXP=clearXP(currentStage,G.clearStars);playerXP+=G.gainedXP;saveProgress();Sound.stopMusic();Sound.play("win");showOverlay("win");}
+    if(G.endless){
+      // エンドレス：勝利せず、少しXPを与えて次ウェーブへ進める
+      const bonus=8+G.waveIndex*2; playerXP+=bonus; saveProgress();
+      G.state="ready"; Sound.setMusicIntensity(0.16);
+      track("endless_wave_clear", {wave:G.waveIndex+1, kills:G.kills||0});
+      flash("ウェーブ "+(G.waveIndex+1)+" 突破！ XP+"+bonus+"　次のウェーブへ");
+    }
+    else if(G.waveIndex>=WAVES.length-1){
+      G.state="won";
+      G.clearStars=calcStars(currentStage,G.life);
+      const firstClear = !clearData[currentStage.id];   // 記録前に初クリア判定
+      recordClear(currentStage.id,G.clearStars);
+      G.gainedXP=clearXP(currentStage,G.clearStars); playerXP+=G.gainedXP;
+      // メダルは初クリア時のみ獲得
+      G.gainedMedals = firstClear ? clearMedals(G.clearStars) : 0;
+      medals += G.gainedMedals;
+      saveProgress(); saveEconomy();
+      track("battle_win", {stage_id:currentStage.id, stage_name:currentStage.name, stars:G.clearStars, first_clear:firstClear, medals_gained:G.gainedMedals, xp_gained:G.gainedXP});
+      Sound.stopMusic(); Sound.play("win"); showOverlay("win");
+    }
     else{G.state="ready";Sound.setMusicIntensity(0.16);flash("ウェーブクリア！ 次へ進めます");}
   }
   updateHUD();
@@ -1627,9 +2099,19 @@ function pickHeal(u){ // 射程内で最もHP割合の低い負傷味方
   return best;
 }
 function shot(u,tg,dmg,col,kind){return {x:u.x,y:u.y,target:tg,dmg,col,kind,spd:520,owner:u};}
+// 敵へのダメージ適用（シールドを先に削る）。色付きの数字も出す。
+function hurtEnemy(en,dmg,col){
+  if(en.shield>0){
+    const a=Math.min(en.shield,dmg); en.shield-=a; dmg-=a;
+    floatNum(en.x,en.y-6,a,"#88c0ff");
+    addFx({type:"hit",x:en.x,y:en.y,col:"#88c0ff",life:0.2});
+    if(en.shield<=0){ Sound.play("shieldBreak"); addFx({type:"ring",x:en.x,y:en.y,r:en.e.r*1.8,col:"#88c0ff",life:0.4}); }
+  }
+  if(dmg>0){ en.hp-=dmg; floatNum(en.x,en.y,dmg,col); }
+}
 // 弾の命中効果（ダメージ＋毒/凍結/減速）を敵に適用
 function applyBolt(s,en,dmg){
-  en.hp-=dmg; floatNum(en.x,en.y,dmg,s.col);
+  hurtEnemy(en,dmg,s.col);
   if(s.poison){ en.poisonDmg=s.poison; en.poisonT=Math.max(en.poisonT||0,s.poisonDur); }
   if(s.freeze){
     en.freezeT=Math.max(en.freezeT||0,s.freeze);
@@ -1847,8 +2329,37 @@ function drawEnemy(en){
   if(en.freezeT>0){ctx.strokeStyle="#9fe0ff";ctx.lineWidth=3;ctx.beginPath();ctx.arc(x,y,r+2,0,7);ctx.stroke();
     ctx.fillStyle="rgba(159,224,255,.28)";ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill();}
   if(en.poisonT>0){ctx.fillStyle="#9bd44a";ctx.font="10px sans-serif";ctx.textAlign="center";ctx.fillText("☣",x+r,y-r);}
-  // HPバー
+  // シールド（青い六角リング＋シールドバー）
+  if(en.shield>0){
+    ctx.strokeStyle="#88c0ff";ctx.lineWidth=2.5;ctx.globalAlpha=.8;
+    ctx.beginPath();ctx.arc(x,y,r+5,0,7);ctx.stroke();ctx.globalAlpha=1;
+  }
+  // 隊長オーラ（金色の脈動リング）
+  if(en.e.auraR){
+    const pulse=0.5+0.5*Math.sin(G.t*4);
+    ctx.strokeStyle=hexA("#ffd24a",.18+.18*pulse);ctx.lineWidth=2;
+    ctx.beginPath();ctx.arc(x,y,en.e.auraR*TILE,0,7);ctx.stroke();
+    ctx.fillStyle="#ffd24a";ctx.font="bold 10px sans-serif";ctx.textAlign="center";ctx.fillText("★",x,y-r-5);
+  }
+  // 隊長バフを受けている敵（赤い小マーク）
+  else if(en.enAtkBuff>1||en.captainSpd>1){
+    ctx.fillStyle="#ff8c42";ctx.font="9px sans-serif";ctx.textAlign="center";ctx.fillText("▲",x,y-r-4);
+  }
+  // 自己回復（緑の十字）
+  if(en.e.selfHeal){ ctx.fillStyle="#7ee0a0";ctx.font="bold 10px sans-serif";ctx.textAlign="center";ctx.fillText("＋",x-r,y-r); }
+  // 投網で捕捉された飛行敵（緑の網リング）
+  if(en.airPinned){
+    ctx.strokeStyle="#4fd0a0";ctx.lineWidth=2;ctx.setLineDash([3,3]);
+    ctx.beginPath();ctx.arc(x,y,r+4,0,7);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle="#4fd0a0";ctx.font="bold 11px sans-serif";ctx.textAlign="center";ctx.fillText("網",x,y+r+11);
+  }
+  // HPバー＋シールドバー
   hpBar(x,y-r-7,Math.max(20,r*2),en.hp/en.maxHp,en.fly?"#67d8e8":"#ff5b6e");
+  if(en.shieldMax>0){
+    const w=Math.max(20,r*2);
+    ctx.fillStyle="rgba(0,0,0,.4)";ctx.fillRect(x-w/2,y-r-11,w,3);
+    ctx.fillStyle="#88c0ff";ctx.fillRect(x-w/2,y-r-11,w*(en.shield/en.shieldMax),3);
+  }
 }
 function hpBar(cx,y,w,ratio,col){
   ratio=Math.max(0,Math.min(1,ratio));
@@ -1890,6 +2401,11 @@ function drawFx(f){
   }else if(f.type==="num"){
     ctx.fillStyle=hexA(f.col,1-p);ctx.font="700 13px 'Chakra Petch'";ctx.textAlign="center";
     ctx.fillText(f.pre+f.v,f.x,f.y+f.vy*p);
+  }else if(f.type==="frag"){
+    // 撃破時の飛び散る破片
+    const fx=f.x+f.vx*f.age, fy=f.y+f.vy*f.age + 40*f.age*f.age;
+    ctx.fillStyle=hexA(f.col,1-p);
+    ctx.beginPath();ctx.arc(fx,fy,(f.r||2)*(1-p*0.6),0,7);ctx.fill();
   }
 }
 function roundRect(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);
@@ -1906,7 +2422,11 @@ function flash(m){flashMsg=m;flashT=2.2;}
 function updateHUD(){
   dpVal.textContent=Math.floor(G.dp);
   lifeVal.textContent=G.life;
-  waveVal.textContent=Math.max(0,G.waveIndex+ (G.state==="wave"?1:0))+" / "+WAVES.length;
+  if(G.endless){
+    waveVal.textContent="WAVE "+Math.max(0,G.waveIndex+(G.state==="wave"?1:0))+(endlessBest.wave?"  (最高 "+endlessBest.wave+")":"");
+  }else{
+    waveVal.textContent=Math.max(0,G.waveIndex+ (G.state==="wave"?1:0))+" / "+WAVES.length;
+  }
   let s;
   if(G.state==="ready")s=G.waveIndex<0?"配置して戦闘開始":"次のウェーブ準備中";
   else if(G.state==="wave")s="ウェーブ "+(G.waveIndex+1)+" 進行中  残:"+(G.enemies.length+G.spawnQ.length);
@@ -1916,7 +2436,8 @@ function updateHUD(){
   statusVal.textContent=s;
   unitCountEl.textContent=G.units.length;
   unitCountEl.parentElement.classList.toggle("full",G.units.length>=MAX_UNITS);
-  startBtn.disabled=!(G.state==="ready"&&G.waveIndex<WAVES.length-1);
+  // エンドレスは常に次ウェーブへ進める
+  startBtn.disabled=!(G.state==="ready"&&(G.endless||G.waveIndex<WAVES.length-1));
   startBtn.textContent=G.waveIndex<0?"▶ 戦闘開始":"▶ 次のウェーブ ("+(G.waveIndex+2)+")";
 }
 
@@ -2063,11 +2584,21 @@ function showOverlay(kind){
     starsEl.innerHTML=[1,2,3].map(i=>`<span class="star ${i<=s?'on':''}">★</span>`).join("");
     starsEl.style.display="flex";
     const rate = s===3?"★★★ 完全防衛（ノーダメージ）！":s===2?"★★ 見事な防衛！":"★ 防衛成功";
-    ovText.textContent=rate+"  ／  残ライフ "+G.life+"/"+currentStage.life+"  ／  経験値 +"+(G.gainedXP||0);
+    ovText.textContent=rate+"  ／  残ライフ "+G.life+"/"+currentStage.life+"  ／  経験値 +"+(G.gainedXP||0)
+      + (G.gainedMedals>0 ? "  ／  🏅メダル +"+G.gainedMedals : "  ／  🏅メダルは初クリア時のみ");
   } else {
-    ovTitle.textContent="MISSION FAILED";
     starsEl.style.display="none";
-    ovText.textContent="防衛ラインが突破されました。配置を見直して再挑戦を。";
+    if(G.endless){
+      const reached=G.waveIndex+1, kills=G.kills||0;
+      const pb=G.prevBest||{wave:0,kills:0};
+      const isBest=(reached>pb.wave)||(reached===pb.wave&&kills>pb.kills);
+      ovTitle.textContent="GAME OVER";
+      ovText.innerHTML="到達 <b style='color:var(--cyan)'>WAVE "+reached+"</b>　／　撃破 <b style='color:var(--amber)'>"+kills+"</b> 体"
+        + (isBest?"　<b style='color:var(--gold)'>★自己ベスト更新！</b>":"　（自己ベスト WAVE "+pb.wave+"）");
+    } else {
+      ovTitle.textContent="MISSION FAILED";
+      ovText.textContent="防衛ラインが突破されました。配置を見直して再挑戦を。";
+    }
   }
 }
 function reset(){G=newGame();ov.className="overlay";buildBar();refreshBar();syncRetreatBtn();updateHUD();}
@@ -2090,16 +2621,41 @@ const screens={title:"scTitle",squad:"scSquad",stage:"scStage",train:"scTrain"};
 function showScreen(name){
   document.querySelectorAll(".screen").forEach(s=>s.classList.remove("show"));
   document.getElementById(screens[name]).classList.add("show");
+  if(name==="title")refreshHomeStats();
   if(name==="squad")buildSquad();
   if(name==="stage")buildStageList();
   if(name==="train")buildTrain();
   window.scrollTo(0,0);
+  track("screen_view", {screen_name:name});
+}
+function refreshHomeStats(){
+  regenStamina();
+  const fill=document.getElementById("homeStamFill"), sm=document.getElementById("homeStam"),
+    sr=document.getElementById("homeStamRegen"),
+    md=document.getElementById("homeMedals"), xp=document.getElementById("homeXP");
+  if(fill) fill.style.width=(stamina/STAMINA_MAX*100)+"%";
+  if(sm) sm.textContent=stamina+" / "+STAMINA_MAX;
+  if(sr){
+    if(stamina>=STAMINA_MAX) sr.textContent="満タン";
+    else { const s=staminaNextSec(); sr.textContent="次の+1まで "+Math.floor(s/60)+":"+String(s%60).padStart(2,"0"); }
+  }
+  if(md) md.textContent=medals;
+  if(xp) xp.textContent=playerXP;
 }
 function gotoMenu(name){battleEl.style.display="none";menuEl.style.display="block";Sound.stopMusic();showScreen(name);}
 function gotoBattle(stage){
+  // スタミナ消費（不足なら開始不可）
+  if(!spendStamina(STAMINA_COST)){
+    const sec=staminaNextSec();
+    track("stamina_blocked", {stage_id:stage.id, stamina:stamina});
+    alert("スタミナが足りません（必要 "+STAMINA_COST+" / 所持 "+stamina+"）。\n約"+Math.ceil(sec/60)+"分で回復します。");
+    return;
+  }
+  refreshStaminaUI();
+  track("battle_start", {stage_id:stage.id, stage_name:stage.name, endless:!!stage.endless, squad_size:squad.length});
   currentStage=stage; WAVES=stage.waves;
   loadMap(stage.map||"serpent");
-  if(squad.length===0)squad=ORDER.slice(0,SQUAD_MAX); // 念のため
+  if(squad.length===0)squad=ownedList().slice(0,SQUAD_MAX); // 念のため（所持キャラから）
   menuEl.style.display="none"; battleEl.style.display="block";
   document.getElementById("battleStage").textContent="STAGE "+stage.id+" — "+stage.name;
   reset();
@@ -2113,6 +2669,10 @@ document.querySelectorAll("[data-go]").forEach(b=>{
 document.getElementById("quitBtn").onclick=()=>gotoMenu("stage");
 document.getElementById("detailClose").onclick=closeDetail;
 document.getElementById("detailModal").addEventListener("click",e=>{ if(e.target.id==="detailModal")closeDetail(); });
+document.getElementById("rankBtn").onclick=openRank;
+document.getElementById("rankClose").onclick=closeRank;
+document.getElementById("rankModal").addEventListener("click",e=>{ if(e.target.id==="rankModal")closeRank(); });
+document.getElementById("rankMore").onclick=()=>{ rankShown+=10; renderRank(); };
 
 /* ----- キャラ性能確認 ----- */
 // 詳細モーダル（旧・性能画面の内容を表示）
@@ -2140,21 +2700,29 @@ function renderDetail(t){
   if(c.duelMul)rows.push(["決闘倍率","×"+c.duelMul]);
   rows.push(["コスト",c.cost+" DP"]);
   const statHTML=rows.map(r=>`<div class="row"><span>${r[0]}</span><span>${r[1]}</span></div>`).join("");
-  // 育成ボタン
-  const need=maxed?0:xpToNext(lv), can=!maxed&&playerXP>=need;
-  const trainBtn=maxed?`<button class="tbtn" disabled>最大レベル</button>`
-    :`<button class="tbtn ${can?'ok':''}" id="detailTrainBtn" ${can?'':'disabled'}>育成 (XP ${need})</button>`;
+  const own=isOwned(t);
+  // ボタン：所持なら育成、未所持なら解放
+  let actionRow;
+  if(!own){
+    const cost=unlockCost(t), canBuy=medals>=cost;
+    actionRow=`<div class="dxp">🏅メダル ${medals}　<button class="tbtn unlock ${canBuy?'ok':''}" id="detailUnlockBtn" ${canBuy?'':'disabled'}>🏅 解放 (${cost})</button></div>`;
+  }else{
+    const need=maxed?0:xpToNext(lv), can=!maxed&&playerXP>=need;
+    const trainBtn=maxed?`<button class="tbtn" disabled>最大レベル</button>`
+      :`<button class="tbtn ${can?'ok':''}" id="detailTrainBtn" ${can?'':'disabled'}>育成 (XP ${need})</button>`;
+    actionRow=`<div class="dxp">所持XP ${playerXP}　${trainBtn}</div>`;
+  }
   document.getElementById("detailBody").innerHTML=`
     <div class="codex" style="--c:${c.color};border:0;padding:0">
       <div class="ch">
-        <div class="cico">${c.letter}</div>
-        <div><div class="cn">${c.name}</div><div class="cr">${c.role}</div></div>
+        <div class="cico">${own?c.letter:'🔒'}</div>
+        <div><div class="cn">${c.name}${own?'':' <span style="font-size:11px;color:var(--dim)">（未所持）</span>'}</div><div class="cr">${c.role}</div></div>
         <span class="place ${c.place}">${c.place==="road"?"通路":"高台"}</span>
       </div>
       <div class="tgt">${roleBadge(t)} ${targetBadge(c.targets)}</div>
       <div class="roledesc">${roleInfo(t).desc}</div>
       <div class="lvbar" style="margin:8px 0"><div class="lvfill" style="width:${(lv/MAX_LEVEL)*100}%"></div></div>
-      <div class="dxp">所持XP ${playerXP}　${trainBtn}</div>
+      ${actionRow}
       <div class="stats">${statHTML}</div>
       <div class="desc">${CODEX_DESC[t]||""}</div>
       <div class="sk">★ <b>${c.skill.name}</b>：${SKILL_DESC[t]||""}</div>
@@ -2165,6 +2733,13 @@ function renderDetail(t){
     if(r==="ok"){ Sound.play("skill"); renderDetail(t); refreshXPBadge();
       const card=[...document.getElementById("trainGrid").children].find(x=>x.dataset.t===t);
       if(card)renderTrainCard(card,t);
+      [...document.getElementById("trainGrid").children].forEach(x=>renderTrainCard(x,x.dataset.t));
+    }
+  };
+  const ub=document.getElementById("detailUnlockBtn");
+  if(ub) ub.onclick=()=>{
+    const r=unlockUnit(t);
+    if(r==="ok"){ Sound.play("killcoin"); renderDetail(t); refreshXPBadge();
       [...document.getElementById("trainGrid").children].forEach(x=>renderTrainCard(x,x.dataset.t));
     }
   };
@@ -2193,7 +2768,8 @@ const ROLE_OF={
   halberdier:"tank", guardknight:"tank", duelist:"attacker", revenger:"attacker", marksman:"shooter",
   poisoner:"shooter", chaincaster:"trickster", freezer:"trickster", shaman:"supporter",
   summoner:"trickster", bard:"supporter", alchemist:"breaker", prospector:"breaker",
-  warlord:"attacker", archmage:"shooter", valkyrie:"shooter", highpriest:"healer", archon:"supporter"
+  warlord:"attacker", archmage:"shooter", valkyrie:"shooter", highpriest:"healer", archon:"supporter",
+  netcaster:"tank"
 };
 function roleOf(t){ return ROLE_OF[t]||"attacker"; }
 function roleInfo(t){ return ROLE_INFO[roleOf(t)]; }
@@ -2232,7 +2808,8 @@ const CODEX_DESC={
   archmage:"高コストの大魔導。広範囲に高威力の爆撃を放ち、地上・空中をまとめて消し飛ばす。",
   valkyrie:"高コストの高速射手。最大HPの敵を超高速で狙撃し続ける重装・ボスキラー。",
   highpriest:"高コストの大司祭。広範囲を高速・大回復で支える最上位ヒーラー。",
-  archon:"高コストの軍神。強力な減速と全体強化を同時に振りまく最上位サポーター。"
+  archon:"高コストの軍神。強力な減速と全体強化を同時に振りまく最上位サポーター。",
+  netcaster:"通路に置く対空の壁役。投網で飛行敵を引きずり下ろし、最大2体まで足止めして殴る。空のラッシュを止める要。"
 };
 const SKILL_DESC={
   tank:"一定時間ダメージを大幅軽減し自己回復する。",
@@ -2267,7 +2844,8 @@ const SKILL_DESC={
   archmage:"威力・範囲が激増し長時間スタンも付与する超火力の隕石召喚。",
   valkyrie:"攻撃力2.8倍・連射速度UPで単体を瞬溶かしする。",
   highpriest:"回復量・速度UPの広範囲回復領域を展開する。",
-  archon:"減速・全体攻撃強化・速度UPを極限まで高める軍神の号令。"
+  archon:"減速・全体攻撃強化・速度UPを極限まで高める軍神の号令。",
+  netcaster:"投網範囲を広げ捕捉数を3体に増やし、攻撃力もUP。空の大群を一網打尽。"
 };
 
 /* ----- 育成 ----- */
@@ -2283,7 +2861,7 @@ function buildTrain(){
     renderTrainCard(d,t);
   }
 }
-function refreshXPBadge(){ const b=document.getElementById("xpBadge"); if(b)b.textContent="所持XP "+playerXP; }
+function refreshXPBadge(){ const b=document.getElementById("xpBadge"); if(b)b.textContent="所持XP "+playerXP+"　🏅メダル "+medals; }
 function renderTrainCard(d,t){
   const c=TYPES[t], lv=getLevel(t), m=lvlMul(t);
   const maxed=lv>=MAX_LEVEL;
@@ -2291,6 +2869,34 @@ function renderTrainCard(d,t){
   const can=!maxed&&playerXP>=need;
   const hpV=statHP(c,t), atkV=statATK(c,t), healV=statHEAL(c,t);
   const stat = c.heal?`回復 ${healV}`:(c.atk?`攻撃 ${atkV}`:"支援");
+  const own=isOwned(t);
+  d.classList.toggle("locked",!own);
+  if(!own){
+    // 未所持：ロック表示＋解放ボタン
+    const cost=unlockCost(t), canBuy=medals>=cost;
+    d.innerHTML=`
+      <div class="th">
+        <div class="cico locked">🔒</div>
+        <div><div class="cn">${c.name}</div><div class="lv">未所持</div></div>
+      </div>
+      <div class="trole">${roleBadge(t)}</div>
+      <div class="tstats">HP ${hpV}　/　${stat}</div>
+      <div class="tbtns">
+        <button class="tbtn unlock ${canBuy?'ok':''}" ${canBuy?'':'disabled'}>🏅 解放 (${cost})</button>
+        <button class="detailbtn" title="詳細を見る">詳細</button>
+      </div>`;
+    const ub=d.querySelector(".tbtn.unlock");
+    if(ub) ub.onclick=()=>{
+      const r=unlockUnit(t);
+      if(r==="ok"){ Sound.play("killcoin"); renderTrainCard(d,t); refreshXPBadge();
+        [...document.getElementById("trainGrid").children].forEach(x=>{ if(x!==d)renderTrainCard(x,x.dataset.t); });
+        if(detailOpenType===t) renderDetail(t);
+      } else if(r==="poor"){ flashTrain(d,"メダルが足りません"); }
+    };
+    const db=d.querySelector(".detailbtn");
+    if(db) db.onclick=()=>openDetail(t);
+    return;
+  }
   d.innerHTML=`
     <div class="th">
       <div class="cico">${c.letter}</div>
@@ -2333,22 +2939,31 @@ function targetMark(t){
 function buildSquad(){
   document.getElementById("squadMax").textContent=SQUAD_MAX;
   const g=document.getElementById("squadGrid"); g.innerHTML="";
-  for(const t of ORDER){
+  const list=ownedList();
+  for(const t of list){
     const c=TYPES[t];
     const d=document.createElement("div");
     d.className="scard"; d.dataset.t=t; d.style.setProperty("--c",c.color);
     d.innerHTML=`<div class="num"></div>
       <div class="cico">${c.letter}</div>
       <div class="cn">${c.name} <span class="sclv">Lv.${getLevel(t)}</span></div>
-      <div class="cr">${c.role} / ${c.place==="road"?"通路":"高台"}</div>
+      <div class="cr">${roleInfo(t).name} / ${c.place==="road"?"通路":"高台"}</div>
       <div class="cc">${c.cost} DP</div>
       <div class="tgmark">${targetMark(c.targets)}</div>`;
     d.addEventListener("click",()=>toggleSquad(t));
     g.appendChild(d);
   }
+  // 未所持の案内
+  const locked=ORDER.length-list.length;
+  let note=document.getElementById("squadLockNote");
+  if(!note){ note=document.createElement("p"); note.id="squadLockNote"; note.className="hint"; g.parentElement.insertBefore(note,g.nextSibling); }
+  note.innerHTML = locked>0
+    ? `未所持のキャラが <b>${locked}体</b> あります。「キャラ図鑑・育成」で<b>🏅メダル</b>を使って解放できます（所持メダル <b>${medals}</b>）。`
+    : `全キャラ解放済みです！`;
   refreshSquad();
 }
 function toggleSquad(t){
+  if(!isOwned(t)) return;
   const i=squad.indexOf(t);
   if(i>=0){ squad.splice(i,1); }
   else{
@@ -2379,19 +2994,80 @@ function gimmickTags(st){
   if(m.redeploy&&m.redeploy>1)tags.push("再出撃CT長");
   return tags.map(t=>`<span class="gtag">${t}</span>`).join("");
 }
+// ★3ステージの一括周回：スタミナを使い、戦闘せずXP報酬を一括取得（メダルは初クリア時のみなので無し）
+function openFarm(st){
+  regenStamina();
+  const maxRuns=Math.floor(stamina/STAMINA_COST);
+  if(maxRuns<=0){
+    const sec=staminaNextSec();
+    alert("スタミナが足りません（必要 "+STAMINA_COST+" / 所持 "+stamina+"）。\n約"+Math.ceil(sec/60)+"分で回復します。");
+    return;
+  }
+  // ★3前提の報酬（XPのみ）。1回あたりのXP
+  const perXP=clearXP(st,3);
+  const ans=prompt(
+    "【一括周回】"+st.name+"\n"
+    +"1回 = スタミナ"+STAMINA_COST+" / XP+"+perXP+"（メダルは付きません）\n"
+    +"所持スタミナ "+stamina+" → 最大 "+maxRuns+" 回\n\n"
+    +"周回する回数を入力（1〜"+maxRuns+"）：", String(maxRuns));
+  if(ans===null) return;
+  let n=parseInt(ans,10);
+  if(isNaN(n)||n<1){ return; }
+  n=Math.min(n,maxRuns);
+  // 実行
+  if(!spendStamina(STAMINA_COST*n)){ alert("スタミナが足りません。"); return; }
+  const gained=perXP*n;
+  playerXP+=gained; saveProgress();
+  Sound.play("killcoin");
+  track("batch_farm", {stage_id:st.id, runs:n, xp_gained:gained, stamina_left:stamina});
+  refreshStaminaUI();
+  buildStageList(); // 表示更新
+  alert("一括周回 完了！\n"+st.name+" ×"+n+" 回\n獲得XP +"+gained+"\n残スタミナ "+stamina);
+}
+function refreshStaminaUI(){
+  regenStamina();
+  const fill=document.getElementById("stamFill"), txt=document.getElementById("stamText"), rg=document.getElementById("stamRegen");
+  if(fill) fill.style.width=(stamina/STAMINA_MAX*100)+"%";
+  if(txt) txt.textContent=stamina+" / "+STAMINA_MAX;
+  if(rg){
+    if(stamina>=STAMINA_MAX) rg.textContent="満タン";
+    else { const s=staminaNextSec(); rg.textContent="次の+1まで "+Math.floor(s/60)+":"+String(s%60).padStart(2,"0"); }
+  }
+}
 function buildStageList(){
+  refreshStaminaUI();
   const g=document.getElementById("stageList"); g.innerHTML="";
   STAGES.forEach(st=>{
     const d=document.createElement("div");
+    if(st.endless){
+      // エンドレス専用カード（星でなく自己ベストを表示）
+      d.className="stagecard endless"+(endlessBest.wave>0?" cleared":"");
+      const bestTxt=endlessBest.wave>0?("自己ベスト WAVE "+endlessBest.wave+" ／ 撃破 "+endlessBest.kills):"記録なし";
+      d.innerHTML=`
+        <div class="sid">∞</div>
+        <div class="sinfo"><div class="sname">${st.name} <span class="ministars" style="color:var(--gold)">🏆 ${bestTxt}</span></div>
+          <div class="sdesc">${st.desc}</div>
+          <div class="gtags">${gimmickTags(st)}</div></div>
+        <div class="smeta">難易度<br><span class="dots">${"●".repeat(5)}</span><br>∞ WAVE / LIFE ${st.life}</div>
+        <div class="go">▶</div>`;
+      d.addEventListener("click",()=>{
+        if(squad.length===0){ alert("先に編成でキャラを1体以上選んでください。"); showScreen("squad"); return; }
+        gotoBattle(st);
+      });
+      g.appendChild(d);
+      return;
+    }
     const best=clearData[st.id]||0;
     d.className="stagecard"+(best>0?" cleared":"");
     const dots=Math.min(5,st.diff);
     const starHTML=[1,2,3].map(i=>`<span class="ms ${i<=best?'on':''}">★</span>`).join("");
+    const farmBtn = best===3 ? `<button class="farmbtn" title="スタミナを使って一括周回">⚡一括周回</button>` : "";
     d.innerHTML=`
       <div class="sid">${st.id}${best===3?'<div class="crown">👑</div>':''}</div>
       <div class="sinfo"><div class="sname">${st.name} <span class="ministars">${starHTML}</span></div>
         <div class="sdesc">${st.desc}</div>
-        <div class="gtags">${gimmickTags(st)}</div></div>
+        <div class="gtags">${gimmickTags(st)}</div>
+        ${farmBtn}</div>
       <div class="smeta">難易度<br><span class="dots">${"●".repeat(dots)}${"○".repeat(5-dots)}</span><br>
         ${st.waves.length} WAVE / LIFE ${st.life}</div>
       <div class="go">▶</div>`;
@@ -2399,10 +3075,12 @@ function buildStageList(){
       if(squad.length===0){ alert("先に編成でキャラを1体以上選んでください。"); showScreen("squad"); return; }
       gotoBattle(st);
     });
+    const fb=d.querySelector(".farmbtn");
+    if(fb) fb.addEventListener("click",(ev)=>{ ev.stopPropagation(); openFarm(st); });
     g.appendChild(d);
   });
-  // 総獲得星を見出しに表示
-  const total=Object.values(clearData).reduce((a,b)=>a+b,0), max=STAGES.length*3;
+  // 総獲得星を見出しに表示（エンドレスは除外）
+  const total=Object.values(clearData).reduce((a,b)=>a+b,0), max=STAGES.filter(s=>!s.endless).length*3;
   const h=document.querySelector("#scStage .sc-top h2");
   if(h) h.innerHTML='ステージ選択 <span style="font-size:13px;color:var(--gold)">★'+total+' / '+max+'</span>';
 }
@@ -2421,7 +3099,16 @@ function loop(now){
 }
 
 /* ============ 起動 ============ */
-squad=ORDER.slice(0,SQUAD_MAX);   // 初期編成：先頭12体
+initFirebase();   // 設定済みならランキング有効化（未設定なら何もしない）
+track("game_loaded", {owned_count:ownedList().length, medals:medals, xp:playerXP});
+// スタミナUIの定期更新（ステージ画面・タイトル画面が見えている間だけ）
+setInterval(()=>{
+  if(menuEl.style.display==="none") return;
+  const sc=document.getElementById("scStage"), ti=document.getElementById("scTitle");
+  if(sc&&sc.classList.contains("show")) refreshStaminaUI();
+  if(ti&&ti.classList.contains("show")) refreshHomeStats();
+}, 1000);
+squad=ownedList().slice(0,SQUAD_MAX);   // 初期編成：所持キャラ（初期は先頭10）
 G=newGame();                       // ダミー初期化（バトル開始時にreset）
 showScreen("title");
 requestAnimationFrame(loop);
