@@ -1153,6 +1153,8 @@ function initFirebase(){
     fbAuth=firebase.auth(); fbDB=firebase.firestore();
     fbReady=true;
     fbAuth.onAuthStateChanged(u=>{ fbUser=u||null; onAuthChanged(); });
+    // リダイレクト方式ログインの結果を回収（モバイル等でポップアップが使えない場合）
+    fbAuth.getRedirectResult().catch(e=>{ if(e&&e.code) showLoginError("Googleログイン（リダイレクト）", e); });
   }catch(e){ console.warn("Firebase init失敗",e); fbReady=false; }
 }
 function onAuthChanged(){
@@ -1160,25 +1162,51 @@ function onAuthChanged(){
   if(document.getElementById("rankModal")&&document.getElementById("rankModal").classList.contains("show")) renderRank();
   updateAccountUI();
 }
+// エラーをコード付きで分かりやすく表示
+function showLoginError(label, e){
+  const code=(e&&e.code)||"";
+  let hint="";
+  if(code.includes("unauthorized-domain")) hint="\n\n【原因】今開いているURLのドメインがFirebaseに許可されていません。\nFirebase Console → Authentication → Settings → 承認済みドメイン に、今のドメインを追加してください。\nまた file:// で直接開くと失敗します（http(s) で開く必要があります）。";
+  else if(code.includes("operation-not-allowed")) hint="\n\n【原因】このログイン方法が有効化されていません。\nFirebase Console → Authentication → Sign-in method で有効にしてください。";
+  else if(code.includes("popup-blocked")) hint="\n\n【原因】ポップアップがブロックされました。リダイレクト方式を試します。";
+  else if(code.includes("popup-closed-by-user")||code.includes("cancelled-popup")) hint="\n\n（ログイン画面が閉じられました）";
+  else if(code.includes("network-request-failed")) hint="\n\n【原因】通信エラー。ネットワークや広告ブロッカーをご確認ください。";
+  else if(code.includes("invalid-email")) hint="\n\nメールアドレスの形式が正しくありません。";
+  else if(code.includes("wrong-password")) hint="\n\nパスワードが違います。";
+  else if(code.includes("weak-password")) hint="\n\nパスワードは6文字以上にしてください。";
+  else if(code.includes("email-already-in-use")) hint="\n\nこのメールは登録済みです。正しいパスワードでログインしてください。";
+  alert(label+"に失敗しました。\nコード: "+(code||"(不明)")+"\n"+((e&&e.message)||"")+hint);
+}
 async function loginGoogle(){
-  if(!fbReady) return;
-  try{ const p=new firebase.auth.GoogleAuthProvider(); await fbAuth.signInWithPopup(p); }
-  catch(e){ alert("Googleログインに失敗しました：\n"+(e.message||e)); }
+  if(!fbReady){ alert("オンライン機能の準備ができていません。通信環境をご確認ください。"); return; }
+  const p=new firebase.auth.GoogleAuthProvider();
+  try{
+    await fbAuth.signInWithPopup(p);
+  }catch(e){
+    // ポップアップ不可ならリダイレクト方式にフォールバック
+    if(e&&e.code&&(e.code.includes("popup-blocked")||e.code.includes("popup-closed")||e.code.includes("cancelled-popup")||e.code.includes("operation-not-supported"))){
+      try{ await fbAuth.signInWithRedirect(p); return; }catch(e2){ showLoginError("Googleログイン", e2); return; }
+    }
+    showLoginError("Googleログイン", e);
+  }
 }
 async function loginEmail(){
-  if(!fbReady) return;
+  if(!fbReady){ alert("オンライン機能の準備ができていません。通信環境をご確認ください。"); return; }
   const email=prompt("メールアドレスを入力してください：");
   if(!email) return;
   const pw=prompt("パスワード（6文字以上）を入力してください：");
   if(!pw) return;
   try{
-    // 既存アカウントでログイン、なければ新規作成
-    try{ await fbAuth.signInWithEmailAndPassword(email,pw); }
-    catch(e){
-      if(e.code==="auth/user-not-found"){ await fbAuth.createUserWithEmailAndPassword(email,pw); }
-      else throw e;
+    // まず既存アカウントでログインを試み、未登録なら新規作成
+    try{
+      await fbAuth.signInWithEmailAndPassword(email,pw);
+    }catch(e){
+      if(e.code==="auth/user-not-found"||e.code==="auth/invalid-credential"){
+        // 新規作成を試す（既存でパスワード違いの場合はcreateがemail-already-in-useを返す）
+        await fbAuth.createUserWithEmailAndPassword(email,pw);
+      } else throw e;
     }
-  }catch(e){ alert("メールログインに失敗しました：\n"+(e.message||e)); }
+  }catch(e){ showLoginError("メールログイン", e); }
 }
 async function logoutFb(){ if(fbReady&&fbAuth) try{ await fbAuth.signOut(); }catch(e){} }
 function ensureName(){
