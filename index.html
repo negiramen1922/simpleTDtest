@@ -2903,14 +2903,17 @@ function refreshHomeStats(){
 }
 function gotoMenu(name){battleEl.style.display="none";menuEl.style.display="block";Sound.stopMusic();showScreen(name);}
 function gotoBattle(stage){
-  // スタミナ消費（不足なら開始不可）
-  if(!spendStamina(STAMINA_COST)){
-    const sec=staminaNextSec();
-    track("stamina_blocked", {stage_id:stage.id, stamina:stamina});
-    alert("スタミナが足りません（必要 "+STAMINA_COST+" / 所持 "+stamina+"）。\n約"+Math.ceil(sec/60)+"分で回復します。");
-    return;
+  // 無限ダンジョン（エンドレス）はスタミナ消費なしで挑戦可能
+  if(!stage.endless){
+    // スタミナ消費（不足なら開始不可）
+    if(!spendStamina(STAMINA_COST)){
+      const sec=staminaNextSec();
+      track("stamina_blocked", {stage_id:stage.id, stamina:stamina});
+      alert("スタミナが足りません（必要 "+STAMINA_COST+" / 所持 "+stamina+"）。\n約"+Math.ceil(sec/60)+"分で回復します。");
+      return;
+    }
+    refreshStaminaUI();
   }
-  refreshStaminaUI();
   track("battle_start", {stage_id:stage.id, stage_name:stage.name, endless:!!stage.endless, squad_size:squad.length});
   currentStage=stage; WAVES=stage.waves;
   loadMap(stage.map||"serpent");
@@ -3306,7 +3309,7 @@ function buildStageList(){
         <div class="sid">∞</div>
         <div class="sinfo"><div class="sname">${st.name} <span class="ministars" style="color:var(--gold)">🏆 ${bestTxt}</span></div>
           <div class="sdesc">${st.desc}</div>
-          <div class="gtags">${gimmickTags(st)}</div></div>
+          <div class="gtags">${gimmickTags(st)}<span class="gtag" style="color:var(--pink)">⚡スタミナ消費なし</span></div></div>
         <div class="smeta">難易度<br><span class="dots">${"●".repeat(5)}</span><br>∞ WAVE / LIFE ${st.life}</div>
         <div class="go">▶</div>`;
       d.addEventListener("click",()=>{
