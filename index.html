@@ -150,6 +150,9 @@
   .card .ico{width:34px;height:34px;margin:2px auto 6px;border-radius:8px;display:flex;align-items:center;
     justify-content:center;font-family:'Chakra Petch';font-weight:700;font-size:18px;color:#06121b;
     background:var(--c);box-shadow:0 0 14px -3px var(--c)}
+  /* キャラアイコン画像（デッキ/図鑑/育成/編成 共通）：角丸ボックス内に収め、画像時は背景を暗色に */
+  .iconimg{width:100%;height:100%;object-fit:contain;display:block;border-radius:inherit;pointer-events:none}
+  .ico.hasimg,.cico.hasimg{background:radial-gradient(circle at 50% 36%,rgba(255,255,255,.10),#0e1a26 72%);padding:1px;overflow:hidden}
   .card .nm{font-size:12.5px;font-weight:700;color:#e7eef5}
   .card .ro{font-size:9.5px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase;margin-top:1px}
   .card .cost{font-family:'Chakra Petch';font-weight:700;font-size:14px;color:var(--amber);margin-top:5px}
@@ -953,9 +956,24 @@ const TYPES={
   // 空中ブロッカー：投網で飛行敵を地上に引きずり下ろして足止め＆攻撃する。空の壁役
   netcaster:{name:"投網兵",role:"NET",letter:"網",color:"#4fd0a0",place:"road",cost:17,
     hp:1050,atk:140,interval:1.1,block:1,kind:"melee",targets:"air",airBlock:true,airBlockCap:2,airReach:1.5,
-    skill:{name:"大投網",spMax:16,dur:7,atk:1.6,airBlockCap:3,airReach:2.0}}
+    skill:{name:"大投網",spMax:16,dur:7,atk:1.6,airBlockCap:3,airReach:2.0}},
+  // 二丁拳銃の早撃ち。射程は短めだが手数が多く、地上・空中の両方を撃てる速射型
+  gunner:{name:"ガンナー",role:"GUNNER",letter:"銃",color:"#d98c4a",place:"hill",cost:13,
+    hp:340,atk:90,interval:0.5,block:0,range:3.0,kind:"range",targets:"both",
+    skill:{name:"二丁乱射",spMax:15,dur:6,atk:1.6,spd:1.9}},
+  // 指揮官。常時、周囲の味方の攻撃力を底上げするオーラ役。スキルで全体を鼓舞しつつ敵を減速
+  commander:{name:"コマンダー",role:"COMMANDER",letter:"令",color:"#5fd38a",place:"hill",cost:18,
+    hp:480,block:0,range:3.3,kind:"support",slow:1,spdBuff:1.2,atkAura:1.3,targets:"both",
+    skill:{name:"進軍号令",spMax:18,dur:8,slow:0.7,spd:1.6,atk:1.8}}
 };
-const ORDER=["tank","attacker","shooter","healer","support","trickster","breaker","guardian","lancer","berserker","sniper","mage","artillery","archer","flak","halberdier","guardknight","duelist","revenger","marksman","poisoner","chaincaster","freezer","shaman","summoner","bard","alchemist","prospector","netcaster","warlord","archmage","valkyrie","highpriest","archon"];
+const ORDER=["tank","attacker","shooter","healer","support","trickster","breaker","guardian","lancer","berserker","sniper","mage","artillery","archer","flak","halberdier","guardknight","duelist","revenger","marksman","gunner","poisoner","chaincaster","freezer","shaman","summoner","commander","bard","alchemist","prospector","netcaster","warlord","archmage","valkyrie","highpriest","archon"];
+// キャラアイコン画像（icons/<type>.png）。指定キャラのみ画像表示、未指定は letter（文字）表示にフォールバック
+["attacker","tank","archer","lancer","berserker","breaker","mage","highpriest","poisoner","chaincaster","alchemist","bard","shaman","duelist","summoner","guardknight","gunner","commander"].forEach(t=>{ if(TYPES[t]) TYPES[t].img="icons/"+t+".png"; });
+// アイコン用HTML（DOMカード共通）：画像があれば<img>、無ければ文字
+function iconHTML(c){ return c&&c.img ? `<img class="iconimg" src="${c.img}" alt="" draggable="false">` : (c&&c.letter||""); }
+// canvas描画用に画像を事前読み込み（type→Image）
+const ICON_IMG={};
+for(const _t in TYPES){ if(TYPES[_t].img){ const _im=new Image(); _im.src=TYPES[_t].img; ICON_IMG[_t]=_im; } }
 
 /* ============ 敵定義 ============ */
 const ENEMY={
@@ -1592,6 +1610,7 @@ const UNLOCK_COST={
   mage:350, artillery:400, archer:300, flak:350, halberdier:350, guardknight:400, duelist:350,
   revenger:400, marksman:400, poisoner:400, chaincaster:450, freezer:450, shaman:450,
   summoner:500, bard:450, alchemist:400, prospector:350, netcaster:400,
+  gunner:300, commander:450,
   // 高コスト最上位：500〜600
   warlord:600, archmage:600, valkyrie:550, highpriest:550, archon:600
 };
@@ -1894,7 +1913,7 @@ function update(dt){
     const sk=u.cfg.skill, active=u.skillActive;
     const slowF=active?sk.slow:u.cfg.slow;
     const spdB=active?sk.spd:u.cfg.spdBuff;
-    const atkB=active&&sk.atk?sk.atk:1;
+    const atkB=active&&sk.atk?sk.atk:(u.cfg.atkAura||1); // コマンダー等：常時の味方攻撃力アップ
     const R=unitRange(u);
     for(const e of G.enemies) if(dist(u,e)<=R) e.slow=Math.min(e.slow,slowF);
     for(const a of G.units) if(a!==u && dist(u,a)<=R){a.spdBuff=Math.max(a.spdBuff,spdB); a.atkBuff=Math.max(a.atkBuff,atkB);}
@@ -2519,10 +2538,21 @@ function drawUnit(u){
   ctx.fillStyle=col; roundRect(x-s/2,y-s/2,s,s,8);ctx.fill();
   ctx.fillStyle="rgba(255,255,255,.14)";roundRect(x-s/2,y-s/2,s,s/2,8);ctx.fill();
   ctx.strokeStyle="rgba(0,0,0,.4)";ctx.lineWidth=2;roundRect(x-s/2,y-s/2,s,s,8);ctx.stroke();
-  // 文字
-  ctx.fillStyle="#08131c";ctx.font="700 17px 'Chakra Petch'";ctx.textAlign="center";ctx.textBaseline="middle";
-  ctx.fillText(u.cfg.letter,x,y+1);
-  ctx.textBaseline="alphabetic";
+  // アイコン画像（あれば角丸内にクリップして描画）／無ければ文字
+  const im=ICON_IMG[u.type];
+  if(im && im.complete && im.naturalWidth){
+    ctx.save();
+    roundRect(x-s/2,y-s/2,s,s,8);ctx.clip();
+    // アスペクト比を保って正方形いっぱいに収める（contain）
+    const iw=im.naturalWidth, ih=im.naturalHeight, sc=Math.min(s/iw,s/ih);
+    const dw=iw*sc, dh=ih*sc;
+    ctx.drawImage(im,x-dw/2,y-dh/2,dw,dh);
+    ctx.restore();
+  }else{
+    ctx.fillStyle="#08131c";ctx.font="700 17px 'Chakra Petch'";ctx.textAlign="center";ctx.textBaseline="middle";
+    ctx.fillText(u.cfg.letter,x,y+1);
+    ctx.textBaseline="alphabetic";
+  }
   // ブロック中マーク
   if(u.blocking&&u.blocking.length){
     ctx.fillStyle="#ff5b6e";ctx.font="700 9px 'Chakra Petch'";
@@ -2793,7 +2823,7 @@ function buildBar(){
     const d=document.createElement("div");
     d.className="card";d.dataset.t=t;d.style.setProperty("--c",cfg.color);
     d.innerHTML=`<div class="key">${i<9?i+1:""}</div>
-      <div class="ico">${cfg.letter}</div>
+      <div class="ico${cfg.img?' hasimg':''}">${iconHTML(cfg)}</div>
       <div class="nm">${cfg.name}</div>
       <div class="ro">${cfg.role}</div>
       <div class="cost"><span class="cv">${cfg.cost}</span><span> DP</span></div>
@@ -2986,7 +3016,7 @@ function renderDetail(t){
   document.getElementById("detailBody").innerHTML=`
     <div class="codex" style="--c:${c.color};border:0;padding:0">
       <div class="ch">
-        <div class="cico">${own?c.letter:'🔒'}</div>
+        <div class="cico${(own&&c.img)?' hasimg':''}">${own?iconHTML(c):'🔒'}</div>
         <div><div class="cn">${c.name}${own?'':' <span style="font-size:11px;color:var(--dim)">（未所持）</span>'}</div><div class="cr">${c.role}</div></div>
         <span class="place ${c.place}">${c.place==="road"?"通路":"高台"}</span>
       </div>
@@ -3039,6 +3069,7 @@ const ROLE_OF={
   halberdier:"tank", guardknight:"tank", duelist:"attacker", revenger:"attacker", marksman:"shooter",
   poisoner:"shooter", chaincaster:"trickster", freezer:"trickster", shaman:"supporter",
   summoner:"trickster", bard:"supporter", alchemist:"breaker", prospector:"breaker",
+  gunner:"shooter", commander:"supporter",
   warlord:"attacker", archmage:"shooter", valkyrie:"shooter", highpriest:"healer", archon:"supporter",
   netcaster:"tank"
 };
@@ -3080,7 +3111,9 @@ const CODEX_DESC={
   valkyrie:"高コストの高速射手。最大HPの敵を超高速で狙撃し続ける重装・ボスキラー。",
   highpriest:"高コストの大司祭。広範囲を高速・大回復で支える最上位ヒーラー。",
   archon:"高コストの軍神。強力な減速と全体強化を同時に振りまく最上位サポーター。",
-  netcaster:"通路に置く対空の壁役。投網で飛行敵を引きずり下ろし、最大2体まで足止めして殴る。空のラッシュを止める要。"
+  netcaster:"通路に置く対空の壁役。投網で飛行敵を引きずり下ろし、最大2体まで足止めして殴る。空のラッシュを止める要。",
+  gunner:"二丁拳銃の速射型。射程は短めだが手数が非常に多く、地上・空中の両方を撃てる。",
+  commander:"常時、周囲の味方の攻撃力を底上げするオーラ役。スキル中はさらに敵を減速させつつ全体を鼓舞する。"
 };
 const SKILL_DESC={
   tank:"一定時間ダメージを大幅軽減し自己回復する。",
@@ -3116,7 +3149,9 @@ const SKILL_DESC={
   valkyrie:"攻撃力2.8倍・連射速度UPで単体を瞬溶かしする。",
   highpriest:"回復量・速度UPの広範囲回復領域を展開する。",
   archon:"減速・全体攻撃強化・速度UPを極限まで高める軍神の号令。",
-  netcaster:"投網範囲を広げ捕捉数を3体に増やし、攻撃力もUP。空の大群を一網打尽。"
+  netcaster:"投網範囲を広げ捕捉数を3体に増やし、攻撃力もUP。空の大群を一網打尽。",
+  gunner:"二丁拳銃を乱射。攻撃力UP＋攻撃速度が一気に跳ね上がる。",
+  commander:"周囲の味方の攻撃力・速度を大幅強化しつつ、射程内の敵を減速させる進軍の号令。"
 };
 
 /* ----- 育成 ----- */
@@ -3170,7 +3205,7 @@ function renderTrainCard(d,t){
   }
   d.innerHTML=`
     <div class="th">
-      <div class="cico">${c.letter}</div>
+      <div class="cico${c.img?' hasimg':''}">${iconHTML(c)}</div>
       <div><div class="cn">${c.name}</div><div class="lv">Lv.${lv}${maxed?' <span class="maxtag">MAX</span>':''}</div></div>
     </div>
     <div class="trole">${roleBadge(t)}</div>
@@ -3216,7 +3251,7 @@ function buildSquad(){
     const d=document.createElement("div");
     d.className="scard"; d.dataset.t=t; d.style.setProperty("--c",c.color);
     d.innerHTML=`<div class="num"></div>
-      <div class="cico">${c.letter}</div>
+      <div class="cico${c.img?' hasimg':''}">${iconHTML(c)}</div>
       <div class="cn">${c.name} <span class="sclv">Lv.${getLevel(t)}</span></div>
       <div class="cr">${roleInfo(t).name} / ${c.place==="road"?"通路":"高台"}</div>
       <div class="cc">${c.cost} DP</div>
