@@ -1504,6 +1504,9 @@ function onAuthChanged(){
   // ランキング画面が開いていれば再描画
   if(document.getElementById("rankModal")&&document.getElementById("rankModal").classList.contains("show")) renderRank();
   updateAccountUI();
+  // セーブデータ画面が開いていればクラウド同期カードを再描画
+  const sd=document.getElementById("scData");
+  if(sd&&sd.classList.contains("show")&&typeof renderCloudCard==="function") renderCloudCard();
 }
 // エラーをコード付きで分かりやすく表示
 function showLoginError(label, e){
@@ -3760,10 +3763,66 @@ async function copyExport(){
   try{ await navigator.clipboard.writeText(code); toast("コードをコピーしました"); }
   catch(e){ if(ta){ ta.focus(); ta.select(); } toast("コードを選択しました（手動でコピー）"); }
 }
+// ---- クラウド同期（Firestore saves/{uid}） ----
+function cloudAccountName(){ return rankName || (fbUser?("ユーザー"+(fbUser.uid||"").slice(0,5)):""); }
+async function cloudSave(){
+  if(!fbReady){ alert("オンライン機能の準備ができていません。通信環境をご確認ください。"); return; }
+  if(!fbUser){ alert("先にログインしてください。"); return; }
+  try{
+    await fbDB.collection("saves").doc(fbUser.uid).set({
+      code: exportSave(),
+      updated: firebase.firestore.FieldValue.serverTimestamp(),
+      medals, xp:playerXP, owned:ownedCount(), wins:stats.wins, endless:endlessBest.wave||0
+    });
+    toast("☁️ クラウドに保存しました"); renderCloudCard();
+  }catch(e){ alert("クラウド保存に失敗しました。\n"+((e&&e.message)||e)); }
+}
+async function cloudLoad(){
+  if(!fbReady){ alert("オンライン機能の準備ができていません。"); return; }
+  if(!fbUser){ alert("先にログインしてください。"); return; }
+  let doc;
+  try{ doc=await fbDB.collection("saves").doc(fbUser.uid).get(); }
+  catch(e){ alert("クラウドからの取得に失敗しました。\n"+((e&&e.message)||e)); return; }
+  if(!doc.exists||!doc.data().code){ alert("クラウドにセーブがありません。先に「クラウドに保存」してください。"); return; }
+  importSave(doc.data().code); // 上書き確認＋リロードは importSave 内で実施
+}
+function renderCloudCard(){
+  const el=document.getElementById("cloudCard"); if(!el)return;
+  if(!fbConfigured()){ el.innerHTML='<h4>☁️ クラウド同期</h4><p class="hint">オンライン設定が未完了のため利用できません。</p>'; return; }
+  if(!fbReady){ el.innerHTML='<h4>☁️ クラウド同期</h4><p class="hint">オンライン接続中…</p>'; return; }
+  if(!fbUser){
+    el.innerHTML=`<h4>☁️ クラウド同期</h4>
+      <p class="hint">ログインすると進捗をクラウドに保存し、<b>機種変更や別の端末でも引き継げます</b>。</p>
+      <div class="data-btns">
+        <button class="claim-btn" id="cloudGoogle">Googleでログイン</button>
+        <button class="claim-btn" id="cloudEmail">メールでログイン</button>
+      </div>`;
+    el.querySelector("#cloudGoogle").onclick=()=>loginGoogle();
+    el.querySelector("#cloudEmail").onclick=()=>loginEmail();
+    return;
+  }
+  el.innerHTML=`<h4>☁️ クラウド同期</h4>
+    <p class="hint">ログイン中：<b>${cloudAccountName()}</b> <button class="minibtn" id="cloudLogout">ログアウト</button></p>
+    <p class="hint" id="cloudInfo">最終クラウド保存：確認中…</p>
+    <div class="data-btns">
+      <button class="claim-btn" id="cloudSaveBtn">☁️ クラウドに保存</button>
+      <button class="claim-btn" id="cloudLoadBtn">⬇️ クラウドから復元</button>
+    </div>`;
+  el.querySelector("#cloudLogout").onclick=()=>logoutFb();
+  el.querySelector("#cloudSaveBtn").onclick=cloudSave;
+  el.querySelector("#cloudLoadBtn").onclick=cloudLoad;
+  fbDB.collection("saves").doc(fbUser.uid).get().then(d=>{
+    const info=document.getElementById("cloudInfo"); if(!info)return;
+    if(d.exists&&d.data().updated){ const u=d.data().updated, t=u&&u.toDate?u.toDate():null;
+      info.innerHTML="最終クラウド保存："+(t?t.toLocaleString():"あり")+(d.data().wins!=null?`　（勝利${d.data().wins}・最高W${d.data().endless||0}）`:""); }
+    else info.textContent="クラウドにまだ保存がありません。";
+  }).catch(()=>{ const info=document.getElementById("cloudInfo"); if(info)info.textContent="クラウド情報を取得できませんでした。"; });
+}
 function buildData(){
   const el=document.getElementById("dataBody"); if(!el)return;
   el.innerHTML=`
-    <p class="hint">進捗は<b>この端末のブラウザ内</b>に保存されています。ブラウザのデータ削除や機種変更で消えないよう、<b>エクスポートしてバックアップ</b>しておきましょう。</p>
+    <p class="hint">進捗は<b>この端末のブラウザ内</b>に保存されています。ブラウザのデータ削除や機種変更で消えないよう、<b>バックアップ</b>しておきましょう。ログインすれば<b>クラウド同期</b>で端末をまたいで引き継げます。</p>
+    <div class="data-card" id="cloudCard"></div>
     <div class="data-card">
       <h4>📤 エクスポート（バックアップ）</h4>
       <p class="hint">コードをコピーして安全な場所に保管、またはファイルで保存します。</p>
@@ -3791,6 +3850,7 @@ function buildData(){
   const fi=el.querySelector("#fileInput");
   el.querySelector("#fileImport").onclick=()=>fi.click();
   fi.onchange=()=>{ const f=fi.files&&fi.files[0]; if(f){ const r=new FileReader(); r.onload=()=>importSave(String(r.result)); r.readAsText(f); } };
+  renderCloudCard();
 }
 
 function initMeta(){ loadInv(); loadStats(); loadDaily(); loadLogin(); loadAch(); }
