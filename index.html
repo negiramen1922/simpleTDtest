@@ -470,6 +470,18 @@
     border:1px solid var(--line2);background:#0b1118;color:#cdd9e3;font-size:11px;font-family:monospace;word-break:break-all}
   .data-btns{display:flex;flex-wrap:wrap;gap:8px}
   .data-btns .claim-btn{flex:0 0 auto}
+  /* ハードモード バナー & ボスラッシュ */
+  .hard-banner{display:flex;align-items:center;gap:12px;justify-content:space-between;margin-bottom:12px;padding:11px 14px;
+    border-radius:12px;border:1px solid var(--line2);background:linear-gradient(180deg,#1a1014,#140d10)}
+  .hard-banner.on{border-color:#ff5b6e;box-shadow:0 0 16px -7px #ff5b6e}
+  .hard-banner b{color:#ff7a88}
+  .hb-note{display:block;font-size:11px;color:var(--dim);margin-top:3px;line-height:1.5}
+  .hb-toggle{flex:0 0 auto;padding:9px 18px;border-radius:9px;border:1px solid var(--line2);background:#23262c;color:#9fb0bf;font-weight:700;font-size:14px;cursor:pointer}
+  .hard-banner.on .hb-toggle{background:linear-gradient(180deg,#ff5b6e,#c0394a);color:#fff;border-color:#ff5b6e}
+  .stagecard.hardsel{border-color:#a8474f}
+  .stagecard.hardlocked{opacity:.5;filter:saturate(.5)}
+  .stagecard.endless.bossrush{border-color:#ff8c42;background:linear-gradient(180deg,#1d1410,#14100c)}
+  .stagecard.endless.bossrush .sid{color:#ff8c42}
   /* 編成コントロール（プリセット/フィルタ/並べ替え） */
   .squad-ctrl{max-width:760px;margin:0 auto 12px;display:flex;flex-direction:column;gap:8px}
   .preset-row{display:flex;gap:8px;flex-wrap:wrap}
@@ -1494,7 +1506,10 @@ const STAGES=[
     ]},
   {id:"∞",name:"エンドレス",desc:"ウェーブが延々と続く無限モード。敵は徐々に強くなる。何ウェーブ耐えられるか挑戦！記録は保存されます。",
     diff:5,life:20,map:"serpent",endless:true,
-    waves:[[]]}  // 実際のウェーブは genEndlessWave で手続き生成
+    waves:[[]]},  // 実際のウェーブは genEndlessWave で手続き生成
+  {id:"☠",name:"ボスラッシュ",desc:"毎ウェーブがボス＋護衛の連戦モード。スタミナ消費なし。どこまで耐えられるか挑戦！記録は保存されます。",
+    diff:5,life:15,map:"serpent",endless:true,bossrush:true,
+    waves:[[]]}
 ];
 let WAVES=STAGES[0].waves;        // 選択中ステージのウェーブ（バトルが参照）
 let currentStage=STAGES[0];
@@ -1525,15 +1540,25 @@ loadClearData();
 
 /* ============ エンドレスのハイスコア ============ */
 const ENDLESS_KEY="td_endless_v1";
+const BOSSRUSH_KEY="td_bossrush_v1";
 let endlessBest={wave:0,kills:0,score:0};
+let bossrushBest={wave:0,kills:0,score:0};
 // 合算スコア：WAVE重視（1WAVE=100点）＋撃破数
 function endlessScore(wave,kills){ return wave*100 + kills; }
 function loadEndless(){
   try{ endlessBest=JSON.parse(localStorage.getItem(ENDLESS_KEY))||{wave:0,kills:0,score:0}; }catch(e){ endlessBest={wave:0,kills:0,score:0}; }
   if(endlessBest.score==null) endlessBest.score=endlessScore(endlessBest.wave||0,endlessBest.kills||0);
+  try{ bossrushBest=JSON.parse(localStorage.getItem(BOSSRUSH_KEY))||{wave:0,kills:0,score:0}; }catch(e){ bossrushBest={wave:0,kills:0,score:0}; }
+  if(bossrushBest.score==null) bossrushBest.score=endlessScore(bossrushBest.wave||0,bossrushBest.kills||0);
 }
 function recordEndless(wave,kills){
   const score=endlessScore(wave,kills);
+  // ボスラッシュは別記録（ランキングには送らない）
+  if(G&&G.bossrush){
+    const prev=bossrushBest.score||0;
+    if(score>prev){ bossrushBest={wave,kills,score}; try{ localStorage.setItem(BOSSRUSH_KEY,JSON.stringify(bossrushBest)); }catch(e){} }
+    return score>prev;
+  }
   const prevScore=endlessBest.score||0;
   if(score>prevScore){
     endlessBest={wave,kills,score};
@@ -1904,9 +1929,11 @@ function newGame(){
     roster: Object.fromEntries(squad.map(t=>[t,{state:"ready",cd:0,times:0}])),
     spawnQ:[], waveTime:0, selectedType:null, selectedUnit:null,
     speed:1, paused:false, t:0, defaultSkillMode:"auto",
-    endless: !!currentStage.endless, kills:0
+    endless: !!currentStage.endless, kills:0,
+    hard: battleHard, bossrush: !!currentStage.bossrush
   };
 }
+let battleHard=false; // 現在のバトルがハードモードか（gotoBattleで設定）
 
 /* ============ 補助 ============ */
 function dist(a,b){const dx=a.x-b.x,dy=a.y-b.y;return Math.hypot(dx,dy);}
@@ -2003,6 +2030,17 @@ function fireSkill(u){
 // エンドレス用：ウェーブ番号に応じて敵編成を手続き生成
 function genEndlessWave(idx){
   const specs=[];
+  // ボスラッシュ：毎ウェーブがボス＋護衛。数ウェーブごとにボス数増加
+  if(G.bossrush){
+    const t=Math.floor(idx/2);
+    specs.push({t:0.5,n:1+Math.floor(idx/3),gap:2.2,type:"boss"});
+    specs.push({t:2,n:1+Math.floor(idx/4),gap:2.5,type:"brute"});
+    if(idx>=2) specs.push({t:1.5,n:2+t,gap:1.0,type:"shielder"});
+    if(idx>=3) specs.push({t:3,n:1+Math.floor(idx/4),gap:2.5,type:"gunship"});
+    if(idx>=4) specs.push({t:2,n:1+Math.floor(idx/5),gap:2,type:"mender"});
+    if(idx>=5) specs.push({t:2.5,n:2+t,gap:1.2,type:"stinger"});
+    return specs;
+  }
   const tier=Math.floor(idx/3); // 3ウェーブごとに難度アップ
   const base=6+idx;             // 数も増える
   // 基本の地上ラッシュ
@@ -2044,7 +2082,8 @@ function startWave(){
 function spawnEnemy(type, opts){
   const e=ENEMY[type];
   // ウェーブが進むほど少し強化（エンドレスはより急峻）
-  const scale=1+G.waveIndex*0.06 + (G.endless?G.waveIndex*0.04:0);
+  const hardHp=G.hard?1.9:1, hardAtk=G.hard?1.55:1;
+  const scale=(1+G.waveIndex*0.06 + (G.endless?G.waveIndex*0.04:0))*hardHp;
   const fly=!!e.fly;
   // 地上敵：分岐マップなら経路をランダムに選ぶ
   let way;
@@ -2054,7 +2093,7 @@ function spawnEnemy(type, opts){
   const en={
     type,e,fly,way,x:way[0].x,y:way[0].y,wp:1,
     hp:e.hp*scale,maxHp:e.hp*scale,spd:e.spd,
-    atk:e.atk*(G.endless?1+G.waveIndex*0.03:1),cd:Math.random()*0.5,acd:Math.random()*0.5,
+    atk:e.atk*(G.endless?1+G.waveIndex*0.03:1)*hardAtk,cd:Math.random()*0.5,acd:Math.random()*0.5,
     shield:e.shield?e.shield*scale:0, shieldMax:e.shield?e.shield*scale:0,
     blockedBy:null,slow:1,stun:0,progress:0,poisonT:0,poisonDmg:0,freezeT:0,slowHitT:0,slowHitF:1
   };
@@ -2534,7 +2573,7 @@ function update(dt){
   // --- 勝敗・ウェーブクリア ---
   if(G.life<=0){
     G.life=0;G.state="lost";clearTransient();Sound.stopMusic();Sound.play("lose");
-    if(G.endless){ G.prevBest={...endlessBest}; recordEndless(G.waveIndex+1, G.kills||0);
+    if(G.endless){ G.prevBest={...(G.bossrush?bossrushBest:endlessBest)}; recordEndless(G.waveIndex+1, G.kills||0);
       stats.kills+=runKills; dailyEvent("kill",runKills); runKills=0; saveStats(); updateMetaBadges();
       track("endless_gameover", {wave_reached:G.waveIndex+1, kills:G.kills||0});
     } else {
@@ -2560,6 +2599,12 @@ function update(dt){
       // メダルは初クリア時のみ獲得
       G.gainedMedals = firstClear ? clearMedals(G.clearStars) : 0;
       medals += G.gainedMedals;
+      // ハードモード：クリアのたびに追加報酬（メダル＋強化石、★3なら発掘チケット）
+      if(G.hard){
+        const hb={medals:30+currentStage.diff*8, stones:10+currentStage.diff*3};
+        if(G.clearStars>=3) hb.items={ticket:1};
+        G.hardBonus=rewardText(hb); grantReward(hb);
+      }
       saveProgress(); saveEconomy();
       // メタ進行：勝利・撃破・デイリー・実績の更新
       stats.wins++; stats.kills+=runKills; dailyEvent("win"); dailyEvent("kill",runKills); if(G.clearStars>=3)dailyEvent("star3"); runKills=0; saveStats(); updateMetaBadges();
@@ -3095,7 +3140,8 @@ function showOverlay(kind){
     starsEl.style.display="flex";
     const rate = s===3?"★★★ 完全防衛（ノーダメージ）！":s===2?"★★ 見事な防衛！":"★ 防衛成功";
     ovText.textContent=rate+"  ／  残ライフ "+G.life+"/"+currentStage.life+"  ／  経験値 +"+(G.gainedXP||0)
-      + (G.gainedMedals>0 ? "  ／  🏅メダル +"+G.gainedMedals : "  ／  🏅メダルは初クリア時のみ");
+      + (G.gainedMedals>0 ? "  ／  🏅メダル +"+G.gainedMedals : "  ／  🏅メダルは初クリア時のみ")
+      + (G.hard&&G.hardBonus ? "  ／  ☠HARD報酬 "+G.hardBonus : "");
   } else {
     starsEl.style.display="none";
     if(G.endless){
@@ -3171,13 +3217,14 @@ function gotoBattle(stage){
     refreshStaminaUI();
   }
   runKills=0; // 撃破カウントをリセット
+  battleHard = hardMode && !stage.endless && (clearData[stage.id]>=1); // ハードは通常クリア済みのみ
   if(stage.endless){ stats.endlessRuns++; saveStats(); dailyEvent("endless"); }
-  track("battle_start", {stage_id:stage.id, stage_name:stage.name, endless:!!stage.endless, squad_size:squad.length});
+  track("battle_start", {stage_id:stage.id, stage_name:stage.name, endless:!!stage.endless, hard:battleHard, squad_size:squad.length});
   currentStage=stage; WAVES=stage.waves;
   loadMap(stage.map||"serpent");
   if(squad.length===0)squad=ownedList().slice(0,SQUAD_MAX); // 念のため（所持キャラから）
   menuEl.style.display="none"; battleEl.style.display="block";
-  document.getElementById("battleStage").textContent="STAGE "+stage.id+" — "+stage.name;
+  document.getElementById("battleStage").textContent="STAGE "+stage.id+" — "+stage.name+(battleHard?"  ☠HARD":"");
   reset();
   Sound.ensureStarted(); Sound.setMusicIntensity(0.16); Sound.startMusic(112);
   window.scrollTo(0,0);
@@ -3554,6 +3601,7 @@ function refreshSquad(){
 }
 
 /* ----- ステージ選択 ----- */
+let hardMode=false; // ハードモード（ステージ選択のトグル）
 function gimmickTags(st){
   const tags=[];
   const mp={serpent:"S字経路",avenue:"一本道・高台多",fork:"二股分岐",spiral:"渦巻き長経路",gauntlet:"高台少"};
@@ -3609,14 +3657,22 @@ function refreshStaminaUI(){
 function buildStageList(){
   refreshStaminaUI();
   const g=document.getElementById("stageList"); g.innerHTML="";
+  // ハードモード切替バナー
+  const banner=document.createElement("div");
+  banner.className="hard-banner"+(hardMode?" on":"");
+  banner.innerHTML=`<div><b>☠ ハードモード</b><span class="hb-note">敵が大幅強化（HP約1.9倍・攻撃1.55倍）／クリアのたびに🏅メダル・🔩強化石（★3で🎟）を追加獲得。<b>通常クリア済みのステージのみ</b>挑戦可。</span></div>
+    <button class="hb-toggle">${hardMode?"ON":"OFF"}</button>`;
+  banner.querySelector(".hb-toggle").onclick=()=>{ hardMode=!hardMode; buildStageList(); };
+  g.appendChild(banner);
   STAGES.forEach(st=>{
     const d=document.createElement("div");
     if(st.endless){
-      // エンドレス専用カード（星でなく自己ベストを表示）
-      d.className="stagecard endless"+(endlessBest.wave>0?" cleared":"");
-      const bestTxt=endlessBest.wave>0?("自己ベスト WAVE "+endlessBest.wave+" ／ 撃破 "+endlessBest.kills):"記録なし";
+      // エンドレス／ボスラッシュ専用カード（星でなく自己ベストを表示）
+      const isBR=!!st.bossrush, rec=isBR?bossrushBest:endlessBest, sid=isBR?"☠":"∞";
+      d.className="stagecard endless"+(isBR?" bossrush":"")+(rec.wave>0?" cleared":"");
+      const bestTxt=rec.wave>0?("自己ベスト WAVE "+rec.wave+" ／ 撃破 "+rec.kills):"記録なし";
       d.innerHTML=`
-        <div class="sid">∞</div>
+        <div class="sid">${sid}</div>
         <div class="sinfo"><div class="sname">${st.name} <span class="ministars" style="color:var(--gold)">🏆 ${bestTxt}</span></div>
           <div class="sdesc">${st.desc}</div>
           <div class="gtags">${gimmickTags(st)}<span class="gtag" style="color:var(--pink)">⚡スタミナ消費なし</span></div></div>
@@ -3630,7 +3686,8 @@ function buildStageList(){
       return;
     }
     const best=clearData[st.id]||0;
-    d.className="stagecard"+(best>0?" cleared":"");
+    const hardLocked = hardMode && best<1;
+    d.className="stagecard"+(best>0?" cleared":"")+(hardMode?" hardsel":"")+(hardLocked?" hardlocked":"");
     const dots=Math.min(5,st.diff);
     const starHTML=[1,2,3].map(i=>`<span class="ms ${i<=best?'on':''}">★</span>`).join("");
     const farmBtn = best===3 ? `<button class="farmbtn" title="スタミナを使って一括周回">⚡一括周回</button>` : "";
@@ -3644,6 +3701,7 @@ function buildStageList(){
         ${st.waves.length} WAVE / LIFE ${st.life}</div>
       <div class="go">▶</div>`;
     d.addEventListener("click",()=>{
+      if(hardMode && best<1){ alert("ハードモードは、まず通常モードでクリアしたステージのみ挑戦できます。"); return; }
       if(squad.length===0){ alert("先に編成でキャラを1体以上選んでください。"); showScreen("squad"); return; }
       gotoBattle(st);
     });
