@@ -470,6 +470,71 @@
     border:1px solid var(--line2);background:#0b1118;color:#cdd9e3;font-size:11px;font-family:monospace;word-break:break-all}
   .data-btns{display:flex;flex-wrap:wrap;gap:8px}
   .data-btns .claim-btn{flex:0 0 auto}
+  /* 設定 */
+  .set-row{display:flex;align-items:center;gap:12px;margin:8px 0}
+  .set-row label{flex:0 0 92px;font-size:13px;color:#cdd9e3}
+  .set-row input[type=range]{flex:1;accent-color:var(--cyan)}
+  .set-row span{flex:0 0 44px;text-align:right;font-size:12px;color:var(--gold,#ffd24a);font-family:'Chakra Petch'}
+  /* バトル結果 MVP */
+  .mvp{margin:10px auto;max-width:300px;border:1px solid var(--line);border-radius:10px;padding:8px 12px;background:rgba(255,255,255,.04)}
+  .mvp-h{font-size:12px;color:var(--gold,#ffd24a);font-weight:700;margin-bottom:5px;text-align:center}
+  .mvp-row{display:flex;align-items:center;gap:8px;font-size:13px;padding:2px 0}
+  .mvp-rk{flex:0 0 22px;text-align:center}.mvp-n{flex:1;color:#eef4f9}.mvp-d{color:var(--amber,#ff8c42);font-family:'Chakra Petch';font-weight:700}
+  /* ハードモード バナー & ボスラッシュ */
+  .hard-banner{display:flex;align-items:center;gap:12px;justify-content:space-between;margin-bottom:12px;padding:11px 14px;
+    border-radius:12px;border:1px solid var(--line2);background:linear-gradient(180deg,#1a1014,#140d10)}
+  .hard-banner.on{border-color:#ff5b6e;box-shadow:0 0 16px -7px #ff5b6e}
+  .hard-banner b{color:#ff7a88}
+  .hb-note{display:block;font-size:11px;color:var(--dim);margin-top:3px;line-height:1.5}
+  .hb-toggle{flex:0 0 auto;padding:9px 18px;border-radius:9px;border:1px solid var(--line2);background:#23262c;color:#9fb0bf;font-weight:700;font-size:14px;cursor:pointer}
+  .hard-banner.on .hb-toggle{background:linear-gradient(180deg,#ff5b6e,#c0394a);color:#fff;border-color:#ff5b6e}
+  .stagecard.hardsel{border-color:#a8474f}
+  .stagecard.hardlocked{opacity:.5;filter:saturate(.5)}
+  .stagecard.endless.bossrush{border-color:#ff8c42;background:linear-gradient(180deg,#1d1410,#14100c)}
+  .stagecard.endless.bossrush .sid{color:#ff8c42}
+  /* 編成コントロール（プリセット/フィルタ/並べ替え） */
+  .squad-ctrl{max-width:760px;margin:0 auto 12px;display:flex;flex-direction:column;gap:8px}
+  .preset-row{display:flex;gap:8px;flex-wrap:wrap}
+  .preset{display:flex;align-items:center;gap:5px;border:1px solid var(--line);border-radius:9px;padding:5px 8px;background:var(--panel)}
+  .pz-l{font-size:11px;color:var(--dim);font-weight:700;min-width:30px}
+  .pz-b{padding:5px 9px;border-radius:7px;border:1px solid var(--line2);background:#1a2230;color:#cdd9e3;font-size:11px;cursor:pointer}
+  .pz-b.save{background:#23303f}
+  .pz-b:disabled{opacity:.4;cursor:default}
+  .filter-row{display:flex;gap:6px;flex-wrap:wrap}
+  .chip{padding:5px 11px;border-radius:16px;border:1px solid var(--line2);background:var(--panel);color:var(--dim);font-size:12px;cursor:pointer}
+  .chip.on{border-color:var(--cyan);color:#fff;background:rgba(63,199,244,.14)}
+  .sort-row{font-size:12px;color:var(--dim);display:flex;align-items:center;gap:8px}
+  .sort-row select{background:#0b1118;color:#cdd9e3;border:1px solid var(--line2);border-radius:7px;padding:5px 8px;font-size:12px}
+  /* アーティファクト */
+  .art-head{display:flex;justify-content:space-around;font-size:15px;color:#eef4f9;margin-bottom:6px}
+  .art-head b{color:var(--gold,#ffd24a)}
+  .art-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:11px;max-width:760px;margin:14px auto 0}
+  .art-card{border:1px solid var(--line);border-left:4px solid var(--rc,#9fb0bf);border-radius:11px;padding:11px 12px;
+    background:linear-gradient(180deg,var(--panel),var(--panel2))}
+  .ac-top{display:flex;align-items:center;gap:7px}
+  .ac-ico{font-size:22px}.ac-r{font-size:12px;font-weight:700;letter-spacing:1px}
+  .ac-lv{margin-left:auto;font-size:12px;font-weight:700;color:var(--gold,#ffd24a)}
+  .ac-name{font-size:13px;font-weight:700;color:#eef4f9;margin-top:5px}
+  .ac-stat{font-size:11px;color:#bcd;margin-top:2px;min-height:28px}
+  .ac-eq{font-size:10.5px;color:var(--green,#4ade80);margin:4px 0 7px}.ac-eq.none{color:var(--dim)}
+  .ac-btns{display:flex;gap:6px}
+  .claim-btn.small{padding:6px 9px;font-size:11.5px}
+  .claim-btn.ghost{background:#2a323c;color:#cdd9e3}
+  /* 詳細モーダルの装備スロット */
+  .art-equip{margin:10px 0 4px;border-top:1px solid var(--line);padding-top:10px}
+  .ae-h{font-size:12px;color:var(--gold,#ffd24a);font-weight:700;margin-bottom:7px}
+  .art-slots{display:flex;gap:8px}
+  .art-slot{flex:1;min-height:54px;border-radius:10px;border:1px dashed var(--line2);display:flex;align-items:center;gap:8px;
+    padding:7px 9px;cursor:pointer;font-size:11px;color:var(--dim);text-align:center;justify-content:center}
+  .art-slot.filled{border-style:solid;border-color:var(--rc);background:rgba(255,255,255,.03);justify-content:flex-start;text-align:left}
+  .as-ico{font-size:22px}.as-r{font-size:11px;font-weight:700}.as-s{font-size:10px;color:#bcd}
+  /* 装備選択リスト */
+  .pick-list{display:flex;flex-direction:column;gap:8px;margin-top:8px;max-height:60vh;overflow:auto}
+  .pick-row{display:flex;align-items:center;gap:10px;text-align:left;width:100%;padding:10px 12px;border-radius:10px;
+    border:1px solid var(--line);border-left:4px solid var(--rc,#9fb0bf);background:linear-gradient(180deg,var(--panel),var(--panel2));
+    color:#dfe7ee;font-size:12.5px;cursor:pointer}
+  .pick-row.remove{border-left-color:var(--red,#ff5b6e);color:var(--red,#ff5b6e);justify-content:center;font-weight:700}
+  .pr-ico{font-size:22px;flex:0 0 auto}.pr-main{flex:1;min-width:0}.pr-main small{color:#9fb0bf}
   /* トースト */
   #toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);z-index:9999;
     background:rgba(12,20,28,.96);border:1px solid var(--gold,#ffd24a);color:#fff;padding:11px 18px;border-radius:24px;
@@ -522,11 +587,25 @@
       <button class="meta-btn" data-go="daily">📋 デイリー<span class="meta-badge" id="badgeDaily"></span></button>
       <button class="meta-btn" data-go="ach">🏆 実績<span class="meta-badge" id="badgeAch"></span></button>
       <button class="meta-btn" data-go="bag">🎒 どうぐ</button>
+      <button class="meta-btn" data-go="art">🗡 装備</button>
       <button class="meta-btn" data-go="data">💾 データ</button>
+      <button class="meta-btn" data-go="settings">⚙ 設定</button>
     </div>
     <div class="menu-btns" style="margin-top:12px">
       <button class="big-btn" id="installBtn" style="display:none">📲 アプリとして追加</button>
     </div>
+  </section>
+
+  <!-- アーティファクト -->
+  <section class="screen" id="scArt">
+    <div class="sc-top"><button class="back" data-go="title">← 戻る</button><h2>🗡 アーティファクト</h2><span class="spacer"></span></div>
+    <div id="artBody"></div>
+  </section>
+
+  <!-- 設定 -->
+  <section class="screen" id="scSettings">
+    <div class="sc-top"><button class="back" data-go="title">← 戻る</button><h2>⚙ 設定</h2><span class="spacer"></span></div>
+    <div id="settingsBody"></div>
   </section>
 
   <!-- セーブデータ管理 -->
@@ -572,6 +651,7 @@
       <button class="btn-go" data-go="stage">ステージ選択 →</button>
     </div>
     <p class="hint">編成に入れるキャラを選択（最大 <b id="squadMax"></b> 体）。カードをタップで出撃ON/OFF、並び順がショートカット番号になります。<br>バトル中にフィールドへ<b>同時配置できるのは10体まで</b>。編成は控えも含めて選び、状況に応じて使い分けましょう。</p>
+    <div class="squad-ctrl" id="squadCtrl"></div>
     <div class="squad-grid" id="squadGrid"></div>
   </section>
 
@@ -597,6 +677,14 @@
     <div class="detail-box">
       <button class="detail-close" id="detailClose">✕</button>
       <div id="detailBody"></div>
+    </div>
+  </div>
+
+  <!-- アーティファクト選択 -->
+  <div class="detail-modal" id="artPickModal">
+    <div class="detail-box">
+      <button class="detail-close" id="artPickClose">✕</button>
+      <div id="artPickBody"></div>
     </div>
   </div>
 
@@ -644,6 +732,7 @@
         <h2 id="ovTitle"></h2>
         <div class="ovstars" id="ovStars"></div>
         <p id="ovText"></p>
+        <div id="ovExtra"></div>
         <div class="ovbtns">
           <button id="ovBtn" class="btn-go">もう一度</button>
           <button id="ovMenuBtn">ステージ選択へ</button>
@@ -745,16 +834,20 @@ const Sound=(()=>{
   let ctx=null, master=null, sfxGain=null, musicGain=null;
   let enabled=true, started=false;
   let musicTimer=null, musicStep=0;
+  let masterVol=0.9, sfxVol=0.5;   // 設定で変更可
 
   function init(){
     if(ctx)return;
     try{
       ctx=new (window.AudioContext||window.webkitAudioContext)();
-      master=ctx.createGain(); master.gain.value=0.9; master.connect(ctx.destination);
-      sfxGain=ctx.createGain(); sfxGain.gain.value=0.5; sfxGain.connect(master);
+      master=ctx.createGain(); master.gain.value=enabled?masterVol:0; master.connect(ctx.destination);
+      sfxGain=ctx.createGain(); sfxGain.gain.value=sfxVol; sfxGain.connect(master);
       musicGain=ctx.createGain(); musicGain.gain.value=0.22; musicGain.connect(master);
     }catch(e){ctx=null;}
   }
+  function setMaster(v){ masterVol=v; if(master&&ctx&&enabled)master.gain.setTargetAtTime(v,ctx.currentTime,0.05); }
+  function setSfx(v){ sfxVol=v; if(sfxGain&&ctx)sfxGain.gain.setTargetAtTime(v,ctx.currentTime,0.05); }
+  function getMaster(){ return masterVol; } function getSfx(){ return sfxVol; }
   function resume(){ if(ctx&&ctx.state==="suspended")ctx.resume(); }
 
   // 基本のワンショット音
@@ -850,7 +943,7 @@ const Sound=(()=>{
 
   function enable(on){
     enabled=on;
-    if(master&&ctx)master.gain.setTargetAtTime(on?0.9:0,ctx.currentTime,0.05);
+    if(master&&ctx)master.gain.setTargetAtTime(on?masterVol:0,ctx.currentTime,0.05);
     if(!on)stopMusic();
   }
   // 最初のユーザー操作で起動
@@ -859,7 +952,7 @@ const Sound=(()=>{
     init();
     if(ctx){ resume(); started=true; }
   }
-  return {ensureStarted,play,startMusic,stopMusic,setMusicIntensity,enable,
+  return {ensureStarted,play,startMusic,stopMusic,setMusicIntensity,enable,setMaster,setSfx,getMaster,getSfx,
     get on(){return enabled;}, get ready(){return started;}};
 })();
 
@@ -1435,7 +1528,10 @@ const STAGES=[
     ]},
   {id:"∞",name:"エンドレス",desc:"ウェーブが延々と続く無限モード。敵は徐々に強くなる。何ウェーブ耐えられるか挑戦！記録は保存されます。",
     diff:5,life:20,map:"serpent",endless:true,
-    waves:[[]]}  // 実際のウェーブは genEndlessWave で手続き生成
+    waves:[[]]},  // 実際のウェーブは genEndlessWave で手続き生成
+  {id:"☠",name:"ボスラッシュ",desc:"毎ウェーブがボス＋護衛の連戦モード。スタミナ消費なし。どこまで耐えられるか挑戦！記録は保存されます。",
+    diff:5,life:15,map:"serpent",endless:true,bossrush:true,
+    waves:[[]]}
 ];
 let WAVES=STAGES[0].waves;        // 選択中ステージのウェーブ（バトルが参照）
 let currentStage=STAGES[0];
@@ -1466,15 +1562,25 @@ loadClearData();
 
 /* ============ エンドレスのハイスコア ============ */
 const ENDLESS_KEY="td_endless_v1";
+const BOSSRUSH_KEY="td_bossrush_v1";
 let endlessBest={wave:0,kills:0,score:0};
+let bossrushBest={wave:0,kills:0,score:0};
 // 合算スコア：WAVE重視（1WAVE=100点）＋撃破数
 function endlessScore(wave,kills){ return wave*100 + kills; }
 function loadEndless(){
   try{ endlessBest=JSON.parse(localStorage.getItem(ENDLESS_KEY))||{wave:0,kills:0,score:0}; }catch(e){ endlessBest={wave:0,kills:0,score:0}; }
   if(endlessBest.score==null) endlessBest.score=endlessScore(endlessBest.wave||0,endlessBest.kills||0);
+  try{ bossrushBest=JSON.parse(localStorage.getItem(BOSSRUSH_KEY))||{wave:0,kills:0,score:0}; }catch(e){ bossrushBest={wave:0,kills:0,score:0}; }
+  if(bossrushBest.score==null) bossrushBest.score=endlessScore(bossrushBest.wave||0,bossrushBest.kills||0);
 }
 function recordEndless(wave,kills){
   const score=endlessScore(wave,kills);
+  // ボスラッシュは別記録（ランキングには送らない）
+  if(G&&G.bossrush){
+    const prev=bossrushBest.score||0;
+    if(score>prev){ bossrushBest={wave,kills,score}; try{ localStorage.setItem(BOSSRUSH_KEY,JSON.stringify(bossrushBest)); }catch(e){} }
+    return score>prev;
+  }
   const prevScore=endlessBest.score||0;
   if(score>prevScore){
     endlessBest={wave,kills,score};
@@ -1688,10 +1794,47 @@ function getLevel(type){ return unitLevels[type]||1; }
 function xpToNext(level){ return 50+level*level*30; }
 // ステータス倍率：レベル1で1.0、レベルごとに+8%（HP/ATK/HEAL）
 function lvlMul(type){ return 1+(getLevel(type)-1)*0.08; }
-// レベル補正済みステータス
-function statHP(cfg,type){ return Math.round(cfg.hp*lvlMul(type)); }
-function statATK(cfg,type){ return cfg.atk?Math.round(cfg.atk*lvlMul(type)):0; }
-function statHEAL(cfg,type){ return cfg.heal?Math.round(cfg.heal*lvlMul(type)):0; }
+// レベル補正済みステータス（アーティファクト装備の倍率も適用）
+function statHP(cfg,type){ return Math.round(cfg.hp*lvlMul(type)*artBonus(type).hp); }
+function statATK(cfg,type){ return cfg.atk?Math.round(cfg.atk*lvlMul(type)*artBonus(type).atk):0; }
+function statHEAL(cfg,type){ return cfg.heal?Math.round(cfg.heal*lvlMul(type)*artBonus(type).heal):0; }
+
+/* ===== アーティファクト（装備）コア ===== */
+const ART_TYPES={
+  weapon:{name:"剣", icon:"⚔", stat:"atk"},
+  armor: {name:"盾", icon:"🛡", stat:"hp"},
+  boots: {name:"靴", icon:"👢", stat:"spd"},
+  charm: {name:"護符", icon:"✨", stat:"skill"},
+  scope: {name:"照準器", icon:"🔭", stat:"range"},
+};
+const ART_TYPE_IDS=Object.keys(ART_TYPES);
+const ART_STAT_NAME={atk:"攻撃力",hp:"HP",spd:"攻撃速度",skill:"スキル溜め",range:"射程",heal:"回復量"};
+// レアリティ：主効果の基礎倍率と色
+const ART_RARITY={1:{base:0.08,col:"#9fb0bf",name:"★"},2:{base:0.14,col:"#5ad1f4",name:"★★"},3:{base:0.22,col:"#c08bff",name:"★★★"},4:{base:0.34,col:"#ffd24a",name:"★★★★"}};
+const ART_MAXLV=5;
+const ART_KEY="td_artifacts_v1", EQUIP_KEY="td_equipped_v1", STONE_KEY="td_stones_v1";
+let artifacts=[], equipped={}, artStones=0, artSeq=1;
+function loadArtifacts(){
+  try{ const d=JSON.parse(localStorage.getItem(ART_KEY)); artifacts=Array.isArray(d)?d:[]; }catch(e){ artifacts=[]; }
+  try{ equipped=JSON.parse(localStorage.getItem(EQUIP_KEY))||{}; }catch(e){ equipped={}; }
+  try{ artStones=parseInt(localStorage.getItem(STONE_KEY))||0; }catch(e){ artStones=0; }
+  artSeq=artifacts.reduce((m,a)=>Math.max(m,a.uid||0),0)+1;
+}
+function saveArtifacts(){ try{ localStorage.setItem(ART_KEY,JSON.stringify(artifacts)); localStorage.setItem(EQUIP_KEY,JSON.stringify(equipped)); localStorage.setItem(STONE_KEY,String(artStones)); }catch(e){} }
+function artById(uid){ return artifacts.find(a=>a.uid===uid); }
+function artMainVal(a){ return ART_RARITY[a.rarity].base*(1+(a.level||0)*0.1); }
+function artSubVal(a){ return a.sub? a.sub.val*(1+(a.level||0)*0.1) : 0; }
+// 装備中アーティファクトの合計倍率（type=キャラID）
+function artBonus(type){
+  const b={atk:1,hp:1,spd:1,skill:1,range:1,heal:1};
+  const eq=equipped[type]; if(!eq)return b;
+  for(const uid of eq){ if(uid==null)continue; const a=artById(uid); if(!a)continue;
+    const ms=ART_TYPES[a.type].stat; if(b[ms]!=null) b[ms]*=(1+artMainVal(a));
+    if(a.sub&&b[a.sub.key]!=null) b[a.sub.key]*=(1+artSubVal(a));
+  }
+  return b;
+}
+loadArtifacts();
 // 経験値を消費して育成（成功でtrue）
 function levelUp(type){
   const lv=getLevel(type);
@@ -1808,9 +1951,11 @@ function newGame(){
     roster: Object.fromEntries(squad.map(t=>[t,{state:"ready",cd:0,times:0}])),
     spawnQ:[], waveTime:0, selectedType:null, selectedUnit:null,
     speed:1, paused:false, t:0, defaultSkillMode:"auto",
-    endless: !!currentStage.endless, kills:0
+    endless: !!currentStage.endless, kills:0,
+    hard: battleHard, bossrush: !!currentStage.bossrush, dmgByType:{}
   };
 }
+let battleHard=false; // 現在のバトルがハードモードか（gotoBattleで設定）
 
 /* ============ 補助 ============ */
 function dist(a,b){const dx=a.x-b.x,dy=a.y-b.y;return Math.hypot(dx,dy);}
@@ -1818,13 +1963,14 @@ function unitAtCell(c,r){return G.units.find(u=>u.c===c&&u.r===r);}
 // 出撃枠としてカウントするのはプレイヤーが配置したキャラのみ（召喚兵などのトークンは除外）
 function deployedCount(){return G.units.reduce((n,u)=>n+(u.isToken?0:1),0);}
 function cellOfPx(x,y){return [Math.floor(x/TILE),Math.floor(y/TILE)];}
-function addFx(o){o.life=o.life||0.4;o.age=0;G.fx.push(o);}
+let reduceMotion=false; // 設定：演出を軽減（破片など装飾エフェクトを省く）
+function addFx(o){ if(reduceMotion&&(o.type==="frag"||o.type==="ring"))return; o.life=o.life||0.4;o.age=0;G.fx.push(o);}
 function clearTransient(){G.fx=[];G.shots=[];} // ダメージ表記・弾・着弾などを一掃
 
 /* ============ 配置 ============ */
 function unitCost(t){return Math.round((TYPES[t].cost + COST_STEP*G.roster[t].times)*mod("costScale",1));}
 function mod(key,def){const m=currentStage&&currentStage.mods; return (m&&m[key]!=null)?m[key]:def;}
-function unitRange(u){return u.cfg.range?u.cfg.range*TILE*mod("fog",1):0;}
+function unitRange(u){return u.cfg.range?u.cfg.range*TILE*mod("fog",1)*(u.artRange||1):0;}
 function tryPlace(c,r){
   const t=G.selectedType; if(!t)return;
   const cfg=TYPES[t];
@@ -1839,9 +1985,11 @@ function tryPlace(c,r){
   rs.state="deployed"; rs.times++;
   const p=center(c,r);
   const hp=statHP(cfg,t), atk=statATK(cfg,t), heal=statHEAL(cfg,t);
+  const ab=artBonus(t); // アーティファクトの速度/射程/スキル倍率を配置時に固定
   G.units.push({
     type:t,cfg,c,r,x:p.x,y:p.y,level:getLevel(t),
     hp,maxHp:hp,atk,heal,cd:0,blocking:[],spdBuff:1,atkBuff:1,
+    artSpd:ab.spd,artRange:ab.range,artSkill:ab.skill,
     sp:0,skillActive:false,skillTimer:0,skillMode:G.defaultSkillMode||"auto",shield:0
   });
   // 出撃時DP生産（プロスペクター等）
@@ -1905,6 +2053,17 @@ function fireSkill(u){
 // エンドレス用：ウェーブ番号に応じて敵編成を手続き生成
 function genEndlessWave(idx){
   const specs=[];
+  // ボスラッシュ：毎ウェーブがボス＋護衛。数ウェーブごとにボス数増加
+  if(G.bossrush){
+    const t=Math.floor(idx/2);
+    specs.push({t:0.5,n:1+Math.floor(idx/3),gap:2.2,type:"boss"});
+    specs.push({t:2,n:1+Math.floor(idx/4),gap:2.5,type:"brute"});
+    if(idx>=2) specs.push({t:1.5,n:2+t,gap:1.0,type:"shielder"});
+    if(idx>=3) specs.push({t:3,n:1+Math.floor(idx/4),gap:2.5,type:"gunship"});
+    if(idx>=4) specs.push({t:2,n:1+Math.floor(idx/5),gap:2,type:"mender"});
+    if(idx>=5) specs.push({t:2.5,n:2+t,gap:1.2,type:"stinger"});
+    return specs;
+  }
   const tier=Math.floor(idx/3); // 3ウェーブごとに難度アップ
   const base=6+idx;             // 数も増える
   // 基本の地上ラッシュ
@@ -1946,7 +2105,8 @@ function startWave(){
 function spawnEnemy(type, opts){
   const e=ENEMY[type];
   // ウェーブが進むほど少し強化（エンドレスはより急峻）
-  const scale=1+G.waveIndex*0.06 + (G.endless?G.waveIndex*0.04:0);
+  const hardHp=G.hard?1.9:1, hardAtk=G.hard?1.55:1;
+  const scale=(1+G.waveIndex*0.06 + (G.endless?G.waveIndex*0.04:0))*hardHp;
   const fly=!!e.fly;
   // 地上敵：分岐マップなら経路をランダムに選ぶ
   let way;
@@ -1956,7 +2116,7 @@ function spawnEnemy(type, opts){
   const en={
     type,e,fly,way,x:way[0].x,y:way[0].y,wp:1,
     hp:e.hp*scale,maxHp:e.hp*scale,spd:e.spd,
-    atk:e.atk*(G.endless?1+G.waveIndex*0.03:1),cd:Math.random()*0.5,acd:Math.random()*0.5,
+    atk:e.atk*(G.endless?1+G.waveIndex*0.03:1)*hardAtk,cd:Math.random()*0.5,acd:Math.random()*0.5,
     shield:e.shield?e.shield*scale:0, shieldMax:e.shield?e.shield*scale:0,
     blockedBy:null,slow:1,stun:0,progress:0,poisonT:0,poisonDmg:0,freezeT:0,slowHitT:0,slowHitF:1
   };
@@ -2000,7 +2160,7 @@ function update(dt){
       if(sk.regen)u.hp=Math.min(u.maxHp,u.hp+sk.regen*dt);
       if(u.skillTimer<=0){u.skillActive=false;u.sp=0;}
     }else{
-      if(u.sp<sk.spMax) u.sp=Math.min(sk.spMax,u.sp+dt); // 満タンで待機（自動/手動で発動）
+      if(u.sp<sk.spMax) u.sp=Math.min(sk.spMax,u.sp+dt*(u.artSkill||1)); // 満タンで待機（自動/手動で発動）
     }
   }
 
@@ -2193,7 +2353,7 @@ function update(dt){
     if(willAct && u.skillMode==="auto" && skillReady(u)) fireSkill(u);
 
     const sk=u.cfg.skill, active=u.skillActive;
-    const spdTotal=u.spdBuff*(active&&sk&&sk.spd?sk.spd:1);
+    const spdTotal=u.spdBuff*(u.artSpd||1)*(active&&sk&&sk.spd?sk.spd:1);
     const atkMult=u.atkBuff*(active&&sk&&sk.atk?sk.atk:1);
     const itv=(u.cfg.interval||1)/spdTotal;
     if(k==="melee"){
@@ -2228,7 +2388,7 @@ function update(dt){
         if(u.cfg.airReach && u.blocking.length && airTarget && !hits.includes(airTarget)) hits.push(airTarget);
         for(const h of hits){
           addFx({type:"slash",x:h.x,y:h.y,col:u.cfg.color,life:0.2});
-          hurtEnemy(h,dmg,u.cfg.color);
+          hurtEnemy(h,dmg,u.cfg.color,u);
         }
         Sound.play("melee");
         // バーサーカー：スキル中はライフスティール
@@ -2358,7 +2518,7 @@ function update(dt){
       } else if(s.kind==="aoe"){
         const R=s.aoeR;
         for(const en of G.enemies){
-          if(canHit(s.owner,en) && dist(en,s.target)<=R){en.stun=Math.max(en.stun,s.stun); hurtEnemy(en,s.dmg,s.col);}
+          if(canHit(s.owner,en) && dist(en,s.target)<=R){en.stun=Math.max(en.stun,s.stun); hurtEnemy(en,s.dmg,s.col,s.owner);}
         }
         addFx({type:"ring",x:s.target.x,y:s.target.y,r:R,col:s.col,life:0.4});
       } else if(s.kind==="chain"){
@@ -2425,7 +2585,7 @@ function update(dt){
     if(f.type==="shell" && !f._blown && f.age>=f.delay){
       f._blown=true;
       for(const en of G.enemies){
-        if((!f.fromU||canHit(f.fromU,en)) && dist(en,f)<=f.aoeR){ hurtEnemy(en,f.dmg,f.col); }
+        if((!f.fromU||canHit(f.fromU,en)) && dist(en,f)<=f.aoeR){ hurtEnemy(en,f.dmg,f.col,f.fromU); }
       }
       addFx({type:"ring",x:f.x,y:f.y,r:f.aoeR,col:f.col,life:0.4});
       addFx({type:"pop",x:f.x,y:f.y,col:f.col,life:0.4});
@@ -2436,7 +2596,7 @@ function update(dt){
   // --- 勝敗・ウェーブクリア ---
   if(G.life<=0){
     G.life=0;G.state="lost";clearTransient();Sound.stopMusic();Sound.play("lose");
-    if(G.endless){ G.prevBest={...endlessBest}; recordEndless(G.waveIndex+1, G.kills||0);
+    if(G.endless){ G.prevBest={...(G.bossrush?bossrushBest:endlessBest)}; recordEndless(G.waveIndex+1, G.kills||0);
       stats.kills+=runKills; dailyEvent("kill",runKills); runKills=0; saveStats(); updateMetaBadges();
       track("endless_gameover", {wave_reached:G.waveIndex+1, kills:G.kills||0});
     } else {
@@ -2462,6 +2622,12 @@ function update(dt){
       // メダルは初クリア時のみ獲得
       G.gainedMedals = firstClear ? clearMedals(G.clearStars) : 0;
       medals += G.gainedMedals;
+      // ハードモード：クリアのたびに追加報酬（メダル＋強化石、★3なら発掘チケット）
+      if(G.hard){
+        const hb={medals:30+currentStage.diff*8, stones:10+currentStage.diff*3};
+        if(G.clearStars>=3) hb.items={ticket:1};
+        G.hardBonus=rewardText(hb); grantReward(hb);
+      }
       saveProgress(); saveEconomy();
       // メタ進行：勝利・撃破・デイリー・実績の更新
       stats.wins++; stats.kills+=runKills; dailyEvent("win"); dailyEvent("kill",runKills); if(G.clearStars>=3)dailyEvent("star3"); runKills=0; saveStats(); updateMetaBadges();
@@ -2499,8 +2665,9 @@ function pickHeal(u){ // 射程内で最もHP割合の低い負傷味方
   return best;
 }
 function shot(u,tg,dmg,col,kind){return {x:u.x,y:u.y,target:tg,dmg,col,kind,spd:520,owner:u};}
-// 敵へのダメージ適用（シールドを先に削る）。色付きの数字も出す。
-function hurtEnemy(en,dmg,col){
+// 敵へのダメージ適用（シールドを先に削る）。色付きの数字も出す。src=与えた味方（与ダメ集計用）
+function hurtEnemy(en,dmg,col,src){
+  if(src&&src.type&&G&&G.dmgByType){ G.dmgByType[src.type]=(G.dmgByType[src.type]||0)+dmg; }
   if(en.shield>0){
     const a=Math.min(en.shield,dmg); en.shield-=a; dmg-=a;
     floatNum(en.x,en.y-6,a,"#88c0ff");
@@ -2511,7 +2678,7 @@ function hurtEnemy(en,dmg,col){
 }
 // 弾の命中効果（ダメージ＋毒/凍結/減速）を敵に適用
 function applyBolt(s,en,dmg){
-  hurtEnemy(en,dmg,s.col);
+  hurtEnemy(en,dmg,s.col,s.owner);
   if(s.poison){ en.poisonDmg=s.poison; en.poisonT=Math.max(en.poisonT||0,s.poisonDur); }
   if(s.freeze){
     en.freezeT=Math.max(en.freezeT||0,s.freeze);
@@ -2987,8 +3154,18 @@ document.querySelectorAll("#spd button").forEach(b=>b.onclick=()=>{
 });
 ovBtn.onclick=()=>{reset(); if(Sound.on){Sound.setMusicIntensity(0.16);Sound.startMusic(112);}};
 document.getElementById("ovMenuBtn").onclick=()=>{ov.className="overlay";gotoMenu("stage");};
+function battleMVPHTML(){
+  const arr=Object.entries(G.dmgByType||{}).sort((a,b)=>b[1]-a[1]).slice(0,3);
+  if(!arr.length)return "";
+  const nm=t=> t==="_token"?"召喚兵":(TYPES[t]?TYPES[t].name:t);
+  let h='<div class="mvp"><div class="mvp-h">⚔ 与ダメージ MVP</div>';
+  arr.forEach(([t,d],i)=>{ h+=`<div class="mvp-row"><span class="mvp-rk">${i===0?'👑':(i+1)}</span><span class="mvp-n">${nm(t)}</span><span class="mvp-d">${Math.round(d).toLocaleString()}</span></div>`; });
+  h+='</div>';
+  return h;
+}
 function showOverlay(kind){
   ov.className="overlay show "+kind;
+  const ex=document.getElementById("ovExtra"); if(ex)ex.innerHTML=battleMVPHTML();
   const starsEl=document.getElementById("ovStars");
   if(kind==="win"){
     ovTitle.textContent="MISSION COMPLETE";
@@ -2997,7 +3174,8 @@ function showOverlay(kind){
     starsEl.style.display="flex";
     const rate = s===3?"★★★ 完全防衛（ノーダメージ）！":s===2?"★★ 見事な防衛！":"★ 防衛成功";
     ovText.textContent=rate+"  ／  残ライフ "+G.life+"/"+currentStage.life+"  ／  経験値 +"+(G.gainedXP||0)
-      + (G.gainedMedals>0 ? "  ／  🏅メダル +"+G.gainedMedals : "  ／  🏅メダルは初クリア時のみ");
+      + (G.gainedMedals>0 ? "  ／  🏅メダル +"+G.gainedMedals : "  ／  🏅メダルは初クリア時のみ")
+      + (G.hard&&G.hardBonus ? "  ／  ☠HARD報酬 "+G.hardBonus : "");
   } else {
     starsEl.style.display="none";
     if(G.endless){
@@ -3029,7 +3207,7 @@ addEventListener("keydown",e=>{
 
 /* ============ 画面遷移 ============ */
 const menuEl=document.getElementById("menu"), battleEl=document.getElementById("battle");
-const screens={title:"scTitle",squad:"scSquad",stage:"scStage",train:"scTrain",daily:"scDaily",ach:"scAch",bag:"scBag",data:"scData"};
+const screens={title:"scTitle",squad:"scSquad",stage:"scStage",train:"scTrain",daily:"scDaily",ach:"scAch",bag:"scBag",data:"scData",art:"scArt",settings:"scSettings"};
 function showScreen(name){
   document.querySelectorAll(".screen").forEach(s=>s.classList.remove("show"));
   document.getElementById(screens[name]).classList.add("show");
@@ -3041,6 +3219,8 @@ function showScreen(name){
   if(name==="ach")buildAch();
   if(name==="bag")buildBag();
   if(name==="data")buildData();
+  if(name==="art")buildArt();
+  if(name==="settings")buildSettings();
   window.scrollTo(0,0);
   track("screen_view", {screen_name:name});
 }
@@ -3072,13 +3252,14 @@ function gotoBattle(stage){
     refreshStaminaUI();
   }
   runKills=0; // 撃破カウントをリセット
+  battleHard = hardMode && !stage.endless && (clearData[stage.id]>=1); // ハードは通常クリア済みのみ
   if(stage.endless){ stats.endlessRuns++; saveStats(); dailyEvent("endless"); }
-  track("battle_start", {stage_id:stage.id, stage_name:stage.name, endless:!!stage.endless, squad_size:squad.length});
+  track("battle_start", {stage_id:stage.id, stage_name:stage.name, endless:!!stage.endless, hard:battleHard, squad_size:squad.length});
   currentStage=stage; WAVES=stage.waves;
   loadMap(stage.map||"serpent");
   if(squad.length===0)squad=ownedList().slice(0,SQUAD_MAX); // 念のため（所持キャラから）
   menuEl.style.display="none"; battleEl.style.display="block";
-  document.getElementById("battleStage").textContent="STAGE "+stage.id+" — "+stage.name;
+  document.getElementById("battleStage").textContent="STAGE "+stage.id+" — "+stage.name+(battleHard?"  ☠HARD":"");
   reset();
   Sound.ensureStarted(); Sound.setMusicIntensity(0.16); Sound.startMusic(112);
   window.scrollTo(0,0);
@@ -3090,6 +3271,8 @@ document.querySelectorAll("[data-go]").forEach(b=>{
 document.getElementById("quitBtn").onclick=()=>gotoMenu("stage");
 document.getElementById("detailClose").onclick=closeDetail;
 document.getElementById("detailModal").addEventListener("click",e=>{ if(e.target.id==="detailModal")closeDetail(); });
+document.getElementById("artPickClose").onclick=closeArtPick;
+document.getElementById("artPickModal").addEventListener("click",e=>{ if(e.target.id==="artPickModal")closeArtPick(); });
 document.getElementById("rankBtn").onclick=openRank;
 document.getElementById("rankClose").onclick=closeRank;
 document.getElementById("rankModal").addEventListener("click",e=>{ if(e.target.id==="rankModal")closeRank(); });
@@ -3145,9 +3328,11 @@ function renderDetail(t){
       <div class="lvbar" style="margin:8px 0"><div class="lvfill" style="width:${(lv/MAX_LEVEL)*100}%"></div></div>
       ${actionRow}
       <div class="stats">${statHTML}</div>
+      ${own?`<div class="art-equip">${artSlotsHTML(t)}</div>`:''}
       <div class="desc">${CODEX_DESC[t]||""}</div>
       <div class="sk">★ <b>${c.skill.name}</b>：${SKILL_DESC[t]||""}</div>
     </div>`;
+  if(own) wireArtSlots(t);
   const tb=document.getElementById("detailTrainBtn");
   if(tb) tb.onclick=()=>{
     const r=levelUp(t);
@@ -3362,10 +3547,53 @@ function targetMark(t){
   if(t==="both")return '<span class="tm b">⊕✈ 両方</span>';
   return '<span class="tm n">支援</span>';
 }
+/* ----- 編成プリセット & フィルタ/並べ替え ----- */
+const PRESET_KEY="td_presets_v1";
+let presets=[null,null,null];
+let squadFilter="all", squadSort="default";
+function loadPresets(){ try{ const d=JSON.parse(localStorage.getItem(PRESET_KEY)); if(Array.isArray(d)){ presets=[d[0]||null,d[1]||null,d[2]||null]; } }catch(e){} }
+function savePresets(){ try{ localStorage.setItem(PRESET_KEY,JSON.stringify(presets)); }catch(e){} }
+loadPresets();
+function savePreset(i){ presets[i]={squad:[...squad]}; savePresets(); toast("プリセット"+(i+1)+"に保存（"+squad.length+"体）"); buildSquadControls(); }
+function loadPreset(i){
+  const p=presets[i]; if(!p||!p.squad||!p.squad.length){ toast("プリセット"+(i+1)+"は空です"); return; }
+  squad=p.squad.filter(isOwned).slice(0,SQUAD_MAX);
+  toast("プリセット"+(i+1)+"を呼出（"+squad.length+"体）"); refreshSquad(); buildSquad();
+}
+const SQUAD_SORTS={default:"既定",level:"レベル順",cost:"コスト順",name:"名前順"};
+const FILTER_ROLES=[["all","全て"],["tank","タンク"],["attacker","アタッカー"],["shooter","シューター"],["supporter","サポーター"],["breaker","ブレイカー"],["trickster","トリック"]];
+function buildSquadControls(){
+  const el=document.getElementById("squadCtrl"); if(!el)return;
+  let h='<div class="preset-row">';
+  for(let i=0;i<3;i++){ const p=presets[i], cnt=p&&p.squad?p.squad.length:0;
+    h+=`<div class="preset"><span class="pz-l">P${i+1}${cnt?`（${cnt}）`:""}</span>
+      <button class="pz-b" data-load="${i}" ${cnt?'':'disabled'}>呼出</button>
+      <button class="pz-b save" data-save="${i}">保存</button></div>`;
+  }
+  h+='</div><div class="filter-row">';
+  for(const [id,nm] of FILTER_ROLES) h+=`<button class="chip ${squadFilter===id?'on':''}" data-f="${id}">${nm}</button>`;
+  h+='</div><div class="sort-row">並べ替え：<select id="squadSortSel">';
+  for(const k in SQUAD_SORTS) h+=`<option value="${k}" ${squadSort===k?'selected':''}>${SQUAD_SORTS[k]}</option>`;
+  h+='</select></div>';
+  el.innerHTML=h;
+  el.querySelectorAll("[data-load]").forEach(b=>b.onclick=()=>loadPreset(+b.dataset.load));
+  el.querySelectorAll("[data-save]").forEach(b=>b.onclick=()=>savePreset(+b.dataset.save));
+  el.querySelectorAll(".chip").forEach(b=>b.onclick=()=>{ squadFilter=b.dataset.f; buildSquad(); });
+  const sel=el.querySelector("#squadSortSel"); if(sel)sel.onchange=()=>{ squadSort=sel.value; buildSquad(); };
+}
+function squadDisplayList(){
+  let list=ownedList();
+  if(squadFilter!=="all") list=list.filter(t=>roleOf(t)===squadFilter);
+  if(squadSort==="level") list=[...list].sort((a,b)=>getLevel(b)-getLevel(a));
+  else if(squadSort==="cost") list=[...list].sort((a,b)=>TYPES[a].cost-TYPES[b].cost);
+  else if(squadSort==="name") list=[...list].sort((a,b)=>TYPES[a].name.localeCompare(TYPES[b].name,"ja"));
+  return list;
+}
 function buildSquad(){
   document.getElementById("squadMax").textContent=SQUAD_MAX;
+  buildSquadControls();
   const g=document.getElementById("squadGrid"); g.innerHTML="";
-  const list=ownedList();
+  const list=squadDisplayList();
   for(const t of list){
     const c=TYPES[t];
     const d=document.createElement("div");
@@ -3380,7 +3608,7 @@ function buildSquad(){
     g.appendChild(d);
   }
   // 未所持の案内
-  const locked=ORDER.length-list.length;
+  const locked=ORDER.length-ownedCount();
   let note=document.getElementById("squadLockNote");
   if(!note){ note=document.createElement("p"); note.id="squadLockNote"; note.className="hint"; g.parentElement.insertBefore(note,g.nextSibling); }
   note.innerHTML = locked>0
@@ -3408,6 +3636,7 @@ function refreshSquad(){
 }
 
 /* ----- ステージ選択 ----- */
+let hardMode=false; // ハードモード（ステージ選択のトグル）
 function gimmickTags(st){
   const tags=[];
   const mp={serpent:"S字経路",avenue:"一本道・高台多",fork:"二股分岐",spiral:"渦巻き長経路",gauntlet:"高台少"};
@@ -3463,14 +3692,22 @@ function refreshStaminaUI(){
 function buildStageList(){
   refreshStaminaUI();
   const g=document.getElementById("stageList"); g.innerHTML="";
+  // ハードモード切替バナー
+  const banner=document.createElement("div");
+  banner.className="hard-banner"+(hardMode?" on":"");
+  banner.innerHTML=`<div><b>☠ ハードモード</b><span class="hb-note">敵が大幅強化（HP約1.9倍・攻撃1.55倍）／クリアのたびに🏅メダル・🔩強化石（★3で🎟）を追加獲得。<b>通常クリア済みのステージのみ</b>挑戦可。</span></div>
+    <button class="hb-toggle">${hardMode?"ON":"OFF"}</button>`;
+  banner.querySelector(".hb-toggle").onclick=()=>{ hardMode=!hardMode; buildStageList(); };
+  g.appendChild(banner);
   STAGES.forEach(st=>{
     const d=document.createElement("div");
     if(st.endless){
-      // エンドレス専用カード（星でなく自己ベストを表示）
-      d.className="stagecard endless"+(endlessBest.wave>0?" cleared":"");
-      const bestTxt=endlessBest.wave>0?("自己ベスト WAVE "+endlessBest.wave+" ／ 撃破 "+endlessBest.kills):"記録なし";
+      // エンドレス／ボスラッシュ専用カード（星でなく自己ベストを表示）
+      const isBR=!!st.bossrush, rec=isBR?bossrushBest:endlessBest, sid=isBR?"☠":"∞";
+      d.className="stagecard endless"+(isBR?" bossrush":"")+(rec.wave>0?" cleared":"");
+      const bestTxt=rec.wave>0?("自己ベスト WAVE "+rec.wave+" ／ 撃破 "+rec.kills):"記録なし";
       d.innerHTML=`
-        <div class="sid">∞</div>
+        <div class="sid">${sid}</div>
         <div class="sinfo"><div class="sname">${st.name} <span class="ministars" style="color:var(--gold)">🏆 ${bestTxt}</span></div>
           <div class="sdesc">${st.desc}</div>
           <div class="gtags">${gimmickTags(st)}<span class="gtag" style="color:var(--pink)">⚡スタミナ消費なし</span></div></div>
@@ -3484,7 +3721,8 @@ function buildStageList(){
       return;
     }
     const best=clearData[st.id]||0;
-    d.className="stagecard"+(best>0?" cleared":"");
+    const hardLocked = hardMode && best<1;
+    d.className="stagecard"+(best>0?" cleared":"")+(hardMode?" hardsel":"")+(hardLocked?" hardlocked":"");
     const dots=Math.min(5,st.diff);
     const starHTML=[1,2,3].map(i=>`<span class="ms ${i<=best?'on':''}">★</span>`).join("");
     const farmBtn = best===3 ? `<button class="farmbtn" title="スタミナを使って一括周回">⚡一括周回</button>` : "";
@@ -3498,6 +3736,7 @@ function buildStageList(){
         ${st.waves.length} WAVE / LIFE ${st.life}</div>
       <div class="go">▶</div>`;
     d.addEventListener("click",()=>{
+      if(hardMode && best<1){ alert("ハードモードは、まず通常モードでクリアしたステージのみ挑戦できます。"); return; }
       if(squad.length===0){ alert("先に編成でキャラを1体以上選んでください。"); showScreen("squad"); return; }
       gotoBattle(st);
     });
@@ -3534,6 +3773,7 @@ const ITEMS={
   xpb:   {name:"XPブースト", icon:"✦", desc:"30分間 獲得XP+50%", use(){ boostUntil=Math.max(boostUntil,Date.now())+30*60000; saveBoost(); return "XPブースト発動（+30分）"; }},
   medal: {name:"メダル袋", icon:"🏅", desc:"メダルを100獲得",  use(){ medals+=100; saveEconomy(); refreshHomeStats(); return "メダル+100"; }},
   medalL:{name:"大判メダル袋", icon:"💰", desc:"メダルを300獲得",  use(){ medals+=300; saveEconomy(); refreshHomeStats(); return "メダル+300"; }},
+  ticket:{name:"発掘チケット", icon:"🎟", desc:"アーティファクトを1個発掘", use(){ const a=excavateOne(); return "発掘！ "+artLabel(a); }},
 };
 const INV_KEY="td_inv_v1", BOOST_KEY="td_boost_v1";
 let inventory={}, boostUntil=0;
@@ -3552,6 +3792,7 @@ function grantReward(r){
   if(r.medals){ medals+=r.medals; parts.push("🏅"+r.medals); }
   if(r.xp){ playerXP+=r.xp; parts.push("✦"+r.xp); }
   if(r.stamina){ regenStamina(); const w=stamina>=STAMINA_MAX; stamina=Math.min(STAMINA_MAX,stamina+r.stamina); if(w)staminaTs=Date.now(); saveStamina(); parts.push("⚡"+r.stamina); }
+  if(r.stones){ artStones+=r.stones; saveArtifacts(); parts.push("🔩強化石×"+r.stones); }
   if(r.items) for(const id in r.items){ addItem(id,r.items[id]); parts.push(ITEMS[id].icon+ITEMS[id].name+"×"+r.items[id]); }
   saveEconomy(); saveProgress(); refreshHomeStats();
   return parts.join("　");
@@ -3559,6 +3800,7 @@ function grantReward(r){
 function rewardText(r){ // 表示用（付与しない）
   const p=[];
   if(r.medals)p.push("🏅"+r.medals); if(r.xp)p.push("✦"+r.xp); if(r.stamina)p.push("⚡"+r.stamina);
+  if(r.stones)p.push("🔩強化石×"+r.stones);
   if(r.items)for(const id in r.items)p.push(ITEMS[id].icon+ITEMS[id].name+"×"+r.items[id]);
   return p.join(" / ");
 }
@@ -3585,7 +3827,7 @@ const DAILY_POOL=[
   {id:"kill80", name:"敵を80体撃破",         goal:80, ev:"kill",   reward:{xp:100,items:{stam:1}}},
   {id:"win5",   name:"ステージを5回クリア",  goal:5,  ev:"win",    reward:{medals:100,items:{medal:1}}},
 ];
-const DAILY_BONUS={medals:120,items:{xpb:1}};
+const DAILY_BONUS={medals:120,items:{xpb:1,ticket:1}};
 const DAILY_KEY="td_daily_v1";
 let daily=null;
 function loadDaily(){ try{daily=JSON.parse(localStorage.getItem(DAILY_KEY));}catch(e){daily=null;} rollDailyIfNeeded(); }
@@ -3614,7 +3856,7 @@ function claimDailyBonus(){
 }
 
 // ---- ログインボーナス（7日サイクル） ----
-const LOGIN_REWARDS=[{medals:50},{items:{stam:2}},{xp:150},{items:{medal:1}},{items:{xpb:1}},{medals:150},{items:{stamL:1,medalL:1}}];
+const LOGIN_REWARDS=[{medals:50},{items:{stam:2}},{xp:150},{items:{ticket:1}},{stones:30},{medals:150},{items:{stamL:1,medalL:1,ticket:1}}];
 const LOGIN_KEY="td_login_v1";
 let login=null, loginPending=false;
 function loadLogin(){ try{login=JSON.parse(localStorage.getItem(LOGIN_KEY));}catch(e){login=null;} if(!login)login={lastDate:"",streak:0}; loginPending=(login.lastDate!==TODAY()); }
@@ -3640,17 +3882,17 @@ function claimLogin(){
 
 // ---- アチーブメント ----
 const ACHIEVEMENTS=[
-  {id:"first_win",name:"はじめの一歩",desc:"ステージを初クリア",chk:()=>stats.wins>=1,reward:{medals:50}},
-  {id:"win10",name:"常勝の兆し",desc:"通算10回クリア",chk:()=>stats.wins>=10,reward:{medals:100,items:{stam:1}}},
+  {id:"first_win",name:"はじめの一歩",desc:"ステージを初クリア",chk:()=>stats.wins>=1,reward:{medals:50,items:{ticket:1}}},
+  {id:"win10",name:"常勝の兆し",desc:"通算10回クリア",chk:()=>stats.wins>=10,reward:{medals:100,items:{stam:1},stones:20}},
   {id:"win50",name:"歴戦の指揮官",desc:"通算50回クリア",chk:()=>stats.wins>=50,reward:{medals:300,items:{medalL:1}}},
-  {id:"star3_5",name:"完璧主義・初級",desc:"★3を5ステージ達成",chk:()=>star3Count()>=5,reward:{medals:120,items:{xpb:1}}},
+  {id:"star3_5",name:"完璧主義・初級",desc:"★3を5ステージ達成",chk:()=>star3Count()>=5,reward:{medals:120,items:{xpb:1,ticket:1}}},
   {id:"star3_all",name:"全ステージ制覇",desc:"全ステージで★3",chk:()=>totalStages()>0&&star3Count()>=totalStages(),reward:{medals:500,items:{stamL:1}}},
   {id:"own10",name:"仲間集め",desc:"キャラを10体所持",chk:()=>ownedCount()>=10,reward:{medals:100}},
   {id:"own_all",name:"オールスター",desc:"全キャラを所持",chk:()=>ownedCount()>=ORDER.length,reward:{medals:600,items:{medalL:2}}},
   {id:"max1",name:"育成のプロ",desc:"1体を最大レベルに",chk:()=>maxedCount()>=1,reward:{xp:200}},
   {id:"max5",name:"精鋭部隊",desc:"5体を最大レベルに",chk:()=>maxedCount()>=5,reward:{medals:250,items:{xpb:2}}},
   {id:"end10",name:"無限への挑戦",desc:"エンドレス10WAVE到達",chk:()=>endlessBest.wave>=10,reward:{medals:120}},
-  {id:"end20",name:"深淵の探索者",desc:"エンドレス20WAVE到達",chk:()=>endlessBest.wave>=20,reward:{medals:250,items:{stamL:1}}},
+  {id:"end20",name:"深淵の探索者",desc:"エンドレス20WAVE到達",chk:()=>endlessBest.wave>=20,reward:{medals:250,items:{stamL:1,ticket:1},stones:40}},
   {id:"end30",name:"無限の覇者",desc:"エンドレス30WAVE到達",chk:()=>endlessBest.wave>=30,reward:{medals:500,items:{medalL:1}}},
   {id:"kill1000",name:"千体撃破",desc:"通算1000体撃破",chk:()=>stats.kills>=1000,reward:{medals:200,items:{xpb:1}}},
   {id:"farm10",name:"周回マスター",desc:"一括周回を通算10回",chk:()=>stats.farms>=10,reward:{medals:150}},
@@ -3864,7 +4106,142 @@ function buildData(){
   renderCloudCard();
 }
 
-function initMeta(){ loadInv(); loadStats(); loadDaily(); loadLogin(); loadAch(); }
+// ===== アーティファクト：発掘・強化・分解・装備・UI =====
+function pctOf(v){ return Math.round(v*100); }
+function artStatLabel(a){ const ms=ART_TYPES[a.type].stat; let s=`${ART_STAT_NAME[ms]}+${pctOf(artMainVal(a))}%`; if(a.sub)s+=` / ${ART_STAT_NAME[a.sub.key]}+${pctOf(artSubVal(a))}%`; return s; }
+function artName(a){ return ART_TYPES[a.type].name; }
+function artLabel(a){ return `${ART_TYPES[a.type].icon}${ART_RARITY[a.rarity].name} ${artName(a)}（${artStatLabel(a)}）`+(a.level?` +${a.level}`:""); }
+function rollRarity(){ const r=Math.random(); return r<0.50?1:r<0.80?2:r<0.95?3:4; }
+function makeArtifact(rarity,type){
+  rarity=rarity||rollRarity();
+  type=type||ART_TYPE_IDS[Math.floor(Math.random()*ART_TYPE_IDS.length)];
+  const a={uid:artSeq++,type,rarity,level:0};
+  if(rarity>=3){ const pool=["atk","hp","spd","skill","range"].filter(k=>k!==ART_TYPES[type].stat);
+    a.sub={key:pool[Math.floor(Math.random()*pool.length)], val:ART_RARITY[rarity].base*0.45}; }
+  return a;
+}
+function excavateOne(){ const a=makeArtifact(); artifacts.push(a); saveArtifacts(); return a; }
+function excavateBtn(){
+  if((inventory.ticket||0)<=0){ toast("発掘チケットがありません"); return; }
+  useItem("ticket"); buildArt();   // useItem内でexcavateOne＋toast＋チケット消費
+}
+function artEnhanceCost(a){ return (a.level+1)*a.rarity*4; }
+function enhanceArt(uid){ const a=artById(uid); if(!a)return;
+  if(a.level>=ART_MAXLV){ toast("最大強化です"); return; }
+  const cost=artEnhanceCost(a); if(artStones<cost){ toast("強化石が足りません（"+cost+"必要）"); return; }
+  artStones-=cost; a.level++; saveArtifacts(); toast("強化 → +"+a.level); buildArt(); if(detailOpenType)renderDetail(detailOpenType);
+}
+function isEquipped(uid){ for(const t in equipped){ if((equipped[t]||[]).indexOf(uid)>=0)return t; } return null; }
+function dismantleArt(uid){ const a=artById(uid); if(!a)return;
+  if(isEquipped(uid)){ toast("装備中は分解できません"); return; }
+  const gain=a.rarity*3+a.level*2;
+  if(!confirm(artLabel(a)+"\nを分解して 🔩強化石+"+gain+" を得ます。よろしいですか？"))return;
+  artifacts=artifacts.filter(x=>x.uid!==uid); artStones+=gain; saveArtifacts(); toast("分解：🔩+"+gain); buildArt();
+}
+function unequipUid(uid){ for(const t in equipped){ const arr=equipped[t]; if(arr) for(let i=0;i<arr.length;i++) if(arr[i]===uid)arr[i]=null; } }
+function equipArt(type,slot,uid){ unequipUid(uid); if(!equipped[type])equipped[type]=[null,null]; equipped[type][slot]=uid; saveArtifacts(); }
+function unequipSlot(type,slot){ if(equipped[type])equipped[type][slot]=null; saveArtifacts(); }
+function equippedCharName(uid){ const t=isEquipped(uid); return t?TYPES[t].name:""; }
+
+function buildArt(){
+  const el=document.getElementById("artBody"); if(!el)return;
+  const tickets=inventory.ticket||0;
+  let h=`<div class="data-card">
+    <div class="art-head"><span>🔩 強化石 <b>${artStones}</b></span><span>🎟 発掘チケット <b>${tickets}</b></span></div>
+    <p class="hint">発掘でアーティファクトを入手し、キャラ図鑑の各キャラ「詳細」から装備できます（1体2枠）。強化石で強化、不要品は分解で強化石に。</p>
+    <button class="claim-btn" id="artDig" ${tickets<=0?'disabled':''}>🎟 発掘する（チケット1枚）</button>
+  </div>`;
+  if(!artifacts.length){ h+='<p class="hint" style="text-align:center;opacity:.65;margin-top:14px">まだアーティファクトがありません。発掘チケットで入手しましょう（デイリー・実績・ログボで入手）。</p>'; }
+  else{
+    h+='<div class="art-grid">';
+    for(const a of [...artifacts].sort((x,y)=>y.rarity-x.rarity||y.uid-x.uid)){
+      const eqby=equippedCharName(a.uid), rc=ART_RARITY[a.rarity].col, cost=artEnhanceCost(a), maxed=a.level>=ART_MAXLV;
+      h+=`<div class="art-card" style="--rc:${rc}">
+        <div class="ac-top"><span class="ac-ico">${ART_TYPES[a.type].icon}</span>
+          <span class="ac-r" style="color:${rc}">${ART_RARITY[a.rarity].name}</span>${a.level?`<span class="ac-lv">+${a.level}</span>`:''}</div>
+        <div class="ac-name">${artName(a)}</div>
+        <div class="ac-stat">${artStatLabel(a)}</div>
+        <div class="ac-eq${eqby?'':' none'}">${eqby?'装備中：'+eqby:'未装備'}</div>
+        <div class="ac-btns">
+          <button class="claim-btn small" data-enh="${a.uid}" ${maxed?'disabled':''}>${maxed?'MAX':'強化 🔩'+cost}</button>
+          <button class="claim-btn small ghost" data-dis="${a.uid}">分解</button>
+        </div></div>`;
+    }
+    h+='</div>';
+  }
+  el.innerHTML=h;
+  const dig=el.querySelector("#artDig"); if(dig)dig.onclick=excavateBtn;
+  el.querySelectorAll("[data-enh]").forEach(b=>b.onclick=()=>enhanceArt(+b.dataset.enh));
+  el.querySelectorAll("[data-dis]").forEach(b=>b.onclick=()=>dismantleArt(+b.dataset.dis));
+}
+
+// 詳細モーダル内の装備スロット
+function artSlotsHTML(type){
+  const eq=equipped[type]||[null,null];
+  let h='<div class="ae-h">🗡 アーティファクト装備</div><div class="art-slots">';
+  for(let i=0;i<2;i++){ const a=eq[i]!=null?artById(eq[i]):null;
+    h+= a ? `<div class="art-slot filled" data-slot="${i}" style="--rc:${ART_RARITY[a.rarity].col}">
+        <div class="as-ico">${ART_TYPES[a.type].icon}</div>
+        <div class="as-info"><div class="as-r" style="color:${ART_RARITY[a.rarity].col}">${ART_RARITY[a.rarity].name}${a.level?' +'+a.level:''}</div><div class="as-s">${artStatLabel(a)}</div></div></div>`
+      : `<div class="art-slot empty" data-slot="${i}">＋ スロット${i+1}<br><small>タップで装備</small></div>`;
+  }
+  h+='</div>';
+  return h;
+}
+function wireArtSlots(type){ document.querySelectorAll("#detailBody .art-slot").forEach(s=>{ s.onclick=()=>openArtPick(type,+s.dataset.slot); }); }
+function openArtPick(type,slot){
+  const eqUid=(equipped[type]||[])[slot];
+  const list=artifacts.filter(a=>{ const e=isEquipped(a.uid); return !e||a.uid===eqUid; }).sort((a,b)=>b.rarity-a.rarity||b.uid-a.uid);
+  let h=`<h3 class="rank-title">装備を選択（${TYPES[type].name}／スロット${slot+1}）</h3><div class="pick-list">`;
+  if(eqUid!=null) h+=`<button class="pick-row remove" data-uid="__off">✕ 外す</button>`;
+  if(!list.length) h+='<p class="hint" style="opacity:.7">装備できるアーティファクトがありません。発掘で入手してください。</p>';
+  for(const a of list){ const cur=a.uid===eqUid?' <span style="color:var(--gold)">（装備中）</span>':'';
+    h+=`<button class="pick-row" data-uid="${a.uid}" style="--rc:${ART_RARITY[a.rarity].col}">
+      <span class="pr-ico">${ART_TYPES[a.type].icon}</span>
+      <span class="pr-main"><b style="color:${ART_RARITY[a.rarity].col}">${ART_RARITY[a.rarity].name}${a.level?' +'+a.level:''}</b> ${artName(a)}${cur}<br><small>${artStatLabel(a)}</small></span></button>`;
+  }
+  h+='</div>';
+  document.getElementById("artPickBody").innerHTML=h;
+  document.getElementById("artPickModal").classList.add("show");
+  document.querySelectorAll("#artPickBody .pick-row").forEach(b=>b.onclick=()=>{
+    const v=b.dataset.uid;
+    if(v==="__off") unequipSlot(type,slot); else equipArt(type,slot,+v);
+    closeArtPick(); renderDetail(type);
+  });
+}
+function closeArtPick(){ document.getElementById("artPickModal").classList.remove("show"); }
+
+// ===== 設定（音量・モーション軽減） =====
+const SETTINGS_KEY="td_settings_v1";
+function loadSettings(){
+  let s={}; try{ s=JSON.parse(localStorage.getItem(SETTINGS_KEY))||{}; }catch(e){}
+  if(typeof s.master==="number") Sound.setMaster(s.master);
+  if(typeof s.sfx==="number") Sound.setSfx(s.sfx);
+  reduceMotion=!!s.reduceMotion;
+}
+function saveSettings(){ try{ localStorage.setItem(SETTINGS_KEY,JSON.stringify({master:Sound.getMaster(),sfx:Sound.getSfx(),reduceMotion})); }catch(e){} }
+function buildSettings(){
+  const el=document.getElementById("settingsBody"); if(!el)return;
+  el.innerHTML=`
+   <div class="data-card">
+     <h4>🔊 音量</h4>
+     <div class="set-row"><label>マスター</label><input type="range" id="setMaster" min="0" max="1" step="0.05" value="${Sound.getMaster()}"><span id="setMasterV">${Math.round(Sound.getMaster()*100)}%</span></div>
+     <div class="set-row"><label>効果音</label><input type="range" id="setSfx" min="0" max="1" step="0.05" value="${Sound.getSfx()}"><span id="setSfxV">${Math.round(Sound.getSfx()*100)}%</span></div>
+     <p class="hint">音のオン/オフはバトル画面の🔊ボタンでも切り替えられます。</p>
+   </div>
+   <div class="data-card">
+     <h4>🎬 表示</h4>
+     <div class="set-row"><label>モーション軽減</label><button class="claim-btn ${reduceMotion?'':'ghost'}" id="setRM">${reduceMotion?"ON":"OFF"}</button></div>
+     <p class="hint">破片などの装飾エフェクトを省いて動作を軽くします（電池節約・低スペック端末向け）。</p>
+   </div>`;
+  const m=el.querySelector("#setMaster"), sf=el.querySelector("#setSfx");
+  m.oninput=()=>{ Sound.ensureStarted(); Sound.setMaster(+m.value); el.querySelector("#setMasterV").textContent=Math.round(m.value*100)+"%"; saveSettings(); };
+  sf.oninput=()=>{ Sound.ensureStarted(); Sound.setSfx(+sf.value); el.querySelector("#setSfxV").textContent=Math.round(sf.value*100)+"%"; saveSettings(); };
+  sf.onchange=()=>Sound.play("click");
+  el.querySelector("#setRM").onclick=()=>{ reduceMotion=!reduceMotion; saveSettings(); buildSettings(); };
+}
+
+function initMeta(){ loadInv(); loadStats(); loadDaily(); loadLogin(); loadAch(); loadSettings(); }
 
 /* ============ 起動 ============ */
 initFirebase();   // 設定済みならランキング有効化（未設定なら何もしない）
