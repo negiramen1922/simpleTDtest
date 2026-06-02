@@ -470,6 +470,19 @@
     border:1px solid var(--line2);background:#0b1118;color:#cdd9e3;font-size:11px;font-family:monospace;word-break:break-all}
   .data-btns{display:flex;flex-wrap:wrap;gap:8px}
   .data-btns .claim-btn{flex:0 0 auto}
+  /* 編成コントロール（プリセット/フィルタ/並べ替え） */
+  .squad-ctrl{max-width:760px;margin:0 auto 12px;display:flex;flex-direction:column;gap:8px}
+  .preset-row{display:flex;gap:8px;flex-wrap:wrap}
+  .preset{display:flex;align-items:center;gap:5px;border:1px solid var(--line);border-radius:9px;padding:5px 8px;background:var(--panel)}
+  .pz-l{font-size:11px;color:var(--dim);font-weight:700;min-width:30px}
+  .pz-b{padding:5px 9px;border-radius:7px;border:1px solid var(--line2);background:#1a2230;color:#cdd9e3;font-size:11px;cursor:pointer}
+  .pz-b.save{background:#23303f}
+  .pz-b:disabled{opacity:.4;cursor:default}
+  .filter-row{display:flex;gap:6px;flex-wrap:wrap}
+  .chip{padding:5px 11px;border-radius:16px;border:1px solid var(--line2);background:var(--panel);color:var(--dim);font-size:12px;cursor:pointer}
+  .chip.on{border-color:var(--cyan);color:#fff;background:rgba(63,199,244,.14)}
+  .sort-row{font-size:12px;color:var(--dim);display:flex;align-items:center;gap:8px}
+  .sort-row select{background:#0b1118;color:#cdd9e3;border:1px solid var(--line2);border-radius:7px;padding:5px 8px;font-size:12px}
   /* アーティファクト */
   .art-head{display:flex;justify-content:space-around;font-size:15px;color:#eef4f9;margin-bottom:6px}
   .art-head b{color:var(--gold,#ffd24a)}
@@ -609,6 +622,7 @@
       <button class="btn-go" data-go="stage">ステージ選択 →</button>
     </div>
     <p class="hint">編成に入れるキャラを選択（最大 <b id="squadMax"></b> 体）。カードをタップで出撃ON/OFF、並び順がショートカット番号になります。<br>バトル中にフィールドへ<b>同時配置できるのは10体まで</b>。編成は控えも含めて選び、状況に応じて使い分けましょう。</p>
+    <div class="squad-ctrl" id="squadCtrl"></div>
     <div class="squad-grid" id="squadGrid"></div>
   </section>
 
@@ -3451,10 +3465,53 @@ function targetMark(t){
   if(t==="both")return '<span class="tm b">⊕✈ 両方</span>';
   return '<span class="tm n">支援</span>';
 }
+/* ----- 編成プリセット & フィルタ/並べ替え ----- */
+const PRESET_KEY="td_presets_v1";
+let presets=[null,null,null];
+let squadFilter="all", squadSort="default";
+function loadPresets(){ try{ const d=JSON.parse(localStorage.getItem(PRESET_KEY)); if(Array.isArray(d)){ presets=[d[0]||null,d[1]||null,d[2]||null]; } }catch(e){} }
+function savePresets(){ try{ localStorage.setItem(PRESET_KEY,JSON.stringify(presets)); }catch(e){} }
+loadPresets();
+function savePreset(i){ presets[i]={squad:[...squad]}; savePresets(); toast("プリセット"+(i+1)+"に保存（"+squad.length+"体）"); buildSquadControls(); }
+function loadPreset(i){
+  const p=presets[i]; if(!p||!p.squad||!p.squad.length){ toast("プリセット"+(i+1)+"は空です"); return; }
+  squad=p.squad.filter(isOwned).slice(0,SQUAD_MAX);
+  toast("プリセット"+(i+1)+"を呼出（"+squad.length+"体）"); refreshSquad(); buildSquad();
+}
+const SQUAD_SORTS={default:"既定",level:"レベル順",cost:"コスト順",name:"名前順"};
+const FILTER_ROLES=[["all","全て"],["tank","タンク"],["attacker","アタッカー"],["shooter","シューター"],["supporter","サポーター"],["breaker","ブレイカー"],["trickster","トリック"]];
+function buildSquadControls(){
+  const el=document.getElementById("squadCtrl"); if(!el)return;
+  let h='<div class="preset-row">';
+  for(let i=0;i<3;i++){ const p=presets[i], cnt=p&&p.squad?p.squad.length:0;
+    h+=`<div class="preset"><span class="pz-l">P${i+1}${cnt?`（${cnt}）`:""}</span>
+      <button class="pz-b" data-load="${i}" ${cnt?'':'disabled'}>呼出</button>
+      <button class="pz-b save" data-save="${i}">保存</button></div>`;
+  }
+  h+='</div><div class="filter-row">';
+  for(const [id,nm] of FILTER_ROLES) h+=`<button class="chip ${squadFilter===id?'on':''}" data-f="${id}">${nm}</button>`;
+  h+='</div><div class="sort-row">並べ替え：<select id="squadSortSel">';
+  for(const k in SQUAD_SORTS) h+=`<option value="${k}" ${squadSort===k?'selected':''}>${SQUAD_SORTS[k]}</option>`;
+  h+='</select></div>';
+  el.innerHTML=h;
+  el.querySelectorAll("[data-load]").forEach(b=>b.onclick=()=>loadPreset(+b.dataset.load));
+  el.querySelectorAll("[data-save]").forEach(b=>b.onclick=()=>savePreset(+b.dataset.save));
+  el.querySelectorAll(".chip").forEach(b=>b.onclick=()=>{ squadFilter=b.dataset.f; buildSquad(); });
+  const sel=el.querySelector("#squadSortSel"); if(sel)sel.onchange=()=>{ squadSort=sel.value; buildSquad(); };
+}
+function squadDisplayList(){
+  let list=ownedList();
+  if(squadFilter!=="all") list=list.filter(t=>roleOf(t)===squadFilter);
+  if(squadSort==="level") list=[...list].sort((a,b)=>getLevel(b)-getLevel(a));
+  else if(squadSort==="cost") list=[...list].sort((a,b)=>TYPES[a].cost-TYPES[b].cost);
+  else if(squadSort==="name") list=[...list].sort((a,b)=>TYPES[a].name.localeCompare(TYPES[b].name,"ja"));
+  return list;
+}
 function buildSquad(){
   document.getElementById("squadMax").textContent=SQUAD_MAX;
+  buildSquadControls();
   const g=document.getElementById("squadGrid"); g.innerHTML="";
-  const list=ownedList();
+  const list=squadDisplayList();
   for(const t of list){
     const c=TYPES[t];
     const d=document.createElement("div");
@@ -3469,7 +3526,7 @@ function buildSquad(){
     g.appendChild(d);
   }
   // 未所持の案内
-  const locked=ORDER.length-list.length;
+  const locked=ORDER.length-ownedCount();
   let note=document.getElementById("squadLockNote");
   if(!note){ note=document.createElement("p"); note.id="squadLockNote"; note.className="hint"; g.parentElement.insertBefore(note,g.nextSibling); }
   note.innerHTML = locked>0
