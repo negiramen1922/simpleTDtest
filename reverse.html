@@ -186,23 +186,18 @@ const center=(c,r)=>({x:c*TILE+TILE/2,y:r*TILE+TILE/2});
 const PATHPTS=PATH.map(([c,r])=>center(c,r));
 function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y);}
 
-/* ----- 回帰者（オリジナルキャラ）：role attacker/tank/support, kind melee/range/heal ----- */
+/* ----- 回帰者（リバリバ実キャラ）：1キャラずつ追加していく ----- */
+/* ロール6種：アタッカー/シューター/ブレイカー/サポーター/ヒーラー/トリックスター */
+/* スプシ由来の独自スケール(HP数千)はTD用に縮約。faction=階級, element=属性 */
 const CHARS={
-  nox:   {name:"終焉の剣姫 ノクス", role:"ATTACKER", kind:"melee", icon:"🗡", color:"#ff6a8e", cost:14,
-    hp:900, atk:165, interval:0.9, range:1.3, skill:{name:"終焉回帰・紅蓮万斬", sp:13, atk:2.4}},
-  garo:  {name:"不動城 ガロ", role:"TANK", kind:"melee", icon:"🛡", color:"#5b8dd6", cost:13,
-    hp:2100, atk:60, interval:1.5, range:1.1, block:true, skill:{name:"蒼天絶対結界", sp:16, dr:0.8, regen:300}},
-  azot:  {name:"蒼雷の魔導 アゾット", role:"ATTACKER", kind:"range", icon:"⚡", color:"#46c2ff", cost:15,
-    hp:420, atk:120, interval:0.85, range:3.4, aoe:1.2, skill:{name:"第九律・蒼雷ノ裁キ", sp:15, atk:2.0, aoe:1.9}},
-  selene:{name:"虚月の射手 セレネ", role:"ATTACKER", kind:"range", icon:"🌙", color:"#9fe0ff", cost:14,
-    hp:360, atk:240, interval:1.5, range:4.6, skill:{name:"虚月貫通弾", sp:16, atk:2.8}},
-  live:  {name:"白詠の聖女 リーヴ", role:"SUPPORT", kind:"heal", icon:"✚", color:"#7ee0a0", cost:12,
-    hp:430, heal:120, interval:1.1, range:3.2, skill:{name:"再生詠唱・蒼ノ救恤", sp:15, healMul:1.6, aoe:true}},
-  vice:  {name:"蒼旗の指揮者 ヴァイス", role:"SUPPORT", kind:"buff", icon:"🚩", color:"#ff5bd0", cost:13,
-    hp:480, atkBuff:1.35, spdBuff:1.25, range:3.0, skill:{name:"進撃ノ蒼号令", sp:17, atkBuff:1.9, spdBuff:1.7}},
+  kanon_default:{ name:"カノン", sub:"DEFAULT", role:"ATTACKER", faction:"ブレイドライン", element:"破壊", dmgType:"物理",
+    kind:"melee", icon:"⚔", color:"#7fb6ff", cost:15, hp:950, atk:195, interval:0.85, range:1.3, block:true,
+    passive:{name:"神殺しの剣閃", factionAtk:0.10}, // 出撃中、味方ブレイドラインの攻撃力+10%
+    skill:{name:"聖剣技 天蓋連牙", sp:12, atk:2.4} }, // 前方へ飛び込み連撃（攻撃力50%×4相当）
 };
 const ORDER=Object.keys(CHARS);
-const ROLE_COL={ATTACKER:"#ff6a8e",TANK:"#5b8dd6",SUPPORT:"#7ee0a0"};
+const ROLE_JP={ATTACKER:"アタッカー",SHOOTER:"シューター",BREAKER:"ブレイカー",SUPPORTER:"サポーター",HEALER:"ヒーラー",TRICKSTER:"トリックスター"};
+const ROLE_COL={ATTACKER:"#ff6a8e",SHOOTER:"#46c2ff",BREAKER:"#ffb454",SUPPORTER:"#ff5bd0",HEALER:"#7ee0a0",TRICKSTER:"#c08bff"};
 
 /* ----- 敵 ----- */
 const ENE={
@@ -252,8 +247,10 @@ function buildSquadUI(){
     const d=document.createElement("div");
     d.className="ucard"+(idx>=0?" on":""); d.style.setProperty("--c",c.color);
     d.innerHTML=`<div class="num">${idx>=0?idx+1:""}</div><div class="cost">${c.cost}</div>
-      <div class="ico">${c.icon}</div><div class="nm">${c.name}</div>
-      <div class="ro" style="--c:${ROLE_COL[c.role]};border-color:${ROLE_COL[c.role]};color:${ROLE_COL[c.role]}">${c.role}</div>
+      <div class="ico">${c.icon}</div><div class="nm">${c.name}${c.sub?` <span style="font-size:9px;color:var(--dim)">${c.sub}</span>`:""}</div>
+      <div class="ro" style="--c:${ROLE_COL[c.role]};border-color:${ROLE_COL[c.role]};color:${ROLE_COL[c.role]}">${ROLE_JP[c.role]}</div>
+      ${c.faction?`<div style="font-size:9.5px;color:var(--dim);margin-top:4px">${c.faction}${c.element?" ／ "+c.element+"属性":""}</div>`:""}
+      ${c.passive?`<div class="sk" style="color:#9fe0ff">◆${c.passive.name}</div>`:""}
       <div class="sk">★${c.skill.name}</div>`;
     d.onclick=()=>{ const i=squad.indexOf(t); if(i>=0)squad.splice(i,1); else if(squad.length<SQUAD_MAX)squad.push(t); saveSquad(); buildSquadUI(); };
     g.appendChild(d);
@@ -360,7 +357,7 @@ function startWave(){
 }
 function spawnEnemy(type){
   const e=ENE[type], p=PATHPTS[0];
-  G.enemies.push({ type,e,x:p.x,y:p.y,wp:1, hp:e.hp,maxHp:e.hp, atk:e.atk, blocked:null, cd:0, slow:1 });
+  G.enemies.push({ type,e,x:p.x,y:p.y,wp:1, hp:e.hp,maxHp:e.hp, atk:e.atk, blocked:null, cd:0, slow:1, stunT:0 });
 }
 
 /* ===== 更新 ===== */
@@ -372,12 +369,19 @@ function update(dt){
     G.waveTime+=dt;
     while(G.spawnQ.length && G.spawnQ[0].t<=G.waveTime){ spawnEnemy(G.spawnQ.shift().type); }
   }
-  // バフ初期化＋支援オーラ
+  // バフ初期化（乗算で重ねる）
   for(const u of G.units){ u.atkBuff=1; u.spdBuff=1; if(!u.skillActive)u.dr=0; }
+  // 特性パッシブ：同じ派閥(階級)の味方を強化（出撃中ずっと）
+  for(const u of G.units){ const ps=u.cfg.passive; if(ps&&ps.factionAtk){
+    for(const a of G.units){ if(a.cfg.faction===u.cfg.faction) a.atkBuff*=(1+ps.factionAtk); }
+  } }
+  // サポーター：味方バフ＋敵減速
   for(const u of G.units){
     if(u.cfg.kind==="buff"){
       const R=u.cfg.range*TILE, ab=u.skillActive?u.cfg.skill.atkBuff:u.cfg.atkBuff, sb=u.skillActive?u.cfg.skill.spdBuff:u.cfg.spdBuff;
-      for(const a of G.units){ if(a!==u && dist(a,u)<=R){ a.atkBuff=Math.max(a.atkBuff,ab); a.spdBuff=Math.max(a.spdBuff,sb);} }
+      for(const a of G.units){ if(a!==u && dist(a,u)<=R){ a.atkBuff*=ab; a.spdBuff*=sb;} }
+      const sl=u.skillActive?u.cfg.skill.slow:u.cfg.slow;
+      if(sl) for(const en of G.enemies){ if(dist(en,u)<=R) en.slow=Math.min(en.slow,sl); }
     }
   }
   // ブロッカー位置
@@ -386,6 +390,7 @@ function update(dt){
   // 敵移動＆攻撃
   for(const en of G.enemies){
     if(en.hp<=0)continue;
+    if(en.stunT>0){ en.stunT-=dt; continue; } // スタン中は動かない
     // 次セルにブロッカー？
     const tgt=PATHPTS[en.wp];
     let blocker=null;
@@ -437,11 +442,15 @@ function update(dt){
       if(c.kind==="melee"){ const bl=G.enemies.find(en=>en.blocked===u&&en.hp>0); if(bl)tgt=bl; }
       if(tgt){ u.cd=itv;
         const atk=(c.atk)*(u.atkBuff||1)*(u.skillActive&&c.skill.atk?c.skill.atk:1);
-        if(c.kind==="range"||c.kind==="melee"){
-          const aoeR=(u.skillActive&&c.skill.aoe?c.skill.aoe:c.aoe)||0;
-          if(aoeR>0){ for(const en of G.enemies){ if(en.hp>0&&dist(en,tgt)<=aoeR*TILE) hurt(en,atk); } shot(u,tgt,c.color); }
-          else { hurt(tgt,atk); shot(u,tgt,c.color); }
+        const aoeR=(u.skillActive&&c.skill.aoe?c.skill.aoe:c.aoe)||0;
+        const stun=(u.skillActive&&c.skill.stun?c.skill.stun:c.stun)||0;
+        const targets=aoeR>0 ? G.enemies.filter(en=>en.hp>0&&dist(en,tgt)<=aoeR*TILE) : [tgt];
+        for(const en of targets){
+          hurt(en,atk);
+          if(stun) en.stunT=Math.max(en.stunT||0,stun);
+          if(en.hp<=0 && c.breakerEP){ G.ep=Math.min(G.epMax,G.ep+c.breakerEP); fx(en.x,en.y-12,"EP+"+c.breakerEP,"#ffd24a"); } // ブレイカー：撃破でEP獲得
         }
+        shot(u,tgt,c.color);
       }
     }
   }
@@ -469,6 +478,7 @@ function fx(x,y,txt,col,pop){ (G.fx=G.fx||[]).push({x,y,txt,col,pop,age:0,life:p
 function castSkill(u){
   u.skillActive=true; u.skillTimer=u.cfg.kind==="heal"||u.cfg.kind==="buff"?6:0.6; u.sp=u.cfg.skill.sp;
   if(u.cfg.skill.dr){ u.dr=u.cfg.skill.dr; u.skillTimer=7; if(u.cfg.skill.regen){ u.hp=Math.min(u.maxHp,u.hp+u.cfg.skill.regen);} }
+  if(u.cfg.skill.epBurst){ G.ep=Math.min(G.epMax,G.ep+u.cfg.skill.epBurst); fx(u.x,u.y-14,"EP+"+u.cfg.skill.epBurst,"#ffd24a"); } // ブレイカー必殺：EP一括
   // 必殺技名 ドーン
   $("coWho").textContent=u.cfg.name;
   $("coName").textContent=u.cfg.skill.name;
@@ -512,6 +522,8 @@ function draw(){
     // hp
     const w=r*2; ctx.fillStyle="rgba(0,0,0,.5)"; ctx.fillRect(en.x-r,en.y-r-7,w,4);
     ctx.fillStyle="#ff5b6e"; ctx.fillRect(en.x-r,en.y-r-7,w*Math.max(0,en.hp/en.maxHp),4);
+    if(en.stunT>0){ ctx.fillStyle="#ffd24a"; ctx.font="13px sans-serif"; ctx.textAlign="center"; ctx.fillText("✦",en.x,en.y-r-9); }
+    else if(en.slow<1){ ctx.strokeStyle="#46c2ff"; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(en.x,en.y,r+3,0,7); ctx.stroke(); }
   }
   // ユニット
   for(const u of G.units){
