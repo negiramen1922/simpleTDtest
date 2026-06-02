@@ -412,9 +412,9 @@
     .dxp{flex-wrap:wrap}
   }
 
-  /* ===== メタ進行：デイリー/実績/どうぐ ===== */
-  .meta-btns{display:flex;gap:10px;max-width:340px;margin:14px auto 0}
-  .meta-btn{flex:1;position:relative;padding:11px 6px;border-radius:11px;border:1px solid var(--line2);
+  /* ===== メタ進行：デイリー/実績/どうぐ/データ ===== */
+  .meta-btns{display:flex;flex-wrap:wrap;gap:10px;max-width:340px;margin:14px auto 0}
+  .meta-btn{flex:1 1 calc(50% - 5px);position:relative;padding:11px 6px;border-radius:11px;border:1px solid var(--line2);
     background:linear-gradient(180deg,var(--panel),var(--panel2));color:#cdd9e3;font-size:13px;font-weight:700;
     letter-spacing:.04em;cursor:pointer;transition:.12s}
   .meta-btn:hover{border-color:var(--cyan);color:#fff}
@@ -454,6 +454,14 @@
   .login-day.past{opacity:.45}
   .ld-d{font-size:11px;color:var(--dim);font-weight:700}
   .ld-r{font-size:11px;color:#dfe7ee;margin-top:4px;line-height:1.4}
+  /* セーブデータ管理 */
+  .data-card{max-width:620px;margin:0 auto 14px;padding:14px 16px;border-radius:12px;border:1px solid var(--line);
+    background:linear-gradient(180deg,var(--panel),var(--panel2))}
+  .data-card h4{font-size:14px;color:#eef4f9;margin:0 0 6px}
+  .data-area{width:100%;box-sizing:border-box;min-height:72px;resize:vertical;margin:8px 0;padding:9px 11px;border-radius:9px;
+    border:1px solid var(--line2);background:#0b1118;color:#cdd9e3;font-size:11px;font-family:monospace;word-break:break-all}
+  .data-btns{display:flex;flex-wrap:wrap;gap:8px}
+  .data-btns .claim-btn{flex:0 0 auto}
   /* トースト */
   #toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);z-index:9999;
     background:rgba(12,20,28,.96);border:1px solid var(--gold,#ffd24a);color:#fff;padding:11px 18px;border-radius:24px;
@@ -506,7 +514,14 @@
       <button class="meta-btn" data-go="daily">📋 デイリー<span class="meta-badge" id="badgeDaily"></span></button>
       <button class="meta-btn" data-go="ach">🏆 実績<span class="meta-badge" id="badgeAch"></span></button>
       <button class="meta-btn" data-go="bag">🎒 どうぐ</button>
+      <button class="meta-btn" data-go="data">💾 データ</button>
     </div>
+  </section>
+
+  <!-- セーブデータ管理 -->
+  <section class="screen" id="scData">
+    <div class="sc-top"><button class="back" data-go="title">← 戻る</button><h2>💾 セーブデータ</h2><span class="spacer"></span></div>
+    <div id="dataBody"></div>
   </section>
 
   <!-- デイリーミッション -->
@@ -3000,7 +3015,7 @@ addEventListener("keydown",e=>{
 
 /* ============ 画面遷移 ============ */
 const menuEl=document.getElementById("menu"), battleEl=document.getElementById("battle");
-const screens={title:"scTitle",squad:"scSquad",stage:"scStage",train:"scTrain",daily:"scDaily",ach:"scAch",bag:"scBag"};
+const screens={title:"scTitle",squad:"scSquad",stage:"scStage",train:"scTrain",daily:"scDaily",ach:"scAch",bag:"scBag",data:"scData"};
 function showScreen(name){
   document.querySelectorAll(".screen").forEach(s=>s.classList.remove("show"));
   document.getElementById(screens[name]).classList.add("show");
@@ -3011,6 +3026,7 @@ function showScreen(name){
   if(name==="daily")buildDaily();
   if(name==="ach")buildAch();
   if(name==="bag")buildBag();
+  if(name==="data")buildData();
   window.scrollTo(0,0);
   track("screen_view", {screen_name:name});
 }
@@ -3701,6 +3717,82 @@ function buildBag(){
   el.innerHTML=h;
   el.querySelectorAll(".claim-btn[data-id]").forEach(b=>b.onclick=()=>useItem(b.dataset.id));
 }
+// ---- セーブのエクスポート / インポート ----
+// td_ で始まる全 localStorage を1つのコードにまとめて持ち運べるようにする
+function exportSave(){
+  const data={};
+  for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k&&k.indexOf("td_")===0) data[k]=localStorage.getItem(k); }
+  const json=JSON.stringify({v:1,t:Date.now(),data});
+  return "STD1."+btoa(unescape(encodeURIComponent(json)));  // UTF-8安全なBase64
+}
+function decodeSave(str){
+  str=(str||"").trim();
+  if(str.indexOf("STD1.")!==0) throw new Error("コードの形式が違います");
+  const json=decodeURIComponent(escape(atob(str.slice(5))));
+  const obj=JSON.parse(json);
+  if(!obj||!obj.data||typeof obj.data!=="object") throw new Error("データが壊れています");
+  return obj;
+}
+function importSave(str){
+  let obj; try{ obj=decodeSave(str); }catch(e){ alert("読み込み失敗：" + e.message); return false; }
+  const keys=Object.keys(obj.data).filter(k=>k.indexOf("td_")===0);
+  if(!keys.length){ alert("セーブデータが見つかりませんでした。"); return false; }
+  const when=obj.t?new Date(obj.t).toLocaleString():"不明";
+  if(!confirm("バックアップ（"+when+" / "+keys.length+"項目）で現在の進捗を上書きします。\nこの操作は元に戻せません。よろしいですか？")) return false;
+  // 既存の td_ キーを消してから復元
+  const del=[]; for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k&&k.indexOf("td_")===0)del.push(k); }
+  del.forEach(k=>localStorage.removeItem(k));
+  for(const k of keys) localStorage.setItem(k,obj.data[k]);
+  toast("復元しました。再読み込みします…");
+  setTimeout(()=>location.reload(),800);
+  return true;
+}
+function downloadSave(){
+  const blob=new Blob([exportSave()],{type:"text/plain"});
+  const a=document.createElement("a"), d=new Date().toISOString().slice(0,10);
+  a.href=URL.createObjectURL(blob); a.download="simpleTD-save-"+d+".txt";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1500);
+  toast("ファイルを保存しました");
+}
+async function copyExport(){
+  const code=exportSave(); const ta=document.getElementById("exportArea"); if(ta)ta.value=code;
+  try{ await navigator.clipboard.writeText(code); toast("コードをコピーしました"); }
+  catch(e){ if(ta){ ta.focus(); ta.select(); } toast("コードを選択しました（手動でコピー）"); }
+}
+function buildData(){
+  const el=document.getElementById("dataBody"); if(!el)return;
+  el.innerHTML=`
+    <p class="hint">進捗は<b>この端末のブラウザ内</b>に保存されています。ブラウザのデータ削除や機種変更で消えないよう、<b>エクスポートしてバックアップ</b>しておきましょう。</p>
+    <div class="data-card">
+      <h4>📤 エクスポート（バックアップ）</h4>
+      <p class="hint">コードをコピーして安全な場所に保管、またはファイルで保存します。</p>
+      <textarea id="exportArea" class="data-area" readonly placeholder="「コードを生成」を押すと表示されます"></textarea>
+      <div class="data-btns">
+        <button class="claim-btn" id="genExport">コードを生成</button>
+        <button class="claim-btn" id="copyExport">📋 コピー</button>
+        <button class="claim-btn" id="fileExport">📁 ファイル保存</button>
+      </div>
+    </div>
+    <div class="data-card">
+      <h4>📥 インポート（復元）</h4>
+      <p class="hint" style="color:#ff5b6e">⚠️ 現在の進捗は上書きされます。</p>
+      <textarea id="importArea" class="data-area" placeholder="バックアップコード（STD1.… ）を貼り付け"></textarea>
+      <div class="data-btns">
+        <button class="claim-btn" id="doImport">このコードで復元</button>
+        <button class="claim-btn" id="fileImport">📂 ファイルから読込</button>
+        <input type="file" id="fileInput" accept=".txt,.json,application/json,text/plain" style="display:none">
+      </div>
+    </div>`;
+  el.querySelector("#genExport").onclick=()=>{ el.querySelector("#exportArea").value=exportSave(); toast("コードを生成しました"); };
+  el.querySelector("#copyExport").onclick=copyExport;
+  el.querySelector("#fileExport").onclick=downloadSave;
+  el.querySelector("#doImport").onclick=()=>importSave(el.querySelector("#importArea").value);
+  const fi=el.querySelector("#fileInput");
+  el.querySelector("#fileImport").onclick=()=>fi.click();
+  fi.onchange=()=>{ const f=fi.files&&fi.files[0]; if(f){ const r=new FileReader(); r.onload=()=>importSave(String(r.result)); r.readAsText(f); } };
+}
+
 function initMeta(){ loadInv(); loadStats(); loadDaily(); loadLogin(); loadAch(); }
 
 /* ============ 起動 ============ */
