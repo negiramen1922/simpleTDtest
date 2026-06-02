@@ -20,6 +20,14 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>シンプルTD</title>
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0e1a26">
+<link rel="apple-touch-icon" href="icons/app-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="シンプルTD">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Zen+Kaku+Gothic+New:wght@500;700;900&display=swap" rel="stylesheet">
@@ -411,6 +419,62 @@
     .xpbadge{font-size:12px;padding:2px 9px}
     .dxp{flex-wrap:wrap}
   }
+
+  /* ===== メタ進行：デイリー/実績/どうぐ/データ ===== */
+  .meta-btns{display:flex;flex-wrap:wrap;gap:10px;max-width:340px;margin:14px auto 0}
+  .meta-btn{flex:1 1 calc(50% - 5px);position:relative;padding:11px 6px;border-radius:11px;border:1px solid var(--line2);
+    background:linear-gradient(180deg,var(--panel),var(--panel2));color:#cdd9e3;font-size:13px;font-weight:700;
+    letter-spacing:.04em;cursor:pointer;transition:.12s}
+  .meta-btn:hover{border-color:var(--cyan);color:#fff}
+  .meta-badge{display:none;position:absolute;top:-7px;right:-6px;min-width:20px;height:20px;line-height:20px;
+    padding:0 5px;border-radius:10px;background:var(--red,#ff5b6e);color:#fff;font-size:11px;font-weight:700;box-shadow:0 1px 6px rgba(0,0,0,.5)}
+  .meta-badge.on{display:inline-block}
+  .meta-list{display:flex;flex-direction:column;gap:10px;max-width:620px;margin:0 auto}
+  .meta-row{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;
+    border:1px solid var(--line);background:linear-gradient(180deg,var(--panel),var(--panel2))}
+  .meta-row.ready{border-color:var(--gold,#ffd24a);box-shadow:0 0 14px -6px var(--gold,#ffd24a)}
+  .meta-row.claimed{opacity:.6}
+  .meta-row.bonus{border-style:dashed}
+  .mr-main{flex:1;min-width:0}
+  .mr-name{font-size:14px;font-weight:700;color:#eef4f9}
+  .mr-desc{font-size:11.5px;color:var(--dim);margin-top:2px}
+  .mr-rew{font-size:11.5px;color:var(--gold,#ffd24a);margin-top:4px}
+  .mr-prog{display:flex;align-items:center;gap:8px;margin-top:5px}
+  .mr-bar{flex:1;height:7px;border-radius:6px;background:rgba(255,255,255,.08);overflow:hidden;max-width:220px}
+  .mr-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--cyan),var(--green,#4ade80))}
+  .mr-prog span{font-size:11px;color:var(--dim);font-family:'Chakra Petch'}
+  .claim-btn{flex:0 0 auto;padding:9px 16px;border-radius:9px;border:none;font-weight:700;font-size:13px;cursor:pointer;
+    background:linear-gradient(180deg,var(--gold,#ffd24a),#e0a828);color:#1a1205;letter-spacing:.04em}
+  .claim-btn:disabled{background:#2a323c;color:#6c7a88;cursor:default}
+  .bag-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;max-width:720px;margin:0 auto}
+  .bag-item{display:flex;align-items:center;gap:12px;padding:12px;border-radius:12px;border:1px solid var(--line);
+    background:linear-gradient(180deg,var(--panel),var(--panel2))}
+  .bi-ico{width:42px;height:42px;flex:0 0 auto;border-radius:10px;display:flex;align-items:center;justify-content:center;
+    font-size:22px;background:radial-gradient(circle at 50% 36%,rgba(255,255,255,.10),#0e1a26 72%)}
+  .bi-info{flex:1;min-width:0}
+  .bi-n{font-size:13.5px;font-weight:700;color:#eef4f9}
+  .bi-d{font-size:11px;color:var(--dim);margin-top:2px}
+  /* ログインボーナス */
+  .login-box{text-align:center}
+  .login-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:6px}
+  .login-day{padding:10px 6px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.03)}
+  .login-day.today{border-color:var(--gold,#ffd24a);background:rgba(255,210,74,.12);box-shadow:0 0 14px -6px var(--gold,#ffd24a)}
+  .login-day.past{opacity:.45}
+  .ld-d{font-size:11px;color:var(--dim);font-weight:700}
+  .ld-r{font-size:11px;color:#dfe7ee;margin-top:4px;line-height:1.4}
+  /* セーブデータ管理 */
+  .data-card{max-width:620px;margin:0 auto 14px;padding:14px 16px;border-radius:12px;border:1px solid var(--line);
+    background:linear-gradient(180deg,var(--panel),var(--panel2))}
+  .data-card h4{font-size:14px;color:#eef4f9;margin:0 0 6px}
+  .data-area{width:100%;box-sizing:border-box;min-height:72px;resize:vertical;margin:8px 0;padding:9px 11px;border-radius:9px;
+    border:1px solid var(--line2);background:#0b1118;color:#cdd9e3;font-size:11px;font-family:monospace;word-break:break-all}
+  .data-btns{display:flex;flex-wrap:wrap;gap:8px}
+  .data-btns .claim-btn{flex:0 0 auto}
+  /* トースト */
+  #toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);z-index:9999;
+    background:rgba(12,20,28,.96);border:1px solid var(--gold,#ffd24a);color:#fff;padding:11px 18px;border-radius:24px;
+    font-size:13px;font-weight:600;box-shadow:0 6px 24px rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:.25s;max-width:90vw;text-align:center}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 </style>
 </head>
 <body>
@@ -454,6 +518,39 @@
       <button class="big-btn" data-go="train">キャラ図鑑・育成</button>
       <button class="big-btn" id="rankBtn">🏆 無限ダンジョン ランキング</button>
     </div>
+    <div class="meta-btns">
+      <button class="meta-btn" data-go="daily">📋 デイリー<span class="meta-badge" id="badgeDaily"></span></button>
+      <button class="meta-btn" data-go="ach">🏆 実績<span class="meta-badge" id="badgeAch"></span></button>
+      <button class="meta-btn" data-go="bag">🎒 どうぐ</button>
+      <button class="meta-btn" data-go="data">💾 データ</button>
+    </div>
+    <div class="menu-btns" style="margin-top:12px">
+      <button class="big-btn" id="installBtn" style="display:none">📲 アプリとして追加</button>
+    </div>
+  </section>
+
+  <!-- セーブデータ管理 -->
+  <section class="screen" id="scData">
+    <div class="sc-top"><button class="back" data-go="title">← 戻る</button><h2>💾 セーブデータ</h2><span class="spacer"></span></div>
+    <div id="dataBody"></div>
+  </section>
+
+  <!-- デイリーミッション -->
+  <section class="screen" id="scDaily">
+    <div class="sc-top"><button class="back" data-go="title">← 戻る</button><h2>📋 デイリーミッション</h2><span class="spacer"></span></div>
+    <div id="dailyBody"></div>
+  </section>
+
+  <!-- アチーブメント -->
+  <section class="screen" id="scAch">
+    <div class="sc-top"><button class="back" data-go="title">← 戻る</button><h2>🏆 アチーブメント</h2><span class="spacer"></span></div>
+    <div id="achBody"></div>
+  </section>
+
+  <!-- どうぐ（アイテム） -->
+  <section class="screen" id="scBag">
+    <div class="sc-top"><button class="back" data-go="title">← 戻る</button><h2>🎒 どうぐ</h2><span class="spacer"></span></div>
+    <div id="bagBody"></div>
   </section>
 
   <!-- キャラ図鑑・育成 -->
@@ -500,6 +597,15 @@
     <div class="detail-box">
       <button class="detail-close" id="detailClose">✕</button>
       <div id="detailBody"></div>
+    </div>
+  </div>
+
+  <!-- ログインボーナス -->
+  <div class="detail-modal" id="loginModal">
+    <div class="detail-box login-box">
+      <h3 class="rank-title">🎁 ログインボーナス</h3>
+      <div id="loginBody"></div>
+      <button class="big-btn btn-go" id="loginClaim" style="margin-top:14px">受け取る</button>
     </div>
   </div>
 
@@ -967,10 +1073,10 @@ const TYPES={
     skill:{name:"進軍号令",spMax:18,dur:8,slow:0.7,spd:1.6,atk:1.8}}
 };
 const ORDER=["tank","attacker","shooter","healer","support","trickster","breaker","guardian","lancer","berserker","sniper","mage","artillery","archer","flak","halberdier","guardknight","duelist","revenger","marksman","gunner","poisoner","chaincaster","freezer","shaman","summoner","commander","bard","alchemist","prospector","netcaster","warlord","archmage","valkyrie","highpriest","archon"];
-// キャラアイコン画像（icons/<type>.png）。指定キャラのみ画像表示、未指定は letter（文字）表示にフォールバック
-["attacker","tank","archer","lancer","berserker","breaker","mage","highpriest","poisoner","chaincaster","alchemist","bard","shaman","duelist","summoner","guardknight","gunner","commander"].forEach(t=>{ if(TYPES[t]) TYPES[t].img="icons/"+t+".png"; });
+// キャラアイコン画像（icons/<type>.png）。全キャラにアイコンを割り当て（読み込み失敗時はonerrorで文字にフォールバック）
+for(const t in TYPES){ TYPES[t].img="icons/"+t+".png"; }
 // アイコン用HTML（DOMカード共通）：画像があれば<img>、無ければ文字
-function iconHTML(c){ return c&&c.img ? `<img class="iconimg" src="${c.img}" alt="" draggable="false">` : (c&&c.letter||""); }
+function iconHTML(c){ return c&&c.img ? `<img class="iconimg" src="${c.img}" alt="" draggable="false" onerror="this.replaceWith(document.createTextNode('${(c.letter||'').replace(/'/g,'')}'))">` : (c&&c.letter||""); }
 // canvas描画用に画像を事前読み込み（type→Image）
 const ICON_IMG={};
 for(const _t in TYPES){ if(TYPES[_t].img){ const _im=new Image(); _im.src=TYPES[_t].img; ICON_IMG[_t]=_im; } }
@@ -1409,6 +1515,9 @@ function onAuthChanged(){
   // ランキング画面が開いていれば再描画
   if(document.getElementById("rankModal")&&document.getElementById("rankModal").classList.contains("show")) renderRank();
   updateAccountUI();
+  // セーブデータ画面が開いていればクラウド同期カードを再描画
+  const sd=document.getElementById("scData");
+  if(sd&&sd.classList.contains("show")&&typeof renderCloudCard==="function") renderCloudCard();
 }
 // エラーをコード付きで分かりやすく表示
 function showLoginError(label, e){
@@ -1590,6 +1699,7 @@ function levelUp(type){
   const need=xpToNext(lv);
   if(playerXP<need) return "poor";
   playerXP-=need; unitLevels[type]=lv+1; saveProgress();
+  if(typeof stats!=="undefined"){ stats.levelups++; saveStats(); dailyEvent("level"); updateMetaBadges(); }
   track("unit_levelup", {unit:type, level:lv+1});
   return "ok";
 }
@@ -2278,6 +2388,7 @@ function update(dt){
   for(const en of G.enemies){
     if(en.hp<=0&&!en._dead){
       en._dead=true; G.dp=Math.min(G.dpMax,G.dp+G.killDP);
+      runKills++;
       if(G.endless) G.kills=(G.kills||0)+1;
       // 撃破エフェクト強化：破片＋リング＋ボスは大爆発
       const big=en.e.r>=22;
@@ -2326,6 +2437,7 @@ function update(dt){
   if(G.life<=0){
     G.life=0;G.state="lost";clearTransient();Sound.stopMusic();Sound.play("lose");
     if(G.endless){ G.prevBest={...endlessBest}; recordEndless(G.waveIndex+1, G.kills||0);
+      stats.kills+=runKills; dailyEvent("kill",runKills); runKills=0; saveStats(); updateMetaBadges();
       track("endless_gameover", {wave_reached:G.waveIndex+1, kills:G.kills||0});
     } else {
       track("battle_lose", {stage_id:currentStage.id, stage_name:currentStage.name, wave:G.waveIndex+1});
@@ -2336,7 +2448,7 @@ function update(dt){
     clearTransient();
     if(G.endless){
       // エンドレス：勝利せず、少しXPを与えて次ウェーブへ進める
-      const bonus=8+G.waveIndex*2; playerXP+=bonus; saveProgress();
+      const bonus=gainBattleXP(8+G.waveIndex*2); saveProgress();
       G.state="ready"; Sound.setMusicIntensity(0.16);
       track("endless_wave_clear", {wave:G.waveIndex+1, kills:G.kills||0});
       flash("ウェーブ "+(G.waveIndex+1)+" 突破！ XP+"+bonus+"　次のウェーブへ");
@@ -2346,11 +2458,13 @@ function update(dt){
       G.clearStars=calcStars(currentStage,G.life);
       const firstClear = !clearData[currentStage.id];   // 記録前に初クリア判定
       recordClear(currentStage.id,G.clearStars);
-      G.gainedXP=clearXP(currentStage,G.clearStars); playerXP+=G.gainedXP;
+      G.gainedXP=gainBattleXP(clearXP(currentStage,G.clearStars));
       // メダルは初クリア時のみ獲得
       G.gainedMedals = firstClear ? clearMedals(G.clearStars) : 0;
       medals += G.gainedMedals;
       saveProgress(); saveEconomy();
+      // メタ進行：勝利・撃破・デイリー・実績の更新
+      stats.wins++; stats.kills+=runKills; dailyEvent("win"); dailyEvent("kill",runKills); if(G.clearStars>=3)dailyEvent("star3"); runKills=0; saveStats(); updateMetaBadges();
       track("battle_win", {stage_id:currentStage.id, stage_name:currentStage.name, stars:G.clearStars, first_clear:firstClear, medals_gained:G.gainedMedals, xp_gained:G.gainedXP});
       Sound.stopMusic(); Sound.play("win"); showOverlay("win");
     }
@@ -2915,14 +3029,18 @@ addEventListener("keydown",e=>{
 
 /* ============ 画面遷移 ============ */
 const menuEl=document.getElementById("menu"), battleEl=document.getElementById("battle");
-const screens={title:"scTitle",squad:"scSquad",stage:"scStage",train:"scTrain"};
+const screens={title:"scTitle",squad:"scSquad",stage:"scStage",train:"scTrain",daily:"scDaily",ach:"scAch",bag:"scBag",data:"scData"};
 function showScreen(name){
   document.querySelectorAll(".screen").forEach(s=>s.classList.remove("show"));
   document.getElementById(screens[name]).classList.add("show");
-  if(name==="title")refreshHomeStats();
+  if(name==="title"){ refreshHomeStats(); updateMetaBadges(); }
   if(name==="squad")buildSquad();
   if(name==="stage")buildStageList();
   if(name==="train")buildTrain();
+  if(name==="daily")buildDaily();
+  if(name==="ach")buildAch();
+  if(name==="bag")buildBag();
+  if(name==="data")buildData();
   window.scrollTo(0,0);
   track("screen_view", {screen_name:name});
 }
@@ -2953,6 +3071,8 @@ function gotoBattle(stage){
     }
     refreshStaminaUI();
   }
+  runKills=0; // 撃破カウントをリセット
+  if(stage.endless){ stats.endlessRuns++; saveStats(); dailyEvent("endless"); }
   track("battle_start", {stage_id:stage.id, stage_name:stage.name, endless:!!stage.endless, squad_size:squad.length});
   currentStage=stage; WAVES=stage.waves;
   loadMap(stage.map||"serpent");
@@ -3322,8 +3442,8 @@ function openFarm(st){
   n=Math.min(n,maxRuns);
   // 実行
   if(!spendStamina(STAMINA_COST*n)){ alert("スタミナが足りません。"); return; }
-  const gained=perXP*n;
-  playerXP+=gained; saveProgress();
+  const gained=gainBattleXP(perXP*n); saveProgress();
+  stats.farms++; saveStats(); dailyEvent("farm"); updateMetaBadges();
   Sound.play("killcoin");
   track("batch_farm", {stage_id:st.id, runs:n, xp_gained:gained, stamina_left:stamina});
   refreshStaminaUI();
@@ -3404,8 +3524,351 @@ function loop(now){
   requestAnimationFrame(loop);
 }
 
+/* ============ メタ進行：デイリー / ログインボーナス / 実績 / どうぐ（消耗品） ============ */
+let runKills=0; // 1バトル中の撃破数（バトル終了時に集計）
+
+// ---- 消耗アイテム ----
+const ITEMS={
+  stam:  {name:"スタミナドリンク", icon:"⚡", desc:"スタミナを50回復",  use(){ regenStamina(); const w=stamina>=STAMINA_MAX; stamina=Math.min(STAMINA_MAX,stamina+50); if(w)staminaTs=Date.now(); saveStamina(); refreshStaminaUI(); refreshHomeStats(); return "スタミナ+50"; }},
+  stamL: {name:"特製スタミナ水", icon:"🧪", desc:"スタミナを全回復",  use(){ stamina=STAMINA_MAX; staminaTs=Date.now(); saveStamina(); refreshStaminaUI(); refreshHomeStats(); return "スタミナ全回復"; }},
+  xpb:   {name:"XPブースト", icon:"✦", desc:"30分間 獲得XP+50%", use(){ boostUntil=Math.max(boostUntil,Date.now())+30*60000; saveBoost(); return "XPブースト発動（+30分）"; }},
+  medal: {name:"メダル袋", icon:"🏅", desc:"メダルを100獲得",  use(){ medals+=100; saveEconomy(); refreshHomeStats(); return "メダル+100"; }},
+  medalL:{name:"大判メダル袋", icon:"💰", desc:"メダルを300獲得",  use(){ medals+=300; saveEconomy(); refreshHomeStats(); return "メダル+300"; }},
+};
+const INV_KEY="td_inv_v1", BOOST_KEY="td_boost_v1";
+let inventory={}, boostUntil=0;
+function loadInv(){ try{inventory=JSON.parse(localStorage.getItem(INV_KEY))||{};}catch(e){inventory={};} try{boostUntil=parseInt(localStorage.getItem(BOOST_KEY))||0;}catch(e){boostUntil=0;} }
+function saveInv(){ try{localStorage.setItem(INV_KEY,JSON.stringify(inventory));}catch(e){} }
+function saveBoost(){ try{localStorage.setItem(BOOST_KEY,String(boostUntil));}catch(e){} }
+function addItem(id,n=1){ inventory[id]=(inventory[id]||0)+n; saveInv(); }
+function useItem(id){ if(!inventory[id]||inventory[id]<=0||!ITEMS[id])return; const msg=ITEMS[id].use(); inventory[id]--; if(inventory[id]<=0)delete inventory[id]; saveInv(); toast(msg); buildBag(); updateMetaBadges(); }
+function xpBoostActive(){ return boostUntil>Date.now(); }
+// バトル/周回の獲得XPはブースト適用（加算して実値を返す）
+function gainBattleXP(n){ const v=Math.round(n*(xpBoostActive()?1.5:1)); playerXP+=v; return v; }
+
+// ---- 報酬付与 ----
+function grantReward(r){
+  const parts=[];
+  if(r.medals){ medals+=r.medals; parts.push("🏅"+r.medals); }
+  if(r.xp){ playerXP+=r.xp; parts.push("✦"+r.xp); }
+  if(r.stamina){ regenStamina(); const w=stamina>=STAMINA_MAX; stamina=Math.min(STAMINA_MAX,stamina+r.stamina); if(w)staminaTs=Date.now(); saveStamina(); parts.push("⚡"+r.stamina); }
+  if(r.items) for(const id in r.items){ addItem(id,r.items[id]); parts.push(ITEMS[id].icon+ITEMS[id].name+"×"+r.items[id]); }
+  saveEconomy(); saveProgress(); refreshHomeStats();
+  return parts.join("　");
+}
+function rewardText(r){ // 表示用（付与しない）
+  const p=[];
+  if(r.medals)p.push("🏅"+r.medals); if(r.xp)p.push("✦"+r.xp); if(r.stamina)p.push("⚡"+r.stamina);
+  if(r.items)for(const id in r.items)p.push(ITEMS[id].icon+ITEMS[id].name+"×"+r.items[id]);
+  return p.join(" / ");
+}
+
+// ---- 永続スタッツ ----
+const STATS_KEY="td_stats_v1";
+let stats={wins:0,kills:0,farms:0,levelups:0,endlessRuns:0};
+function loadStats(){ try{stats=Object.assign(stats,JSON.parse(localStorage.getItem(STATS_KEY))||{});}catch(e){} }
+function saveStats(){ try{localStorage.setItem(STATS_KEY,JSON.stringify(stats));}catch(e){} }
+function ownedCount(){ return ownedList().length; }
+function maxedCount(){ return ORDER.filter(t=>getLevel(t)>=MAX_LEVEL).length; }
+function star3Count(){ return Object.values(clearData).filter(v=>v>=3).length; }
+function totalStages(){ return STAGES.filter(s=>!s.endless).length; }
+const TODAY=()=>new Date().toISOString().slice(0,10);
+const YDAY=()=>new Date(Date.now()-86400000).toISOString().slice(0,10);
+
+// ---- デイリーミッション ----
+const DAILY_POOL=[
+  {id:"win3",   name:"ステージを3回クリア", goal:3,  ev:"win",    reward:{medals:60,items:{stam:1}}},
+  {id:"endless1",name:"エンドレスに挑戦",    goal:1,  ev:"endless",reward:{xp:120,items:{stam:1}}},
+  {id:"level2", name:"キャラを2回育成",      goal:2,  ev:"level",  reward:{medals:50,xp:80}},
+  {id:"star3_1",name:"★3クリアを1回",        goal:1,  ev:"star3",  reward:{medals:80}},
+  {id:"farm1",  name:"一括周回を1回",        goal:1,  ev:"farm",   reward:{items:{xpb:1}}},
+  {id:"kill80", name:"敵を80体撃破",         goal:80, ev:"kill",   reward:{xp:100,items:{stam:1}}},
+  {id:"win5",   name:"ステージを5回クリア",  goal:5,  ev:"win",    reward:{medals:100,items:{medal:1}}},
+];
+const DAILY_BONUS={medals:120,items:{xpb:1}};
+const DAILY_KEY="td_daily_v1";
+let daily=null;
+function loadDaily(){ try{daily=JSON.parse(localStorage.getItem(DAILY_KEY));}catch(e){daily=null;} rollDailyIfNeeded(); }
+function saveDaily(){ try{localStorage.setItem(DAILY_KEY,JSON.stringify(daily));}catch(e){} }
+function rollDailyIfNeeded(){
+  if(daily&&daily.date===TODAY())return;
+  const pick=[...DAILY_POOL].sort(()=>Math.random()-0.5).slice(0,3);
+  daily={date:TODAY(),missions:pick.map(m=>({id:m.id,prog:0,claimed:false})),bonusClaimed:false};
+  saveDaily();
+}
+function dailyDef(id){ return DAILY_POOL.find(m=>m.id===id); }
+function dailyEvent(ev,amount=1){
+  if(!daily||amount<=0)return; let changed=false;
+  for(const m of daily.missions){ const d=dailyDef(m.id); if(d&&d.ev===ev&&!m.claimed&&m.prog<d.goal){ m.prog=Math.min(d.goal,m.prog+amount); changed=true; } }
+  if(changed){ saveDaily(); updateMetaBadges(); }
+}
+function dailyAllDone(){ return daily&&daily.missions.every(m=>m.prog>=dailyDef(m.id).goal); }
+function claimDaily(id){
+  const m=daily.missions.find(x=>x.id===id),d=dailyDef(id);
+  if(!m||m.claimed||m.prog<d.goal)return;
+  m.claimed=true; saveDaily(); toast("報酬獲得！　"+grantReward(d.reward)); buildDaily(); updateMetaBadges();
+}
+function claimDailyBonus(){
+  if(!dailyAllDone()||daily.bonusClaimed)return;
+  daily.bonusClaimed=true; saveDaily(); toast("デイリー全達成ボーナス！　"+grantReward(DAILY_BONUS)); buildDaily(); updateMetaBadges();
+}
+
+// ---- ログインボーナス（7日サイクル） ----
+const LOGIN_REWARDS=[{medals:50},{items:{stam:2}},{xp:150},{items:{medal:1}},{items:{xpb:1}},{medals:150},{items:{stamL:1,medalL:1}}];
+const LOGIN_KEY="td_login_v1";
+let login=null, loginPending=false;
+function loadLogin(){ try{login=JSON.parse(localStorage.getItem(LOGIN_KEY));}catch(e){login=null;} if(!login)login={lastDate:"",streak:0}; loginPending=(login.lastDate!==TODAY()); }
+function saveLogin(){ try{localStorage.setItem(LOGIN_KEY,JSON.stringify(login));}catch(e){} }
+function loginDayIndex(){ const s=(login.lastDate===YDAY())?login.streak+1:1; return (s-1)%7; }
+function openLogin(){
+  if(!loginPending)return;
+  const idx=loginDayIndex(), el=document.getElementById("loginBody");
+  let h='<div class="login-grid">';
+  for(let i=0;i<7;i++) h+=`<div class="login-day ${i===idx?'today':(i<idx?'past':'')}"><div class="ld-d">${i+1}日目</div><div class="ld-r">${rewardText(LOGIN_REWARDS[i])}</div></div>`;
+  h+='</div>';
+  el.innerHTML=h;
+  document.getElementById("loginModal").classList.add("show");
+}
+function claimLogin(){
+  if(!loginPending)return;
+  const idx=loginDayIndex();
+  login.streak=(login.lastDate===YDAY())?login.streak+1:1; login.lastDate=TODAY(); saveLogin(); loginPending=false;
+  const msg=grantReward(LOGIN_REWARDS[idx]);
+  document.getElementById("loginModal").classList.remove("show");
+  toast("ログインボーナス！　"+msg); updateMetaBadges();
+}
+
+// ---- アチーブメント ----
+const ACHIEVEMENTS=[
+  {id:"first_win",name:"はじめの一歩",desc:"ステージを初クリア",chk:()=>stats.wins>=1,reward:{medals:50}},
+  {id:"win10",name:"常勝の兆し",desc:"通算10回クリア",chk:()=>stats.wins>=10,reward:{medals:100,items:{stam:1}}},
+  {id:"win50",name:"歴戦の指揮官",desc:"通算50回クリア",chk:()=>stats.wins>=50,reward:{medals:300,items:{medalL:1}}},
+  {id:"star3_5",name:"完璧主義・初級",desc:"★3を5ステージ達成",chk:()=>star3Count()>=5,reward:{medals:120,items:{xpb:1}}},
+  {id:"star3_all",name:"全ステージ制覇",desc:"全ステージで★3",chk:()=>totalStages()>0&&star3Count()>=totalStages(),reward:{medals:500,items:{stamL:1}}},
+  {id:"own10",name:"仲間集め",desc:"キャラを10体所持",chk:()=>ownedCount()>=10,reward:{medals:100}},
+  {id:"own_all",name:"オールスター",desc:"全キャラを所持",chk:()=>ownedCount()>=ORDER.length,reward:{medals:600,items:{medalL:2}}},
+  {id:"max1",name:"育成のプロ",desc:"1体を最大レベルに",chk:()=>maxedCount()>=1,reward:{xp:200}},
+  {id:"max5",name:"精鋭部隊",desc:"5体を最大レベルに",chk:()=>maxedCount()>=5,reward:{medals:250,items:{xpb:2}}},
+  {id:"end10",name:"無限への挑戦",desc:"エンドレス10WAVE到達",chk:()=>endlessBest.wave>=10,reward:{medals:120}},
+  {id:"end20",name:"深淵の探索者",desc:"エンドレス20WAVE到達",chk:()=>endlessBest.wave>=20,reward:{medals:250,items:{stamL:1}}},
+  {id:"end30",name:"無限の覇者",desc:"エンドレス30WAVE到達",chk:()=>endlessBest.wave>=30,reward:{medals:500,items:{medalL:1}}},
+  {id:"kill1000",name:"千体撃破",desc:"通算1000体撃破",chk:()=>stats.kills>=1000,reward:{medals:200,items:{xpb:1}}},
+  {id:"farm10",name:"周回マスター",desc:"一括周回を通算10回",chk:()=>stats.farms>=10,reward:{medals:150}},
+];
+const ACH_KEY="td_ach_v1";
+let achClaimed={};
+function loadAch(){ try{achClaimed=JSON.parse(localStorage.getItem(ACH_KEY))||{};}catch(e){achClaimed={};} }
+function saveAch(){ try{localStorage.setItem(ACH_KEY,JSON.stringify(achClaimed));}catch(e){} }
+function achClaimable(){ return ACHIEVEMENTS.filter(a=>a.chk()&&!achClaimed[a.id]).length; }
+function claimAch(id){
+  const a=ACHIEVEMENTS.find(x=>x.id===id);
+  if(!a||!a.chk()||achClaimed[a.id])return;
+  achClaimed[a.id]=true; saveAch(); toast("実績達成！　"+grantReward(a.reward)); buildAch(); updateMetaBadges();
+}
+
+// ---- バッジ＆トースト ----
+function updateMetaBadges(){
+  const setB=(id,n)=>{ const e=document.getElementById(id); if(e){ e.textContent=n>0?n:""; e.classList.toggle("on",n>0); } };
+  let dN=0; if(daily){ dN=daily.missions.filter(m=>m.prog>=dailyDef(m.id).goal&&!m.claimed).length; if(dailyAllDone()&&!daily.bonusClaimed)dN++; }
+  setB("badgeDaily",dN); setB("badgeAch",achClaimable());
+}
+let _toastT=null;
+function toast(msg){
+  let t=document.getElementById("toast");
+  if(!t){ t=document.createElement("div"); t.id="toast"; document.body.appendChild(t); }
+  t.textContent=msg; t.classList.add("show");
+  clearTimeout(_toastT); _toastT=setTimeout(()=>t.classList.remove("show"),2800);
+}
+
+// ---- 画面構築 ----
+function buildDaily(){
+  rollDailyIfNeeded();
+  const el=document.getElementById("dailyBody"); if(!el)return;
+  let h='<p class="hint">毎日0時に更新。達成したミッションの報酬を受け取れます。</p><div class="meta-list">';
+  for(const m of daily.missions){
+    const d=dailyDef(m.id),done=m.prog>=d.goal;
+    h+=`<div class="meta-row ${done?'ready':''}">
+      <div class="mr-main"><div class="mr-name">${d.name}</div>
+        <div class="mr-prog"><div class="mr-bar"><i style="width:${Math.min(100,m.prog/d.goal*100)}%"></i></div><span>${Math.min(m.prog,d.goal)}/${d.goal}</span></div>
+        <div class="mr-rew">報酬：${rewardText(d.reward)}</div></div>
+      <button class="claim-btn" data-id="${m.id}" ${(!done||m.claimed)?'disabled':''}>${m.claimed?'受取済':'受取'}</button></div>`;
+  }
+  const allDone=dailyAllDone();
+  h+=`<div class="meta-row bonus ${allDone?'ready':''}">
+    <div class="mr-main"><div class="mr-name">⭐ 全ミッション達成ボーナス</div><div class="mr-rew">報酬：${rewardText(DAILY_BONUS)}</div></div>
+    <button class="claim-btn" id="claimBonus" ${(!allDone||daily.bonusClaimed)?'disabled':''}>${daily.bonusClaimed?'受取済':'受取'}</button></div>`;
+  h+='</div>';
+  el.innerHTML=h;
+  el.querySelectorAll(".claim-btn[data-id]").forEach(b=>b.onclick=()=>claimDaily(b.dataset.id));
+  const cb=el.querySelector("#claimBonus"); if(cb)cb.onclick=claimDailyBonus;
+}
+function buildAch(){
+  const el=document.getElementById("achBody"); if(!el)return;
+  const got=ACHIEVEMENTS.filter(a=>achClaimed[a.id]).length;
+  let h=`<p class="hint">条件を満たすと受け取れます。達成 ${got} / ${ACHIEVEMENTS.length}</p><div class="meta-list">`;
+  for(const a of ACHIEVEMENTS){
+    const ok=a.chk(),claimed=achClaimed[a.id];
+    h+=`<div class="meta-row ${claimed?'claimed':(ok?'ready':'')}">
+      <div class="mr-main"><div class="mr-name">${claimed?'✅ ':(ok?'🎉 ':'')}${a.name}</div>
+        <div class="mr-desc">${a.desc}</div><div class="mr-rew">報酬：${rewardText(a.reward)}</div></div>
+      <button class="claim-btn" data-id="${a.id}" ${(!ok||claimed)?'disabled':''}>${claimed?'受取済':(ok?'受取':'未達成')}</button></div>`;
+  }
+  h+='</div>'; el.innerHTML=h;
+  el.querySelectorAll(".claim-btn[data-id]").forEach(b=>b.onclick=()=>claimAch(b.dataset.id));
+}
+function buildBag(){
+  const el=document.getElementById("bagBody"); if(!el)return;
+  const ids=Object.keys(inventory).filter(id=>inventory[id]>0&&ITEMS[id]);
+  let h=`<p class="hint">デイリー・実績・ログボで入手したアイテムを使えます。${xpBoostActive()?'<br><b style="color:var(--gold)">✦ XPブースト発動中！ 残り'+Math.ceil((boostUntil-Date.now())/60000)+'分</b>':''}</p>`;
+  if(!ids.length){ h+='<p class="hint" style="opacity:.65">アイテムはまだありません。</p>'; }
+  else{
+    h+='<div class="bag-grid">';
+    for(const id of ids){ const it=ITEMS[id];
+      h+=`<div class="bag-item"><div class="bi-ico">${it.icon}</div><div class="bi-info"><div class="bi-n">${it.name} <b>×${inventory[id]}</b></div><div class="bi-d">${it.desc}</div></div><button class="claim-btn" data-id="${id}">使う</button></div>`;
+    }
+    h+='</div>';
+  }
+  el.innerHTML=h;
+  el.querySelectorAll(".claim-btn[data-id]").forEach(b=>b.onclick=()=>useItem(b.dataset.id));
+}
+// ---- セーブのエクスポート / インポート ----
+// td_ で始まる全 localStorage を1つのコードにまとめて持ち運べるようにする
+function exportSave(){
+  const data={};
+  for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k&&k.indexOf("td_")===0) data[k]=localStorage.getItem(k); }
+  const json=JSON.stringify({v:1,t:Date.now(),data});
+  return "STD1."+btoa(unescape(encodeURIComponent(json)));  // UTF-8安全なBase64
+}
+function decodeSave(str){
+  str=(str||"").trim();
+  if(str.indexOf("STD1.")!==0) throw new Error("コードの形式が違います");
+  const json=decodeURIComponent(escape(atob(str.slice(5))));
+  const obj=JSON.parse(json);
+  if(!obj||!obj.data||typeof obj.data!=="object") throw new Error("データが壊れています");
+  return obj;
+}
+function importSave(str){
+  let obj; try{ obj=decodeSave(str); }catch(e){ alert("読み込み失敗：" + e.message); return false; }
+  const keys=Object.keys(obj.data).filter(k=>k.indexOf("td_")===0);
+  if(!keys.length){ alert("セーブデータが見つかりませんでした。"); return false; }
+  const when=obj.t?new Date(obj.t).toLocaleString():"不明";
+  if(!confirm("バックアップ（"+when+" / "+keys.length+"項目）で現在の進捗を上書きします。\nこの操作は元に戻せません。よろしいですか？")) return false;
+  // 既存の td_ キーを消してから復元
+  const del=[]; for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k&&k.indexOf("td_")===0)del.push(k); }
+  del.forEach(k=>localStorage.removeItem(k));
+  for(const k of keys) localStorage.setItem(k,obj.data[k]);
+  toast("復元しました。再読み込みします…");
+  setTimeout(()=>location.reload(),800);
+  return true;
+}
+function downloadSave(){
+  const blob=new Blob([exportSave()],{type:"text/plain"});
+  const a=document.createElement("a"), d=new Date().toISOString().slice(0,10);
+  a.href=URL.createObjectURL(blob); a.download="simpleTD-save-"+d+".txt";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1500);
+  toast("ファイルを保存しました");
+}
+async function copyExport(){
+  const code=exportSave(); const ta=document.getElementById("exportArea"); if(ta)ta.value=code;
+  try{ await navigator.clipboard.writeText(code); toast("コードをコピーしました"); }
+  catch(e){ if(ta){ ta.focus(); ta.select(); } toast("コードを選択しました（手動でコピー）"); }
+}
+// ---- クラウド同期（Firestore saves/{uid}） ----
+function cloudAccountName(){ return rankName || (fbUser?("ユーザー"+(fbUser.uid||"").slice(0,5)):""); }
+async function cloudSave(){
+  if(!fbReady){ alert("オンライン機能の準備ができていません。通信環境をご確認ください。"); return; }
+  if(!fbUser){ alert("先にログインしてください。"); return; }
+  try{
+    await fbDB.collection("saves").doc(fbUser.uid).set({
+      code: exportSave(),
+      updated: firebase.firestore.FieldValue.serverTimestamp(),
+      medals, xp:playerXP, owned:ownedCount(), wins:stats.wins, endless:endlessBest.wave||0
+    });
+    toast("☁️ クラウドに保存しました"); renderCloudCard();
+  }catch(e){ alert("クラウド保存に失敗しました。\n"+((e&&e.message)||e)); }
+}
+async function cloudLoad(){
+  if(!fbReady){ alert("オンライン機能の準備ができていません。"); return; }
+  if(!fbUser){ alert("先にログインしてください。"); return; }
+  let doc;
+  try{ doc=await fbDB.collection("saves").doc(fbUser.uid).get(); }
+  catch(e){ alert("クラウドからの取得に失敗しました。\n"+((e&&e.message)||e)); return; }
+  if(!doc.exists||!doc.data().code){ alert("クラウドにセーブがありません。先に「クラウドに保存」してください。"); return; }
+  importSave(doc.data().code); // 上書き確認＋リロードは importSave 内で実施
+}
+function renderCloudCard(){
+  const el=document.getElementById("cloudCard"); if(!el)return;
+  if(!fbConfigured()){ el.innerHTML='<h4>☁️ クラウド同期</h4><p class="hint">オンライン設定が未完了のため利用できません。</p>'; return; }
+  if(!fbReady){ el.innerHTML='<h4>☁️ クラウド同期</h4><p class="hint">オンライン接続中…</p>'; return; }
+  if(!fbUser){
+    el.innerHTML=`<h4>☁️ クラウド同期</h4>
+      <p class="hint">ログインすると進捗をクラウドに保存し、<b>機種変更や別の端末でも引き継げます</b>。</p>
+      <div class="data-btns">
+        <button class="claim-btn" id="cloudGoogle">Googleでログイン</button>
+        <button class="claim-btn" id="cloudEmail">メールでログイン</button>
+      </div>`;
+    el.querySelector("#cloudGoogle").onclick=()=>loginGoogle();
+    el.querySelector("#cloudEmail").onclick=()=>loginEmail();
+    return;
+  }
+  el.innerHTML=`<h4>☁️ クラウド同期</h4>
+    <p class="hint">ログイン中：<b>${cloudAccountName()}</b> <button class="minibtn" id="cloudLogout">ログアウト</button></p>
+    <p class="hint" id="cloudInfo">最終クラウド保存：確認中…</p>
+    <div class="data-btns">
+      <button class="claim-btn" id="cloudSaveBtn">☁️ クラウドに保存</button>
+      <button class="claim-btn" id="cloudLoadBtn">⬇️ クラウドから復元</button>
+    </div>`;
+  el.querySelector("#cloudLogout").onclick=()=>logoutFb();
+  el.querySelector("#cloudSaveBtn").onclick=cloudSave;
+  el.querySelector("#cloudLoadBtn").onclick=cloudLoad;
+  fbDB.collection("saves").doc(fbUser.uid).get().then(d=>{
+    const info=document.getElementById("cloudInfo"); if(!info)return;
+    if(d.exists&&d.data().updated){ const u=d.data().updated, t=u&&u.toDate?u.toDate():null;
+      info.innerHTML="最終クラウド保存："+(t?t.toLocaleString():"あり")+(d.data().wins!=null?`　（勝利${d.data().wins}・最高W${d.data().endless||0}）`:""); }
+    else info.textContent="クラウドにまだ保存がありません。";
+  }).catch(()=>{ const info=document.getElementById("cloudInfo"); if(info)info.textContent="クラウド情報を取得できませんでした。"; });
+}
+function buildData(){
+  const el=document.getElementById("dataBody"); if(!el)return;
+  el.innerHTML=`
+    <p class="hint">進捗は<b>この端末のブラウザ内</b>に保存されています。ブラウザのデータ削除や機種変更で消えないよう、<b>バックアップ</b>しておきましょう。ログインすれば<b>クラウド同期</b>で端末をまたいで引き継げます。</p>
+    <div class="data-card" id="cloudCard"></div>
+    <div class="data-card">
+      <h4>📤 エクスポート（バックアップ）</h4>
+      <p class="hint">コードをコピーして安全な場所に保管、またはファイルで保存します。</p>
+      <textarea id="exportArea" class="data-area" readonly placeholder="「コードを生成」を押すと表示されます"></textarea>
+      <div class="data-btns">
+        <button class="claim-btn" id="genExport">コードを生成</button>
+        <button class="claim-btn" id="copyExport">📋 コピー</button>
+        <button class="claim-btn" id="fileExport">📁 ファイル保存</button>
+      </div>
+    </div>
+    <div class="data-card">
+      <h4>📥 インポート（復元）</h4>
+      <p class="hint" style="color:#ff5b6e">⚠️ 現在の進捗は上書きされます。</p>
+      <textarea id="importArea" class="data-area" placeholder="バックアップコード（STD1.… ）を貼り付け"></textarea>
+      <div class="data-btns">
+        <button class="claim-btn" id="doImport">このコードで復元</button>
+        <button class="claim-btn" id="fileImport">📂 ファイルから読込</button>
+        <input type="file" id="fileInput" accept=".txt,.json,application/json,text/plain" style="display:none">
+      </div>
+    </div>`;
+  el.querySelector("#genExport").onclick=()=>{ el.querySelector("#exportArea").value=exportSave(); toast("コードを生成しました"); };
+  el.querySelector("#copyExport").onclick=copyExport;
+  el.querySelector("#fileExport").onclick=downloadSave;
+  el.querySelector("#doImport").onclick=()=>importSave(el.querySelector("#importArea").value);
+  const fi=el.querySelector("#fileInput");
+  el.querySelector("#fileImport").onclick=()=>fi.click();
+  fi.onchange=()=>{ const f=fi.files&&fi.files[0]; if(f){ const r=new FileReader(); r.onload=()=>importSave(String(r.result)); r.readAsText(f); } };
+  renderCloudCard();
+}
+
+function initMeta(){ loadInv(); loadStats(); loadDaily(); loadLogin(); loadAch(); }
+
 /* ============ 起動 ============ */
 initFirebase();   // 設定済みならランキング有効化（未設定なら何もしない）
+initMeta();
 track("game_loaded", {owned_count:ownedList().length, medals:medals, xp:playerXP});
 // スタミナUIの定期更新（ステージ画面・タイトル画面が見えている間だけ）
 setInterval(()=>{
@@ -3417,6 +3880,32 @@ setInterval(()=>{
 squad=ownedList().slice(0,SQUAD_MAX);   // 初期編成：所持キャラ（初期は先頭10）
 G=newGame();                       // ダミー初期化（バトル開始時にreset）
 showScreen("title");
+updateMetaBadges();
+const _loginClaimBtn=document.getElementById("loginClaim"); if(_loginClaimBtn)_loginClaimBtn.onclick=claimLogin;
+if(loginPending) setTimeout(openLogin, 450);
+
+// ---- PWA：Service Worker 登録＆インストール導線 ----
+if("serviceWorker" in navigator){
+  window.addEventListener("load",()=>{ navigator.serviceWorker.register("sw.js").catch(()=>{}); });
+}
+let deferredPrompt=null;
+window.addEventListener("beforeinstallprompt",ev=>{
+  ev.preventDefault(); deferredPrompt=ev;
+  const b=document.getElementById("installBtn"); if(b)b.style.display="";
+});
+window.addEventListener("appinstalled",()=>{
+  deferredPrompt=null; const b=document.getElementById("installBtn"); if(b)b.style.display="none";
+  if(typeof toast==="function")toast("ホーム画面に追加しました");
+});
+{
+  const ib=document.getElementById("installBtn");
+  if(ib) ib.onclick=async()=>{
+    if(!deferredPrompt){ alert("お使いのブラウザのメニューから「ホーム画面に追加」を選んでください。"); return; }
+    deferredPrompt.prompt();
+    try{ await deferredPrompt.userChoice; }catch(e){}
+    deferredPrompt=null; ib.style.display="none";
+  };
+}
 requestAnimationFrame(loop);
 </script>
 </body>
