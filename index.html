@@ -20,6 +20,14 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>シンプルTD</title>
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0e1a26">
+<link rel="apple-touch-icon" href="icons/app-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="シンプルTD">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Zen+Kaku+Gothic+New:wght@500;700;900&display=swap" rel="stylesheet">
@@ -515,6 +523,9 @@
       <button class="meta-btn" data-go="ach">🏆 実績<span class="meta-badge" id="badgeAch"></span></button>
       <button class="meta-btn" data-go="bag">🎒 どうぐ</button>
       <button class="meta-btn" data-go="data">💾 データ</button>
+    </div>
+    <div class="menu-btns" style="margin-top:12px">
+      <button class="big-btn" id="installBtn" style="display:none">📲 アプリとして追加</button>
     </div>
   </section>
 
@@ -3872,6 +3883,29 @@ showScreen("title");
 updateMetaBadges();
 const _loginClaimBtn=document.getElementById("loginClaim"); if(_loginClaimBtn)_loginClaimBtn.onclick=claimLogin;
 if(loginPending) setTimeout(openLogin, 450);
+
+// ---- PWA：Service Worker 登録＆インストール導線 ----
+if("serviceWorker" in navigator){
+  window.addEventListener("load",()=>{ navigator.serviceWorker.register("sw.js").catch(()=>{}); });
+}
+let deferredPrompt=null;
+window.addEventListener("beforeinstallprompt",ev=>{
+  ev.preventDefault(); deferredPrompt=ev;
+  const b=document.getElementById("installBtn"); if(b)b.style.display="";
+});
+window.addEventListener("appinstalled",()=>{
+  deferredPrompt=null; const b=document.getElementById("installBtn"); if(b)b.style.display="none";
+  if(typeof toast==="function")toast("ホーム画面に追加しました");
+});
+{
+  const ib=document.getElementById("installBtn");
+  if(ib) ib.onclick=async()=>{
+    if(!deferredPrompt){ alert("お使いのブラウザのメニューから「ホーム画面に追加」を選んでください。"); return; }
+    deferredPrompt.prompt();
+    try{ await deferredPrompt.userChoice; }catch(e){}
+    deferredPrompt=null; ib.style.display="none";
+  };
+}
 requestAnimationFrame(loop);
 </script>
 </body>
