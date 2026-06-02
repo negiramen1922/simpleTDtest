@@ -470,6 +470,16 @@
     border:1px solid var(--line2);background:#0b1118;color:#cdd9e3;font-size:11px;font-family:monospace;word-break:break-all}
   .data-btns{display:flex;flex-wrap:wrap;gap:8px}
   .data-btns .claim-btn{flex:0 0 auto}
+  /* 設定 */
+  .set-row{display:flex;align-items:center;gap:12px;margin:8px 0}
+  .set-row label{flex:0 0 92px;font-size:13px;color:#cdd9e3}
+  .set-row input[type=range]{flex:1;accent-color:var(--cyan)}
+  .set-row span{flex:0 0 44px;text-align:right;font-size:12px;color:var(--gold,#ffd24a);font-family:'Chakra Petch'}
+  /* バトル結果 MVP */
+  .mvp{margin:10px auto;max-width:300px;border:1px solid var(--line);border-radius:10px;padding:8px 12px;background:rgba(255,255,255,.04)}
+  .mvp-h{font-size:12px;color:var(--gold,#ffd24a);font-weight:700;margin-bottom:5px;text-align:center}
+  .mvp-row{display:flex;align-items:center;gap:8px;font-size:13px;padding:2px 0}
+  .mvp-rk{flex:0 0 22px;text-align:center}.mvp-n{flex:1;color:#eef4f9}.mvp-d{color:var(--amber,#ff8c42);font-family:'Chakra Petch';font-weight:700}
   /* ハードモード バナー & ボスラッシュ */
   .hard-banner{display:flex;align-items:center;gap:12px;justify-content:space-between;margin-bottom:12px;padding:11px 14px;
     border-radius:12px;border:1px solid var(--line2);background:linear-gradient(180deg,#1a1014,#140d10)}
@@ -579,6 +589,7 @@
       <button class="meta-btn" data-go="bag">🎒 どうぐ</button>
       <button class="meta-btn" data-go="art">🗡 装備</button>
       <button class="meta-btn" data-go="data">💾 データ</button>
+      <button class="meta-btn" data-go="settings">⚙ 設定</button>
     </div>
     <div class="menu-btns" style="margin-top:12px">
       <button class="big-btn" id="installBtn" style="display:none">📲 アプリとして追加</button>
@@ -589,6 +600,12 @@
   <section class="screen" id="scArt">
     <div class="sc-top"><button class="back" data-go="title">← 戻る</button><h2>🗡 アーティファクト</h2><span class="spacer"></span></div>
     <div id="artBody"></div>
+  </section>
+
+  <!-- 設定 -->
+  <section class="screen" id="scSettings">
+    <div class="sc-top"><button class="back" data-go="title">← 戻る</button><h2>⚙ 設定</h2><span class="spacer"></span></div>
+    <div id="settingsBody"></div>
   </section>
 
   <!-- セーブデータ管理 -->
@@ -715,6 +732,7 @@
         <h2 id="ovTitle"></h2>
         <div class="ovstars" id="ovStars"></div>
         <p id="ovText"></p>
+        <div id="ovExtra"></div>
         <div class="ovbtns">
           <button id="ovBtn" class="btn-go">もう一度</button>
           <button id="ovMenuBtn">ステージ選択へ</button>
@@ -816,16 +834,20 @@ const Sound=(()=>{
   let ctx=null, master=null, sfxGain=null, musicGain=null;
   let enabled=true, started=false;
   let musicTimer=null, musicStep=0;
+  let masterVol=0.9, sfxVol=0.5;   // 設定で変更可
 
   function init(){
     if(ctx)return;
     try{
       ctx=new (window.AudioContext||window.webkitAudioContext)();
-      master=ctx.createGain(); master.gain.value=0.9; master.connect(ctx.destination);
-      sfxGain=ctx.createGain(); sfxGain.gain.value=0.5; sfxGain.connect(master);
+      master=ctx.createGain(); master.gain.value=enabled?masterVol:0; master.connect(ctx.destination);
+      sfxGain=ctx.createGain(); sfxGain.gain.value=sfxVol; sfxGain.connect(master);
       musicGain=ctx.createGain(); musicGain.gain.value=0.22; musicGain.connect(master);
     }catch(e){ctx=null;}
   }
+  function setMaster(v){ masterVol=v; if(master&&ctx&&enabled)master.gain.setTargetAtTime(v,ctx.currentTime,0.05); }
+  function setSfx(v){ sfxVol=v; if(sfxGain&&ctx)sfxGain.gain.setTargetAtTime(v,ctx.currentTime,0.05); }
+  function getMaster(){ return masterVol; } function getSfx(){ return sfxVol; }
   function resume(){ if(ctx&&ctx.state==="suspended")ctx.resume(); }
 
   // 基本のワンショット音
@@ -921,7 +943,7 @@ const Sound=(()=>{
 
   function enable(on){
     enabled=on;
-    if(master&&ctx)master.gain.setTargetAtTime(on?0.9:0,ctx.currentTime,0.05);
+    if(master&&ctx)master.gain.setTargetAtTime(on?masterVol:0,ctx.currentTime,0.05);
     if(!on)stopMusic();
   }
   // 最初のユーザー操作で起動
@@ -930,7 +952,7 @@ const Sound=(()=>{
     init();
     if(ctx){ resume(); started=true; }
   }
-  return {ensureStarted,play,startMusic,stopMusic,setMusicIntensity,enable,
+  return {ensureStarted,play,startMusic,stopMusic,setMusicIntensity,enable,setMaster,setSfx,getMaster,getSfx,
     get on(){return enabled;}, get ready(){return started;}};
 })();
 
@@ -1930,7 +1952,7 @@ function newGame(){
     spawnQ:[], waveTime:0, selectedType:null, selectedUnit:null,
     speed:1, paused:false, t:0, defaultSkillMode:"auto",
     endless: !!currentStage.endless, kills:0,
-    hard: battleHard, bossrush: !!currentStage.bossrush
+    hard: battleHard, bossrush: !!currentStage.bossrush, dmgByType:{}
   };
 }
 let battleHard=false; // 現在のバトルがハードモードか（gotoBattleで設定）
@@ -1941,7 +1963,8 @@ function unitAtCell(c,r){return G.units.find(u=>u.c===c&&u.r===r);}
 // 出撃枠としてカウントするのはプレイヤーが配置したキャラのみ（召喚兵などのトークンは除外）
 function deployedCount(){return G.units.reduce((n,u)=>n+(u.isToken?0:1),0);}
 function cellOfPx(x,y){return [Math.floor(x/TILE),Math.floor(y/TILE)];}
-function addFx(o){o.life=o.life||0.4;o.age=0;G.fx.push(o);}
+let reduceMotion=false; // 設定：演出を軽減（破片など装飾エフェクトを省く）
+function addFx(o){ if(reduceMotion&&(o.type==="frag"||o.type==="ring"))return; o.life=o.life||0.4;o.age=0;G.fx.push(o);}
 function clearTransient(){G.fx=[];G.shots=[];} // ダメージ表記・弾・着弾などを一掃
 
 /* ============ 配置 ============ */
@@ -2365,7 +2388,7 @@ function update(dt){
         if(u.cfg.airReach && u.blocking.length && airTarget && !hits.includes(airTarget)) hits.push(airTarget);
         for(const h of hits){
           addFx({type:"slash",x:h.x,y:h.y,col:u.cfg.color,life:0.2});
-          hurtEnemy(h,dmg,u.cfg.color);
+          hurtEnemy(h,dmg,u.cfg.color,u);
         }
         Sound.play("melee");
         // バーサーカー：スキル中はライフスティール
@@ -2495,7 +2518,7 @@ function update(dt){
       } else if(s.kind==="aoe"){
         const R=s.aoeR;
         for(const en of G.enemies){
-          if(canHit(s.owner,en) && dist(en,s.target)<=R){en.stun=Math.max(en.stun,s.stun); hurtEnemy(en,s.dmg,s.col);}
+          if(canHit(s.owner,en) && dist(en,s.target)<=R){en.stun=Math.max(en.stun,s.stun); hurtEnemy(en,s.dmg,s.col,s.owner);}
         }
         addFx({type:"ring",x:s.target.x,y:s.target.y,r:R,col:s.col,life:0.4});
       } else if(s.kind==="chain"){
@@ -2562,7 +2585,7 @@ function update(dt){
     if(f.type==="shell" && !f._blown && f.age>=f.delay){
       f._blown=true;
       for(const en of G.enemies){
-        if((!f.fromU||canHit(f.fromU,en)) && dist(en,f)<=f.aoeR){ hurtEnemy(en,f.dmg,f.col); }
+        if((!f.fromU||canHit(f.fromU,en)) && dist(en,f)<=f.aoeR){ hurtEnemy(en,f.dmg,f.col,f.fromU); }
       }
       addFx({type:"ring",x:f.x,y:f.y,r:f.aoeR,col:f.col,life:0.4});
       addFx({type:"pop",x:f.x,y:f.y,col:f.col,life:0.4});
@@ -2642,8 +2665,9 @@ function pickHeal(u){ // 射程内で最もHP割合の低い負傷味方
   return best;
 }
 function shot(u,tg,dmg,col,kind){return {x:u.x,y:u.y,target:tg,dmg,col,kind,spd:520,owner:u};}
-// 敵へのダメージ適用（シールドを先に削る）。色付きの数字も出す。
-function hurtEnemy(en,dmg,col){
+// 敵へのダメージ適用（シールドを先に削る）。色付きの数字も出す。src=与えた味方（与ダメ集計用）
+function hurtEnemy(en,dmg,col,src){
+  if(src&&src.type&&G&&G.dmgByType){ G.dmgByType[src.type]=(G.dmgByType[src.type]||0)+dmg; }
   if(en.shield>0){
     const a=Math.min(en.shield,dmg); en.shield-=a; dmg-=a;
     floatNum(en.x,en.y-6,a,"#88c0ff");
@@ -2654,7 +2678,7 @@ function hurtEnemy(en,dmg,col){
 }
 // 弾の命中効果（ダメージ＋毒/凍結/減速）を敵に適用
 function applyBolt(s,en,dmg){
-  hurtEnemy(en,dmg,s.col);
+  hurtEnemy(en,dmg,s.col,s.owner);
   if(s.poison){ en.poisonDmg=s.poison; en.poisonT=Math.max(en.poisonT||0,s.poisonDur); }
   if(s.freeze){
     en.freezeT=Math.max(en.freezeT||0,s.freeze);
@@ -3130,8 +3154,18 @@ document.querySelectorAll("#spd button").forEach(b=>b.onclick=()=>{
 });
 ovBtn.onclick=()=>{reset(); if(Sound.on){Sound.setMusicIntensity(0.16);Sound.startMusic(112);}};
 document.getElementById("ovMenuBtn").onclick=()=>{ov.className="overlay";gotoMenu("stage");};
+function battleMVPHTML(){
+  const arr=Object.entries(G.dmgByType||{}).sort((a,b)=>b[1]-a[1]).slice(0,3);
+  if(!arr.length)return "";
+  const nm=t=> t==="_token"?"召喚兵":(TYPES[t]?TYPES[t].name:t);
+  let h='<div class="mvp"><div class="mvp-h">⚔ 与ダメージ MVP</div>';
+  arr.forEach(([t,d],i)=>{ h+=`<div class="mvp-row"><span class="mvp-rk">${i===0?'👑':(i+1)}</span><span class="mvp-n">${nm(t)}</span><span class="mvp-d">${Math.round(d).toLocaleString()}</span></div>`; });
+  h+='</div>';
+  return h;
+}
 function showOverlay(kind){
   ov.className="overlay show "+kind;
+  const ex=document.getElementById("ovExtra"); if(ex)ex.innerHTML=battleMVPHTML();
   const starsEl=document.getElementById("ovStars");
   if(kind==="win"){
     ovTitle.textContent="MISSION COMPLETE";
@@ -3173,7 +3207,7 @@ addEventListener("keydown",e=>{
 
 /* ============ 画面遷移 ============ */
 const menuEl=document.getElementById("menu"), battleEl=document.getElementById("battle");
-const screens={title:"scTitle",squad:"scSquad",stage:"scStage",train:"scTrain",daily:"scDaily",ach:"scAch",bag:"scBag",data:"scData",art:"scArt"};
+const screens={title:"scTitle",squad:"scSquad",stage:"scStage",train:"scTrain",daily:"scDaily",ach:"scAch",bag:"scBag",data:"scData",art:"scArt",settings:"scSettings"};
 function showScreen(name){
   document.querySelectorAll(".screen").forEach(s=>s.classList.remove("show"));
   document.getElementById(screens[name]).classList.add("show");
@@ -3186,6 +3220,7 @@ function showScreen(name){
   if(name==="bag")buildBag();
   if(name==="data")buildData();
   if(name==="art")buildArt();
+  if(name==="settings")buildSettings();
   window.scrollTo(0,0);
   track("screen_view", {screen_name:name});
 }
@@ -4176,7 +4211,37 @@ function openArtPick(type,slot){
 }
 function closeArtPick(){ document.getElementById("artPickModal").classList.remove("show"); }
 
-function initMeta(){ loadInv(); loadStats(); loadDaily(); loadLogin(); loadAch(); }
+// ===== 設定（音量・モーション軽減） =====
+const SETTINGS_KEY="td_settings_v1";
+function loadSettings(){
+  let s={}; try{ s=JSON.parse(localStorage.getItem(SETTINGS_KEY))||{}; }catch(e){}
+  if(typeof s.master==="number") Sound.setMaster(s.master);
+  if(typeof s.sfx==="number") Sound.setSfx(s.sfx);
+  reduceMotion=!!s.reduceMotion;
+}
+function saveSettings(){ try{ localStorage.setItem(SETTINGS_KEY,JSON.stringify({master:Sound.getMaster(),sfx:Sound.getSfx(),reduceMotion})); }catch(e){} }
+function buildSettings(){
+  const el=document.getElementById("settingsBody"); if(!el)return;
+  el.innerHTML=`
+   <div class="data-card">
+     <h4>🔊 音量</h4>
+     <div class="set-row"><label>マスター</label><input type="range" id="setMaster" min="0" max="1" step="0.05" value="${Sound.getMaster()}"><span id="setMasterV">${Math.round(Sound.getMaster()*100)}%</span></div>
+     <div class="set-row"><label>効果音</label><input type="range" id="setSfx" min="0" max="1" step="0.05" value="${Sound.getSfx()}"><span id="setSfxV">${Math.round(Sound.getSfx()*100)}%</span></div>
+     <p class="hint">音のオン/オフはバトル画面の🔊ボタンでも切り替えられます。</p>
+   </div>
+   <div class="data-card">
+     <h4>🎬 表示</h4>
+     <div class="set-row"><label>モーション軽減</label><button class="claim-btn ${reduceMotion?'':'ghost'}" id="setRM">${reduceMotion?"ON":"OFF"}</button></div>
+     <p class="hint">破片などの装飾エフェクトを省いて動作を軽くします（電池節約・低スペック端末向け）。</p>
+   </div>`;
+  const m=el.querySelector("#setMaster"), sf=el.querySelector("#setSfx");
+  m.oninput=()=>{ Sound.ensureStarted(); Sound.setMaster(+m.value); el.querySelector("#setMasterV").textContent=Math.round(m.value*100)+"%"; saveSettings(); };
+  sf.oninput=()=>{ Sound.ensureStarted(); Sound.setSfx(+sf.value); el.querySelector("#setSfxV").textContent=Math.round(sf.value*100)+"%"; saveSettings(); };
+  sf.onchange=()=>Sound.play("click");
+  el.querySelector("#setRM").onclick=()=>{ reduceMotion=!reduceMotion; saveSettings(); buildSettings(); };
+}
+
+function initMeta(){ loadInv(); loadStats(); loadDaily(); loadLogin(); loadAch(); loadSettings(); }
 
 /* ============ 起動 ============ */
 initFirebase();   // 設定済みならランキング有効化（未設定なら何もしない）
