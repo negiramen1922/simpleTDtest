@@ -186,20 +186,14 @@ const center=(c,r)=>({x:c*TILE+TILE/2,y:r*TILE+TILE/2});
 const PATHPTS=PATH.map(([c,r])=>center(c,r));
 function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y);}
 
-/* ----- 回帰者（オリジナルキャラ）：6ロール アタッカー/シューター/ブレイカー/サポーター/ヒーラー/トリックスター ----- */
+/* ----- 回帰者（リバリバ実キャラ）：1キャラずつ追加していく ----- */
+/* ロール6種：アタッカー/シューター/ブレイカー/サポーター/ヒーラー/トリックスター */
+/* スプシ由来の独自スケール(HP数千)はTD用に縮約。faction=階級, element=属性 */
 const CHARS={
-  nox:   {name:"終焉の剣姫 ノクス", role:"ATTACKER", kind:"melee", icon:"🗡", color:"#ff6a8e", cost:14,
-    hp:1000, atk:200, interval:0.95, range:1.3, block:true, skill:{name:"終焉回帰・紅蓮万斬", sp:13, atk:2.5}},
-  garo:  {name:"蒼鋼の簒奪者 ガロ", role:"BREAKER", kind:"melee", icon:"⛓", color:"#ffb454", cost:13,
-    hp:1500, atk:120, interval:1.0, range:1.2, block:true, breakerEP:4, skill:{name:"略奪結界・蒼鋼ノ宴", sp:15, atk:1.7, epBurst:26}},
-  selene:{name:"虚月の射手 セレネ", role:"SHOOTER", kind:"range", icon:"🌙", color:"#46c2ff", cost:14,
-    hp:360, atk:235, interval:1.4, range:4.6, skill:{name:"虚月貫通弾", sp:16, atk:2.8}},
-  azot:  {name:"蒼雷の道化 アゾット", role:"TRICKSTER", kind:"range", icon:"⚡", color:"#c08bff", cost:16,
-    hp:380, atk:110, interval:1.0, range:3.2, aoe:1.3, stun:0.7, skill:{name:"第九律・蒼雷ノ裁キ", sp:16, atk:1.8, aoe:1.9, stun:1.6}},
-  live:  {name:"白詠の聖女 リーヴ", role:"HEALER", kind:"heal", icon:"✚", color:"#7ee0a0", cost:12,
-    hp:430, heal:120, interval:1.1, range:3.2, skill:{name:"再生詠唱・蒼ノ救恤", sp:15, healMul:1.6, aoe:true}},
-  vice:  {name:"蒼旗の指揮者 ヴァイス", role:"SUPPORTER", kind:"buff", icon:"🚩", color:"#ff5bd0", cost:13,
-    hp:480, atkBuff:1.3, spdBuff:1.2, slow:0.65, range:3.0, skill:{name:"進撃ノ蒼号令", sp:17, atkBuff:1.8, spdBuff:1.6, slow:0.45}},
+  kanon_default:{ name:"カノン", sub:"DEFAULT", role:"ATTACKER", faction:"ブレイドライン", element:"破壊", dmgType:"物理",
+    kind:"melee", icon:"⚔", color:"#7fb6ff", cost:15, hp:950, atk:195, interval:0.85, range:1.3, block:true,
+    passive:{name:"神殺しの剣閃", factionAtk:0.10}, // 出撃中、味方ブレイドラインの攻撃力+10%
+    skill:{name:"聖剣技 天蓋連牙", sp:12, atk:2.4} }, // 前方へ飛び込み連撃（攻撃力50%×4相当）
 };
 const ORDER=Object.keys(CHARS);
 const ROLE_JP={ATTACKER:"アタッカー",SHOOTER:"シューター",BREAKER:"ブレイカー",SUPPORTER:"サポーター",HEALER:"ヒーラー",TRICKSTER:"トリックスター"};
@@ -253,8 +247,10 @@ function buildSquadUI(){
     const d=document.createElement("div");
     d.className="ucard"+(idx>=0?" on":""); d.style.setProperty("--c",c.color);
     d.innerHTML=`<div class="num">${idx>=0?idx+1:""}</div><div class="cost">${c.cost}</div>
-      <div class="ico">${c.icon}</div><div class="nm">${c.name}</div>
+      <div class="ico">${c.icon}</div><div class="nm">${c.name}${c.sub?` <span style="font-size:9px;color:var(--dim)">${c.sub}</span>`:""}</div>
       <div class="ro" style="--c:${ROLE_COL[c.role]};border-color:${ROLE_COL[c.role]};color:${ROLE_COL[c.role]}">${ROLE_JP[c.role]}</div>
+      ${c.faction?`<div style="font-size:9.5px;color:var(--dim);margin-top:4px">${c.faction}${c.element?" ／ "+c.element+"属性":""}</div>`:""}
+      ${c.passive?`<div class="sk" style="color:#9fe0ff">◆${c.passive.name}</div>`:""}
       <div class="sk">★${c.skill.name}</div>`;
     d.onclick=()=>{ const i=squad.indexOf(t); if(i>=0)squad.splice(i,1); else if(squad.length<SQUAD_MAX)squad.push(t); saveSquad(); buildSquadUI(); };
     g.appendChild(d);
@@ -373,13 +369,17 @@ function update(dt){
     G.waveTime+=dt;
     while(G.spawnQ.length && G.spawnQ[0].t<=G.waveTime){ spawnEnemy(G.spawnQ.shift().type); }
   }
-  // バフ初期化＋支援オーラ
+  // バフ初期化（乗算で重ねる）
   for(const u of G.units){ u.atkBuff=1; u.spdBuff=1; if(!u.skillActive)u.dr=0; }
+  // 特性パッシブ：同じ派閥(階級)の味方を強化（出撃中ずっと）
+  for(const u of G.units){ const ps=u.cfg.passive; if(ps&&ps.factionAtk){
+    for(const a of G.units){ if(a.cfg.faction===u.cfg.faction) a.atkBuff*=(1+ps.factionAtk); }
+  } }
+  // サポーター：味方バフ＋敵減速
   for(const u of G.units){
     if(u.cfg.kind==="buff"){
       const R=u.cfg.range*TILE, ab=u.skillActive?u.cfg.skill.atkBuff:u.cfg.atkBuff, sb=u.skillActive?u.cfg.skill.spdBuff:u.cfg.spdBuff;
-      for(const a of G.units){ if(a!==u && dist(a,u)<=R){ a.atkBuff=Math.max(a.atkBuff,ab); a.spdBuff=Math.max(a.spdBuff,sb);} }
-      // サポーター：射程内の敵を減速（移動前に適用）
+      for(const a of G.units){ if(a!==u && dist(a,u)<=R){ a.atkBuff*=ab; a.spdBuff*=sb;} }
       const sl=u.skillActive?u.cfg.skill.slow:u.cfg.slow;
       if(sl) for(const en of G.enemies){ if(dist(en,u)<=R) en.slow=Math.min(en.slow,sl); }
     }
