@@ -470,6 +470,36 @@
     border:1px solid var(--line2);background:#0b1118;color:#cdd9e3;font-size:11px;font-family:monospace;word-break:break-all}
   .data-btns{display:flex;flex-wrap:wrap;gap:8px}
   .data-btns .claim-btn{flex:0 0 auto}
+  /* アーティファクト */
+  .art-head{display:flex;justify-content:space-around;font-size:15px;color:#eef4f9;margin-bottom:6px}
+  .art-head b{color:var(--gold,#ffd24a)}
+  .art-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:11px;max-width:760px;margin:14px auto 0}
+  .art-card{border:1px solid var(--line);border-left:4px solid var(--rc,#9fb0bf);border-radius:11px;padding:11px 12px;
+    background:linear-gradient(180deg,var(--panel),var(--panel2))}
+  .ac-top{display:flex;align-items:center;gap:7px}
+  .ac-ico{font-size:22px}.ac-r{font-size:12px;font-weight:700;letter-spacing:1px}
+  .ac-lv{margin-left:auto;font-size:12px;font-weight:700;color:var(--gold,#ffd24a)}
+  .ac-name{font-size:13px;font-weight:700;color:#eef4f9;margin-top:5px}
+  .ac-stat{font-size:11px;color:#bcd;margin-top:2px;min-height:28px}
+  .ac-eq{font-size:10.5px;color:var(--green,#4ade80);margin:4px 0 7px}.ac-eq.none{color:var(--dim)}
+  .ac-btns{display:flex;gap:6px}
+  .claim-btn.small{padding:6px 9px;font-size:11.5px}
+  .claim-btn.ghost{background:#2a323c;color:#cdd9e3}
+  /* 詳細モーダルの装備スロット */
+  .art-equip{margin:10px 0 4px;border-top:1px solid var(--line);padding-top:10px}
+  .ae-h{font-size:12px;color:var(--gold,#ffd24a);font-weight:700;margin-bottom:7px}
+  .art-slots{display:flex;gap:8px}
+  .art-slot{flex:1;min-height:54px;border-radius:10px;border:1px dashed var(--line2);display:flex;align-items:center;gap:8px;
+    padding:7px 9px;cursor:pointer;font-size:11px;color:var(--dim);text-align:center;justify-content:center}
+  .art-slot.filled{border-style:solid;border-color:var(--rc);background:rgba(255,255,255,.03);justify-content:flex-start;text-align:left}
+  .as-ico{font-size:22px}.as-r{font-size:11px;font-weight:700}.as-s{font-size:10px;color:#bcd}
+  /* 装備選択リスト */
+  .pick-list{display:flex;flex-direction:column;gap:8px;margin-top:8px;max-height:60vh;overflow:auto}
+  .pick-row{display:flex;align-items:center;gap:10px;text-align:left;width:100%;padding:10px 12px;border-radius:10px;
+    border:1px solid var(--line);border-left:4px solid var(--rc,#9fb0bf);background:linear-gradient(180deg,var(--panel),var(--panel2));
+    color:#dfe7ee;font-size:12.5px;cursor:pointer}
+  .pick-row.remove{border-left-color:var(--red,#ff5b6e);color:var(--red,#ff5b6e);justify-content:center;font-weight:700}
+  .pr-ico{font-size:22px;flex:0 0 auto}.pr-main{flex:1;min-width:0}.pr-main small{color:#9fb0bf}
   /* トースト */
   #toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);z-index:9999;
     background:rgba(12,20,28,.96);border:1px solid var(--gold,#ffd24a);color:#fff;padding:11px 18px;border-radius:24px;
@@ -522,11 +552,18 @@
       <button class="meta-btn" data-go="daily">📋 デイリー<span class="meta-badge" id="badgeDaily"></span></button>
       <button class="meta-btn" data-go="ach">🏆 実績<span class="meta-badge" id="badgeAch"></span></button>
       <button class="meta-btn" data-go="bag">🎒 どうぐ</button>
+      <button class="meta-btn" data-go="art">🗡 装備</button>
       <button class="meta-btn" data-go="data">💾 データ</button>
     </div>
     <div class="menu-btns" style="margin-top:12px">
       <button class="big-btn" id="installBtn" style="display:none">📲 アプリとして追加</button>
     </div>
+  </section>
+
+  <!-- アーティファクト -->
+  <section class="screen" id="scArt">
+    <div class="sc-top"><button class="back" data-go="title">← 戻る</button><h2>🗡 アーティファクト</h2><span class="spacer"></span></div>
+    <div id="artBody"></div>
   </section>
 
   <!-- セーブデータ管理 -->
@@ -597,6 +634,14 @@
     <div class="detail-box">
       <button class="detail-close" id="detailClose">✕</button>
       <div id="detailBody"></div>
+    </div>
+  </div>
+
+  <!-- アーティファクト選択 -->
+  <div class="detail-modal" id="artPickModal">
+    <div class="detail-box">
+      <button class="detail-close" id="artPickClose">✕</button>
+      <div id="artPickBody"></div>
     </div>
   </div>
 
@@ -1688,10 +1733,47 @@ function getLevel(type){ return unitLevels[type]||1; }
 function xpToNext(level){ return 50+level*level*30; }
 // ステータス倍率：レベル1で1.0、レベルごとに+8%（HP/ATK/HEAL）
 function lvlMul(type){ return 1+(getLevel(type)-1)*0.08; }
-// レベル補正済みステータス
-function statHP(cfg,type){ return Math.round(cfg.hp*lvlMul(type)); }
-function statATK(cfg,type){ return cfg.atk?Math.round(cfg.atk*lvlMul(type)):0; }
-function statHEAL(cfg,type){ return cfg.heal?Math.round(cfg.heal*lvlMul(type)):0; }
+// レベル補正済みステータス（アーティファクト装備の倍率も適用）
+function statHP(cfg,type){ return Math.round(cfg.hp*lvlMul(type)*artBonus(type).hp); }
+function statATK(cfg,type){ return cfg.atk?Math.round(cfg.atk*lvlMul(type)*artBonus(type).atk):0; }
+function statHEAL(cfg,type){ return cfg.heal?Math.round(cfg.heal*lvlMul(type)*artBonus(type).heal):0; }
+
+/* ===== アーティファクト（装備）コア ===== */
+const ART_TYPES={
+  weapon:{name:"剣", icon:"⚔", stat:"atk"},
+  armor: {name:"盾", icon:"🛡", stat:"hp"},
+  boots: {name:"靴", icon:"👢", stat:"spd"},
+  charm: {name:"護符", icon:"✨", stat:"skill"},
+  scope: {name:"照準器", icon:"🔭", stat:"range"},
+};
+const ART_TYPE_IDS=Object.keys(ART_TYPES);
+const ART_STAT_NAME={atk:"攻撃力",hp:"HP",spd:"攻撃速度",skill:"スキル溜め",range:"射程",heal:"回復量"};
+// レアリティ：主効果の基礎倍率と色
+const ART_RARITY={1:{base:0.08,col:"#9fb0bf",name:"★"},2:{base:0.14,col:"#5ad1f4",name:"★★"},3:{base:0.22,col:"#c08bff",name:"★★★"},4:{base:0.34,col:"#ffd24a",name:"★★★★"}};
+const ART_MAXLV=5;
+const ART_KEY="td_artifacts_v1", EQUIP_KEY="td_equipped_v1", STONE_KEY="td_stones_v1";
+let artifacts=[], equipped={}, artStones=0, artSeq=1;
+function loadArtifacts(){
+  try{ const d=JSON.parse(localStorage.getItem(ART_KEY)); artifacts=Array.isArray(d)?d:[]; }catch(e){ artifacts=[]; }
+  try{ equipped=JSON.parse(localStorage.getItem(EQUIP_KEY))||{}; }catch(e){ equipped={}; }
+  try{ artStones=parseInt(localStorage.getItem(STONE_KEY))||0; }catch(e){ artStones=0; }
+  artSeq=artifacts.reduce((m,a)=>Math.max(m,a.uid||0),0)+1;
+}
+function saveArtifacts(){ try{ localStorage.setItem(ART_KEY,JSON.stringify(artifacts)); localStorage.setItem(EQUIP_KEY,JSON.stringify(equipped)); localStorage.setItem(STONE_KEY,String(artStones)); }catch(e){} }
+function artById(uid){ return artifacts.find(a=>a.uid===uid); }
+function artMainVal(a){ return ART_RARITY[a.rarity].base*(1+(a.level||0)*0.1); }
+function artSubVal(a){ return a.sub? a.sub.val*(1+(a.level||0)*0.1) : 0; }
+// 装備中アーティファクトの合計倍率（type=キャラID）
+function artBonus(type){
+  const b={atk:1,hp:1,spd:1,skill:1,range:1,heal:1};
+  const eq=equipped[type]; if(!eq)return b;
+  for(const uid of eq){ if(uid==null)continue; const a=artById(uid); if(!a)continue;
+    const ms=ART_TYPES[a.type].stat; if(b[ms]!=null) b[ms]*=(1+artMainVal(a));
+    if(a.sub&&b[a.sub.key]!=null) b[a.sub.key]*=(1+artSubVal(a));
+  }
+  return b;
+}
+loadArtifacts();
 // 経験値を消費して育成（成功でtrue）
 function levelUp(type){
   const lv=getLevel(type);
@@ -1824,7 +1906,7 @@ function clearTransient(){G.fx=[];G.shots=[];} // ダメージ表記・弾・着
 /* ============ 配置 ============ */
 function unitCost(t){return Math.round((TYPES[t].cost + COST_STEP*G.roster[t].times)*mod("costScale",1));}
 function mod(key,def){const m=currentStage&&currentStage.mods; return (m&&m[key]!=null)?m[key]:def;}
-function unitRange(u){return u.cfg.range?u.cfg.range*TILE*mod("fog",1):0;}
+function unitRange(u){return u.cfg.range?u.cfg.range*TILE*mod("fog",1)*(u.artRange||1):0;}
 function tryPlace(c,r){
   const t=G.selectedType; if(!t)return;
   const cfg=TYPES[t];
@@ -1839,9 +1921,11 @@ function tryPlace(c,r){
   rs.state="deployed"; rs.times++;
   const p=center(c,r);
   const hp=statHP(cfg,t), atk=statATK(cfg,t), heal=statHEAL(cfg,t);
+  const ab=artBonus(t); // アーティファクトの速度/射程/スキル倍率を配置時に固定
   G.units.push({
     type:t,cfg,c,r,x:p.x,y:p.y,level:getLevel(t),
     hp,maxHp:hp,atk,heal,cd:0,blocking:[],spdBuff:1,atkBuff:1,
+    artSpd:ab.spd,artRange:ab.range,artSkill:ab.skill,
     sp:0,skillActive:false,skillTimer:0,skillMode:G.defaultSkillMode||"auto",shield:0
   });
   // 出撃時DP生産（プロスペクター等）
@@ -2000,7 +2084,7 @@ function update(dt){
       if(sk.regen)u.hp=Math.min(u.maxHp,u.hp+sk.regen*dt);
       if(u.skillTimer<=0){u.skillActive=false;u.sp=0;}
     }else{
-      if(u.sp<sk.spMax) u.sp=Math.min(sk.spMax,u.sp+dt); // 満タンで待機（自動/手動で発動）
+      if(u.sp<sk.spMax) u.sp=Math.min(sk.spMax,u.sp+dt*(u.artSkill||1)); // 満タンで待機（自動/手動で発動）
     }
   }
 
@@ -2193,7 +2277,7 @@ function update(dt){
     if(willAct && u.skillMode==="auto" && skillReady(u)) fireSkill(u);
 
     const sk=u.cfg.skill, active=u.skillActive;
-    const spdTotal=u.spdBuff*(active&&sk&&sk.spd?sk.spd:1);
+    const spdTotal=u.spdBuff*(u.artSpd||1)*(active&&sk&&sk.spd?sk.spd:1);
     const atkMult=u.atkBuff*(active&&sk&&sk.atk?sk.atk:1);
     const itv=(u.cfg.interval||1)/spdTotal;
     if(k==="melee"){
@@ -3029,7 +3113,7 @@ addEventListener("keydown",e=>{
 
 /* ============ 画面遷移 ============ */
 const menuEl=document.getElementById("menu"), battleEl=document.getElementById("battle");
-const screens={title:"scTitle",squad:"scSquad",stage:"scStage",train:"scTrain",daily:"scDaily",ach:"scAch",bag:"scBag",data:"scData"};
+const screens={title:"scTitle",squad:"scSquad",stage:"scStage",train:"scTrain",daily:"scDaily",ach:"scAch",bag:"scBag",data:"scData",art:"scArt"};
 function showScreen(name){
   document.querySelectorAll(".screen").forEach(s=>s.classList.remove("show"));
   document.getElementById(screens[name]).classList.add("show");
@@ -3041,6 +3125,7 @@ function showScreen(name){
   if(name==="ach")buildAch();
   if(name==="bag")buildBag();
   if(name==="data")buildData();
+  if(name==="art")buildArt();
   window.scrollTo(0,0);
   track("screen_view", {screen_name:name});
 }
@@ -3090,6 +3175,8 @@ document.querySelectorAll("[data-go]").forEach(b=>{
 document.getElementById("quitBtn").onclick=()=>gotoMenu("stage");
 document.getElementById("detailClose").onclick=closeDetail;
 document.getElementById("detailModal").addEventListener("click",e=>{ if(e.target.id==="detailModal")closeDetail(); });
+document.getElementById("artPickClose").onclick=closeArtPick;
+document.getElementById("artPickModal").addEventListener("click",e=>{ if(e.target.id==="artPickModal")closeArtPick(); });
 document.getElementById("rankBtn").onclick=openRank;
 document.getElementById("rankClose").onclick=closeRank;
 document.getElementById("rankModal").addEventListener("click",e=>{ if(e.target.id==="rankModal")closeRank(); });
@@ -3145,9 +3232,11 @@ function renderDetail(t){
       <div class="lvbar" style="margin:8px 0"><div class="lvfill" style="width:${(lv/MAX_LEVEL)*100}%"></div></div>
       ${actionRow}
       <div class="stats">${statHTML}</div>
+      ${own?`<div class="art-equip">${artSlotsHTML(t)}</div>`:''}
       <div class="desc">${CODEX_DESC[t]||""}</div>
       <div class="sk">★ <b>${c.skill.name}</b>：${SKILL_DESC[t]||""}</div>
     </div>`;
+  if(own) wireArtSlots(t);
   const tb=document.getElementById("detailTrainBtn");
   if(tb) tb.onclick=()=>{
     const r=levelUp(t);
@@ -3534,6 +3623,7 @@ const ITEMS={
   xpb:   {name:"XPブースト", icon:"✦", desc:"30分間 獲得XP+50%", use(){ boostUntil=Math.max(boostUntil,Date.now())+30*60000; saveBoost(); return "XPブースト発動（+30分）"; }},
   medal: {name:"メダル袋", icon:"🏅", desc:"メダルを100獲得",  use(){ medals+=100; saveEconomy(); refreshHomeStats(); return "メダル+100"; }},
   medalL:{name:"大判メダル袋", icon:"💰", desc:"メダルを300獲得",  use(){ medals+=300; saveEconomy(); refreshHomeStats(); return "メダル+300"; }},
+  ticket:{name:"発掘チケット", icon:"🎟", desc:"アーティファクトを1個発掘", use(){ const a=excavateOne(); return "発掘！ "+artLabel(a); }},
 };
 const INV_KEY="td_inv_v1", BOOST_KEY="td_boost_v1";
 let inventory={}, boostUntil=0;
@@ -3552,6 +3642,7 @@ function grantReward(r){
   if(r.medals){ medals+=r.medals; parts.push("🏅"+r.medals); }
   if(r.xp){ playerXP+=r.xp; parts.push("✦"+r.xp); }
   if(r.stamina){ regenStamina(); const w=stamina>=STAMINA_MAX; stamina=Math.min(STAMINA_MAX,stamina+r.stamina); if(w)staminaTs=Date.now(); saveStamina(); parts.push("⚡"+r.stamina); }
+  if(r.stones){ artStones+=r.stones; saveArtifacts(); parts.push("🔩強化石×"+r.stones); }
   if(r.items) for(const id in r.items){ addItem(id,r.items[id]); parts.push(ITEMS[id].icon+ITEMS[id].name+"×"+r.items[id]); }
   saveEconomy(); saveProgress(); refreshHomeStats();
   return parts.join("　");
@@ -3559,6 +3650,7 @@ function grantReward(r){
 function rewardText(r){ // 表示用（付与しない）
   const p=[];
   if(r.medals)p.push("🏅"+r.medals); if(r.xp)p.push("✦"+r.xp); if(r.stamina)p.push("⚡"+r.stamina);
+  if(r.stones)p.push("🔩強化石×"+r.stones);
   if(r.items)for(const id in r.items)p.push(ITEMS[id].icon+ITEMS[id].name+"×"+r.items[id]);
   return p.join(" / ");
 }
@@ -3585,7 +3677,7 @@ const DAILY_POOL=[
   {id:"kill80", name:"敵を80体撃破",         goal:80, ev:"kill",   reward:{xp:100,items:{stam:1}}},
   {id:"win5",   name:"ステージを5回クリア",  goal:5,  ev:"win",    reward:{medals:100,items:{medal:1}}},
 ];
-const DAILY_BONUS={medals:120,items:{xpb:1}};
+const DAILY_BONUS={medals:120,items:{xpb:1,ticket:1}};
 const DAILY_KEY="td_daily_v1";
 let daily=null;
 function loadDaily(){ try{daily=JSON.parse(localStorage.getItem(DAILY_KEY));}catch(e){daily=null;} rollDailyIfNeeded(); }
@@ -3614,7 +3706,7 @@ function claimDailyBonus(){
 }
 
 // ---- ログインボーナス（7日サイクル） ----
-const LOGIN_REWARDS=[{medals:50},{items:{stam:2}},{xp:150},{items:{medal:1}},{items:{xpb:1}},{medals:150},{items:{stamL:1,medalL:1}}];
+const LOGIN_REWARDS=[{medals:50},{items:{stam:2}},{xp:150},{items:{ticket:1}},{stones:30},{medals:150},{items:{stamL:1,medalL:1,ticket:1}}];
 const LOGIN_KEY="td_login_v1";
 let login=null, loginPending=false;
 function loadLogin(){ try{login=JSON.parse(localStorage.getItem(LOGIN_KEY));}catch(e){login=null;} if(!login)login={lastDate:"",streak:0}; loginPending=(login.lastDate!==TODAY()); }
@@ -3640,17 +3732,17 @@ function claimLogin(){
 
 // ---- アチーブメント ----
 const ACHIEVEMENTS=[
-  {id:"first_win",name:"はじめの一歩",desc:"ステージを初クリア",chk:()=>stats.wins>=1,reward:{medals:50}},
-  {id:"win10",name:"常勝の兆し",desc:"通算10回クリア",chk:()=>stats.wins>=10,reward:{medals:100,items:{stam:1}}},
+  {id:"first_win",name:"はじめの一歩",desc:"ステージを初クリア",chk:()=>stats.wins>=1,reward:{medals:50,items:{ticket:1}}},
+  {id:"win10",name:"常勝の兆し",desc:"通算10回クリア",chk:()=>stats.wins>=10,reward:{medals:100,items:{stam:1},stones:20}},
   {id:"win50",name:"歴戦の指揮官",desc:"通算50回クリア",chk:()=>stats.wins>=50,reward:{medals:300,items:{medalL:1}}},
-  {id:"star3_5",name:"完璧主義・初級",desc:"★3を5ステージ達成",chk:()=>star3Count()>=5,reward:{medals:120,items:{xpb:1}}},
+  {id:"star3_5",name:"完璧主義・初級",desc:"★3を5ステージ達成",chk:()=>star3Count()>=5,reward:{medals:120,items:{xpb:1,ticket:1}}},
   {id:"star3_all",name:"全ステージ制覇",desc:"全ステージで★3",chk:()=>totalStages()>0&&star3Count()>=totalStages(),reward:{medals:500,items:{stamL:1}}},
   {id:"own10",name:"仲間集め",desc:"キャラを10体所持",chk:()=>ownedCount()>=10,reward:{medals:100}},
   {id:"own_all",name:"オールスター",desc:"全キャラを所持",chk:()=>ownedCount()>=ORDER.length,reward:{medals:600,items:{medalL:2}}},
   {id:"max1",name:"育成のプロ",desc:"1体を最大レベルに",chk:()=>maxedCount()>=1,reward:{xp:200}},
   {id:"max5",name:"精鋭部隊",desc:"5体を最大レベルに",chk:()=>maxedCount()>=5,reward:{medals:250,items:{xpb:2}}},
   {id:"end10",name:"無限への挑戦",desc:"エンドレス10WAVE到達",chk:()=>endlessBest.wave>=10,reward:{medals:120}},
-  {id:"end20",name:"深淵の探索者",desc:"エンドレス20WAVE到達",chk:()=>endlessBest.wave>=20,reward:{medals:250,items:{stamL:1}}},
+  {id:"end20",name:"深淵の探索者",desc:"エンドレス20WAVE到達",chk:()=>endlessBest.wave>=20,reward:{medals:250,items:{stamL:1,ticket:1},stones:40}},
   {id:"end30",name:"無限の覇者",desc:"エンドレス30WAVE到達",chk:()=>endlessBest.wave>=30,reward:{medals:500,items:{medalL:1}}},
   {id:"kill1000",name:"千体撃破",desc:"通算1000体撃破",chk:()=>stats.kills>=1000,reward:{medals:200,items:{xpb:1}}},
   {id:"farm10",name:"周回マスター",desc:"一括周回を通算10回",chk:()=>stats.farms>=10,reward:{medals:150}},
@@ -3863,6 +3955,111 @@ function buildData(){
   fi.onchange=()=>{ const f=fi.files&&fi.files[0]; if(f){ const r=new FileReader(); r.onload=()=>importSave(String(r.result)); r.readAsText(f); } };
   renderCloudCard();
 }
+
+// ===== アーティファクト：発掘・強化・分解・装備・UI =====
+function pctOf(v){ return Math.round(v*100); }
+function artStatLabel(a){ const ms=ART_TYPES[a.type].stat; let s=`${ART_STAT_NAME[ms]}+${pctOf(artMainVal(a))}%`; if(a.sub)s+=` / ${ART_STAT_NAME[a.sub.key]}+${pctOf(artSubVal(a))}%`; return s; }
+function artName(a){ return ART_TYPES[a.type].name; }
+function artLabel(a){ return `${ART_TYPES[a.type].icon}${ART_RARITY[a.rarity].name} ${artName(a)}（${artStatLabel(a)}）`+(a.level?` +${a.level}`:""); }
+function rollRarity(){ const r=Math.random(); return r<0.50?1:r<0.80?2:r<0.95?3:4; }
+function makeArtifact(rarity,type){
+  rarity=rarity||rollRarity();
+  type=type||ART_TYPE_IDS[Math.floor(Math.random()*ART_TYPE_IDS.length)];
+  const a={uid:artSeq++,type,rarity,level:0};
+  if(rarity>=3){ const pool=["atk","hp","spd","skill","range"].filter(k=>k!==ART_TYPES[type].stat);
+    a.sub={key:pool[Math.floor(Math.random()*pool.length)], val:ART_RARITY[rarity].base*0.45}; }
+  return a;
+}
+function excavateOne(){ const a=makeArtifact(); artifacts.push(a); saveArtifacts(); return a; }
+function excavateBtn(){
+  if((inventory.ticket||0)<=0){ toast("発掘チケットがありません"); return; }
+  useItem("ticket"); buildArt();   // useItem内でexcavateOne＋toast＋チケット消費
+}
+function artEnhanceCost(a){ return (a.level+1)*a.rarity*4; }
+function enhanceArt(uid){ const a=artById(uid); if(!a)return;
+  if(a.level>=ART_MAXLV){ toast("最大強化です"); return; }
+  const cost=artEnhanceCost(a); if(artStones<cost){ toast("強化石が足りません（"+cost+"必要）"); return; }
+  artStones-=cost; a.level++; saveArtifacts(); toast("強化 → +"+a.level); buildArt(); if(detailOpenType)renderDetail(detailOpenType);
+}
+function isEquipped(uid){ for(const t in equipped){ if((equipped[t]||[]).indexOf(uid)>=0)return t; } return null; }
+function dismantleArt(uid){ const a=artById(uid); if(!a)return;
+  if(isEquipped(uid)){ toast("装備中は分解できません"); return; }
+  const gain=a.rarity*3+a.level*2;
+  if(!confirm(artLabel(a)+"\nを分解して 🔩強化石+"+gain+" を得ます。よろしいですか？"))return;
+  artifacts=artifacts.filter(x=>x.uid!==uid); artStones+=gain; saveArtifacts(); toast("分解：🔩+"+gain); buildArt();
+}
+function unequipUid(uid){ for(const t in equipped){ const arr=equipped[t]; if(arr) for(let i=0;i<arr.length;i++) if(arr[i]===uid)arr[i]=null; } }
+function equipArt(type,slot,uid){ unequipUid(uid); if(!equipped[type])equipped[type]=[null,null]; equipped[type][slot]=uid; saveArtifacts(); }
+function unequipSlot(type,slot){ if(equipped[type])equipped[type][slot]=null; saveArtifacts(); }
+function equippedCharName(uid){ const t=isEquipped(uid); return t?TYPES[t].name:""; }
+
+function buildArt(){
+  const el=document.getElementById("artBody"); if(!el)return;
+  const tickets=inventory.ticket||0;
+  let h=`<div class="data-card">
+    <div class="art-head"><span>🔩 強化石 <b>${artStones}</b></span><span>🎟 発掘チケット <b>${tickets}</b></span></div>
+    <p class="hint">発掘でアーティファクトを入手し、キャラ図鑑の各キャラ「詳細」から装備できます（1体2枠）。強化石で強化、不要品は分解で強化石に。</p>
+    <button class="claim-btn" id="artDig" ${tickets<=0?'disabled':''}>🎟 発掘する（チケット1枚）</button>
+  </div>`;
+  if(!artifacts.length){ h+='<p class="hint" style="text-align:center;opacity:.65;margin-top:14px">まだアーティファクトがありません。発掘チケットで入手しましょう（デイリー・実績・ログボで入手）。</p>'; }
+  else{
+    h+='<div class="art-grid">';
+    for(const a of [...artifacts].sort((x,y)=>y.rarity-x.rarity||y.uid-x.uid)){
+      const eqby=equippedCharName(a.uid), rc=ART_RARITY[a.rarity].col, cost=artEnhanceCost(a), maxed=a.level>=ART_MAXLV;
+      h+=`<div class="art-card" style="--rc:${rc}">
+        <div class="ac-top"><span class="ac-ico">${ART_TYPES[a.type].icon}</span>
+          <span class="ac-r" style="color:${rc}">${ART_RARITY[a.rarity].name}</span>${a.level?`<span class="ac-lv">+${a.level}</span>`:''}</div>
+        <div class="ac-name">${artName(a)}</div>
+        <div class="ac-stat">${artStatLabel(a)}</div>
+        <div class="ac-eq${eqby?'':' none'}">${eqby?'装備中：'+eqby:'未装備'}</div>
+        <div class="ac-btns">
+          <button class="claim-btn small" data-enh="${a.uid}" ${maxed?'disabled':''}>${maxed?'MAX':'強化 🔩'+cost}</button>
+          <button class="claim-btn small ghost" data-dis="${a.uid}">分解</button>
+        </div></div>`;
+    }
+    h+='</div>';
+  }
+  el.innerHTML=h;
+  const dig=el.querySelector("#artDig"); if(dig)dig.onclick=excavateBtn;
+  el.querySelectorAll("[data-enh]").forEach(b=>b.onclick=()=>enhanceArt(+b.dataset.enh));
+  el.querySelectorAll("[data-dis]").forEach(b=>b.onclick=()=>dismantleArt(+b.dataset.dis));
+}
+
+// 詳細モーダル内の装備スロット
+function artSlotsHTML(type){
+  const eq=equipped[type]||[null,null];
+  let h='<div class="ae-h">🗡 アーティファクト装備</div><div class="art-slots">';
+  for(let i=0;i<2;i++){ const a=eq[i]!=null?artById(eq[i]):null;
+    h+= a ? `<div class="art-slot filled" data-slot="${i}" style="--rc:${ART_RARITY[a.rarity].col}">
+        <div class="as-ico">${ART_TYPES[a.type].icon}</div>
+        <div class="as-info"><div class="as-r" style="color:${ART_RARITY[a.rarity].col}">${ART_RARITY[a.rarity].name}${a.level?' +'+a.level:''}</div><div class="as-s">${artStatLabel(a)}</div></div></div>`
+      : `<div class="art-slot empty" data-slot="${i}">＋ スロット${i+1}<br><small>タップで装備</small></div>`;
+  }
+  h+='</div>';
+  return h;
+}
+function wireArtSlots(type){ document.querySelectorAll("#detailBody .art-slot").forEach(s=>{ s.onclick=()=>openArtPick(type,+s.dataset.slot); }); }
+function openArtPick(type,slot){
+  const eqUid=(equipped[type]||[])[slot];
+  const list=artifacts.filter(a=>{ const e=isEquipped(a.uid); return !e||a.uid===eqUid; }).sort((a,b)=>b.rarity-a.rarity||b.uid-a.uid);
+  let h=`<h3 class="rank-title">装備を選択（${TYPES[type].name}／スロット${slot+1}）</h3><div class="pick-list">`;
+  if(eqUid!=null) h+=`<button class="pick-row remove" data-uid="__off">✕ 外す</button>`;
+  if(!list.length) h+='<p class="hint" style="opacity:.7">装備できるアーティファクトがありません。発掘で入手してください。</p>';
+  for(const a of list){ const cur=a.uid===eqUid?' <span style="color:var(--gold)">（装備中）</span>':'';
+    h+=`<button class="pick-row" data-uid="${a.uid}" style="--rc:${ART_RARITY[a.rarity].col}">
+      <span class="pr-ico">${ART_TYPES[a.type].icon}</span>
+      <span class="pr-main"><b style="color:${ART_RARITY[a.rarity].col}">${ART_RARITY[a.rarity].name}${a.level?' +'+a.level:''}</b> ${artName(a)}${cur}<br><small>${artStatLabel(a)}</small></span></button>`;
+  }
+  h+='</div>';
+  document.getElementById("artPickBody").innerHTML=h;
+  document.getElementById("artPickModal").classList.add("show");
+  document.querySelectorAll("#artPickBody .pick-row").forEach(b=>b.onclick=()=>{
+    const v=b.dataset.uid;
+    if(v==="__off") unequipSlot(type,slot); else equipArt(type,slot,+v);
+    closeArtPick(); renderDetail(type);
+  });
+}
+function closeArtPick(){ document.getElementById("artPickModal").classList.remove("show"); }
 
 function initMeta(){ loadInv(); loadStats(); loadDaily(); loadLogin(); loadAch(); }
 
