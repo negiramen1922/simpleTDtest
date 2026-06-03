@@ -1083,8 +1083,9 @@ const TYPES={
     hp:430,heal:130,interval:1.1,block:0,range:3.2,kind:"heal",targets:"none",
     skill:{name:"治療領域",spMax:16,dur:8,heal:1.4,spd:1.5,healN:3,ultName:"守護の聖域",ultShieldPct:0.2}},
   support:{name:"エンチャンター",role:"SUPPORT",letter:"B",color:"#ff6ba9",place:"hill",cost:13,
-    hp:400,block:0,range:3.0,kind:"support",slow:0.45,spdBuff:1.45,targets:"both",
-    skill:{name:"総攻撃指令",spMax:18,dur:8,slow:0.28,spd:1.85,atk:1.4}},
+    hp:400,atk:24,interval:1.2,block:0,range:3.2,kind:"enchanter",targets:"both",
+    encSlow:0.6,encSlowDur:2.0,encVuln:1.25,encVulnDur:3.0,encSpd:1.3,encAtk:1.2,encBuffDur:2.5,
+    skill:{name:"総攻撃指令",spMax:16,dur:8,ultName:"アンコール",ultChargeAlly:true}},
   trickster:{name:"ボマー",role:"TRICK",letter:"X",color:"#ffd24a",place:"hill",cost:17,
     hp:340,atk:95,interval:2.0,block:0,range:3.3,kind:"aoe",aoe:1.25,stun:0.7,targets:"both",
     skill:{name:"大爆発",spMax:18,dur:7,atk:2.0,aoe:1.8,spd:1.5,stun:1.2}},
@@ -2094,7 +2095,14 @@ function fireSkill(u){
   return true;
 }
 // スキルが発動時に固有の一撃を持つか（汎用ボーナスを抑制する判定に使用）
-function hasCustomActivate(sk){ return !!(sk && (sk.smash||sk.frontSlash||sk.ultFlySlash)); }
+function hasCustomActivate(sk){ return !!(sk && (sk.smash||sk.frontSlash||sk.ultFlySlash||sk.ultChargeAlly)); }
+// エンチャンターのバフ対象：射程内で攻撃/回復する味方のうち、最もバフ残量が少ない味方
+function pickBuffAlly(u,R){
+  let best=null,bv=Infinity;
+  for(const a of G.units){ if(a===u||a.isToken)continue; if(dist(u,a)>R)continue; if(!(a.cfg.atk||a.cfg.heal))continue;
+    const v=a.encBuffT||0; if(v<bv){bv=v;best=a;} }
+  return best;
+}
 // 攻撃の「前方」向き＝最も進んだ射程内の敵の方向（無ければ右）
 function forwardAngle(u,R){
   let ang=0,best=-1,found=false;
@@ -2114,6 +2122,19 @@ function skillActivate(u,isUlt){
     addFx({type:"swordslash",x:u.x,y:u.y,ang:-Math.PI/2,r:R*0.55,col:u.cfg.color,life:0.32,wide:true});
     addFx({type:"ring",x:u.x,y:u.y,r:R,col:u.cfg.color,life:0.4});
     Sound.play("melee");
+  }
+  // 必殺技：範囲内で必殺技ゲージが最も少ない味方を即時フルチャージ（エンチャンター アンコール）
+  if(isUlt && sk.ultChargeAlly){
+    const R=unitRange(u)*1.3;
+    const cands=G.units.filter(a=>a!==u && !a.isToken && a.cfg.skill && !a.ultActive && dist(u,a)<=R);
+    if(cands.length){
+      cands.sort((a,b)=>(a.ug||0)/ULT_GAUGE-(b.ug||0)/ULT_GAUGE);
+      const t=cands[0]; t.ug=ULT_GAUGE;
+      addFx({type:"beam",x1:u.x,y1:u.y,x2:t.x,y2:t.y,col:u.cfg.color,life:0.45});
+      addFx({type:"skill",x:t.x,y:t.y,col:"#ffd24a",life:0.8});
+      flash(t.cfg.name+" の必殺技チャージ完了！");
+    }
+    return;
   }
   // 必殺技：一列に飛ぶ斬撃×n（カノン 天牙煉斬閃）
   if(isUlt && sk.ultFlySlash){ doFlySlash(u,sk.ultFlySlash); return; }
@@ -2245,7 +2266,7 @@ function spawnEnemy(type, opts){
     hp:e.hp*scale,maxHp:e.hp*scale,spd:e.spd,
     atk:e.atk*(G.endless?1+G.waveIndex*0.03:1)*hardAtk,cd:Math.random()*0.5,acd:Math.random()*0.5,
     shield:e.shield?e.shield*scale:0, shieldMax:e.shield?e.shield*scale:0,
-    blockedBy:null,slow:1,stun:0,progress:0,poisonT:0,poisonDmg:0,freezeT:0,slowHitT:0,slowHitF:1
+    blockedBy:null,slow:1,stun:0,progress:0,poisonT:0,poisonDmg:0,freezeT:0,slowHitT:0,slowHitF:1,vulnT:0,vulnF:1
   };
   // 分裂で生まれた子は指定位置・経路を引き継ぐ
   if(opts){
@@ -2308,7 +2329,9 @@ function update(dt){
   }
   // 隊長が射程外になった敵のバフは毎フレーム減衰（captainSpdを一旦リセットして上で再付与）
   for(const e of G.enemies){ if(!G.enemies.some(c=>c.e.auraR && c!==e && dist(c,e)<=c.e.auraR*TILE)) e.captainSpd=1; }
-  for(const u of G.units){u.spdBuff=1;u.atkBuff=1;u.shield=u.shield||0;}
+  for(const u of G.units){u.spdBuff=1;u.atkBuff=1;u.shield=u.shield||0; if(u.encBuffT>0)u.encBuffT-=dt;}
+  // エンチャンターのビームバフ（時限）
+  for(const u of G.units){ if(u.encBuffT>0){ u.spdBuff=Math.max(u.spdBuff,u.encSpd||1); u.atkBuff=Math.max(u.atkBuff,u.encAtk||1); } }
   for(const u of G.units){
     if(u.cfg.kind!=="support")continue;
     const sk=u.cfg.skill, active=u.skillActive;
@@ -2374,6 +2397,7 @@ function update(dt){
     if(en.freezeT>0){ en.freezeT-=dt; }
     // シャーマンのヒット減速（時間経過で解除）
     if(en.slowHitT>0){ en.slowHitT-=dt; en.slow=Math.min(en.slow,en.slowHitF); if(en.slowHitT<=0)en.slowHitF=1; }
+    if(en.vulnT>0){ en.vulnT-=dt; if(en.vulnT<=0)en.vulnF=1; }
   }
 
 
@@ -2476,8 +2500,8 @@ function update(dt){
         // 範囲回復スキル中以外は負傷者がいれば行動
         willAct=!!pickHeal(u) || (skillReady(u) && u.cfg.skill.aoe);
       }
-      // 常時稼働（オーラ/経済/合唱/召喚）は満タンで発動扱い
-      if(k==="support"||k==="economy"||k==="bard"||k==="summon") willAct=true;
+      // 常時稼働（オーラ/経済/合唱/召喚/エンチャンター）は満タンで発動扱い
+      if(k==="support"||k==="economy"||k==="bard"||k==="summon"||k==="enchanter") willAct=true;
     }
     // 自動モード：行動できる状態でSP満タンなら発動
     if(willAct && u.skillMode==="auto" && skillReady(u)) fireSkill(u);
@@ -2629,6 +2653,28 @@ function update(dt){
             addFx({type:"beam",x1:u.x,y1:u.y,x2:tg.x,y2:tg.y,col:"#4ade80",life:0.2});
             Sound.play("heal");
           }
+        }
+      }
+    } else if(k==="enchanter"){
+      if(u.cd<=0){
+        const cfg=u.cfg, R=unitRange(u), dmg=u.atk*atkMult;
+        // 敵：低火力＋鈍足＋被ダメ上昇（スキル中は射程内の全敵に）
+        const foes=active ? G.enemies.filter(e=>canHit(u,e)&&dist(u,e)<=R) : [pickEnemy(u)].filter(Boolean);
+        // 味方：ビームでバフ（スキル中は射程内の全味方に）
+        const allies=active ? G.units.filter(a=>a!==u&&dist(u,a)<=R) : [pickBuffAlly(u,R)].filter(Boolean);
+        if(foes.length||allies.length){
+          u.cd=itv;
+          for(const tg of foes){
+            const s=shot(u,tg,dmg,cfg.color,"bolt");
+            s.slowHit=cfg.encSlow; s.slowDur=cfg.encSlowDur; s.vuln=cfg.encVuln; s.vulnDur=cfg.encVulnDur;
+            G.shots.push(s);
+          }
+          for(const al of allies){
+            al.encBuffT=cfg.encBuffDur; al.encSpd=cfg.encSpd; al.encAtk=cfg.encAtk;
+            addFx({type:"beam",x1:u.x,y1:u.y,x2:al.x,y2:al.y,col:cfg.color,life:0.22});
+            addFx({type:"ring",x:al.x,y:al.y,r:13,col:cfg.color,life:0.3});
+          }
+          Sound.play("shoot");
         }
       }
     }
@@ -2810,6 +2856,7 @@ function pickHeal(u){ // 射程内で最もHP割合の低い負傷味方
 function shot(u,tg,dmg,col,kind){return {x:u.x,y:u.y,target:tg,dmg,col,kind,spd:520,owner:u};}
 // 敵へのダメージ適用（シールドを先に削る）。色付きの数字も出す。src=与えた味方（与ダメ集計用）
 function hurtEnemy(en,dmg,col,src){
+  if(en.vulnT>0) dmg*=en.vulnF; // 被ダメ上昇デバフ
   if(src&&src.type&&G&&G.dmgByType){ G.dmgByType[src.type]=(G.dmgByType[src.type]||0)+dmg; }
   if(en.shield>0){
     const a=Math.min(en.shield,dmg); en.shield-=a; dmg-=a;
@@ -2828,6 +2875,7 @@ function applyBolt(s,en,dmg){
     if(s.aoeFreeze){ for(const o of G.enemies){ if(o!==en && dist(o,en)<=s.aoeFreeze) o.freezeT=Math.max(o.freezeT||0,s.freeze*0.7); } }
   }
   if(s.slowHit){ en.slowHitT=Math.max(en.slowHitT||0,s.slowDur||1.5); en.slowHitF=Math.min(en.slowHitF||1,s.slowHit); }
+  if(s.vuln){ en.vulnT=Math.max(en.vulnT||0,s.vulnDur||3); en.vulnF=Math.max(en.vulnF||1,s.vuln); }
 }
 function floatNum(x,y,v,col,pre){addFx({type:"num",x,y,v:Math.round(v),col,pre:pre||"",life:0.7,vy:-26});}
 
@@ -3095,6 +3143,7 @@ function drawEnemy(en){
   if(en.freezeT>0){ctx.strokeStyle="#9fe0ff";ctx.lineWidth=3;ctx.beginPath();ctx.arc(x,y,r+2,0,7);ctx.stroke();
     ctx.fillStyle="rgba(159,224,255,.28)";ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill();}
   if(en.poisonT>0){ctx.fillStyle="#9bd44a";ctx.font="10px sans-serif";ctx.textAlign="center";ctx.fillText("☣",x+r,y-r);}
+  if(en.vulnT>0){ctx.fillStyle="#ff6ba9";ctx.font="11px sans-serif";ctx.textAlign="center";ctx.fillText("▼",x-r,y-r);}
   // シールド（青い六角リング＋シールドバー）
   if(en.shield>0){
     ctx.strokeStyle="#88c0ff";ctx.lineWidth=2.5;ctx.globalAlpha=.8;
