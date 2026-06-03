@@ -474,7 +474,9 @@ function update(dt){
     if(u.hp<=0)continue;
     // スキル進行
     if(u.skillActive){ u.skillTimer-=dt; if(u.skillTimer<=0){ u.skillActive=false; u.sp=0; u.dr=0; } }
-    else if(u.cfg.skill && G.state==="wave"){ u.sp+=dt; if(u.sp>=u.cfg.skill.sp){ castSkill(u); } }
+    else if(u.cfg.skill && G.state==="wave"){ u.sp=Math.min(u.cfg.skill.sp, u.sp+dt);
+      if(u.sp>=u.cfg.skill.sp){ const atkType=(u.cfg.kind==="melee"||u.cfg.kind==="range");
+        if(!atkType || hasEnemyTarget(u)) castSkill(u); } }
     // BLADE必殺ゲージ（手動発動）
     if(u.bladeActive){ u.bladeTimer-=dt; if(u.bladeTimer<=0){ u.bladeActive=false; u.bg=0; } }
     else if(u.cfg.blade && G.state==="wave"){ u.bg=Math.min(u.cfg.blade.gauge, (u.bg||0)+dt); }
@@ -571,6 +573,10 @@ function castSkill(u){
   G.callout=1.2;
 }
 // BLADE必殺：準備完了か／手動発動
+// 攻撃系スキルの自動発動条件：射程内（または足止め中）に敵がいるか
+function hasEnemyTarget(u){ const R=(u.cfg.range||1.2)*TILE;
+  if(u.cfg.kind==="melee" && G.enemies.some(en=>en.blocked===u&&en.hp>0)) return true;
+  return G.enemies.some(en=>en.hp>0 && dist(en,u)<=R); }
 function bladeReady(u){ return u.cfg.blade && !u.bladeActive && (u.bg||0)>=u.cfg.blade.gauge; }
 function fireBlade(u){
   if(!bladeReady(u))return false;
