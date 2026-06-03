@@ -195,8 +195,8 @@ const CHARS={
   kanon_default:{ name:"カノン", sub:"DEFAULT", role:"ATTACKER", faction:"ブレイドライン", element:"破壊", dmgType:"物理",
     kind:"melee", icon:"⚔", color:"#7fb6ff", cost:15, hp:950, atk:195, interval:0.85, range:1.3, block:true,
     passive:{name:"神殺しの剣閃", factionAtk:0.10}, // 出撃中、味方ブレイドラインの攻撃力+10%
-    skill:{name:"聖剣技 天蓋連牙", sp:12, atk:2.4}, // 前方へ飛び込み連撃（攻撃力50%×4相当）
-    blade:{name:"天牙煉斬閃", title:"エルスタニア流真聖剣技 瞬き天蓋に至りし第一席", gauge:16, dur:1.1, atk:3.9, line:true} }, // BLADE必殺：正面一列を薙ぎ払う
+    skill:{name:"聖剣技 天蓋連牙", sp:12, frontSlash:{n:4, atk:0.7, r:48, gap:0.12}}, // 目の前に大斬撃×4（判定大）
+    blade:{name:"天牙煉斬閃", title:"エルスタニア流真聖剣技 瞬き天蓋に至りし第一席", gauge:16, dur:0.6, flySlash:{n:5, atk:0.85, r:34, gap:0.08, speed:560, life:0.55}} }, // BLADE必殺：一列に飛ぶ斬撃×5
   sonata_default:{ name:"ソナタ", sub:"DEFAULT", role:"ATTACKER", faction:"ブレイドライン", element:"衝撃", dmgType:"物理",
     kind:"melee", icon:"🛡", color:"#8fb8e0", cost:16, hp:1500, atk:150, interval:1.0, range:1.2, block:true,
     passive:{name:"我慢強い", selfDR:0.15}, // 被ダメ-15%
@@ -405,7 +405,7 @@ function spawnEnemy(type){
 /* ===== 更新 ===== */
 function update(dt){
   // EP回復（特性「戦術機動」等で加速）
-  let epr=2.2; for(const u of G.units){ if(u.hp>0 && u.cfg.passive&&u.cfg.passive.epRegen) epr+=u.cfg.passive.epRegen; }
+  let epr=1.6; for(const u of G.units){ if(u.hp>0 && u.cfg.passive&&u.cfg.passive.epRegen) epr+=u.cfg.passive.epRegen; }
   G.ep=Math.min(G.epMax, G.ep+dt*epr);
   // スポーン
   if(G.state==="wave"){
@@ -529,6 +529,13 @@ function update(dt){
   G.fx=(G.fx||[]).filter(f=>{ f.age+=dt; return f.age<f.life; });
   // 弾
   G.shots=(G.shots||[]).filter(s=>{ s.age+=dt; if(s.age>=s.life){ impactFx(s.x2,s.y2,s.col); return false; } return true; });
+  // 斬撃ヒット（飛ぶ斬撃・正面大斬撃）：各斬撃が触れた敵に1回ダメージ
+  G.slashes=(G.slashes||[]).filter(sl=>{
+    sl.age+=dt; if(sl.age<0) return true;
+    sl.x+=sl.vx*dt; sl.y+=sl.vy*dt;
+    for(const en of G.enemies){ if(en.hp>0 && !sl.hit.has(en) && dist(en,sl)<=sl.r+ (en.e.r||12)){ sl.hit.add(en); hurt(en,sl.dmg); } }
+    return sl.age<sl.life;
+  });
   // コールアウト
   if(G.callout>0)G.callout-=dt;
   // 勝敗
@@ -545,11 +552,18 @@ function impactFx(x,y,col){ (G.fx=G.fx||[]).push({x,y,col,pop:true,age:0,life:0.
 function slashFx(u,tgt,col,big){ const ang=Math.atan2(tgt.y-u.y,tgt.x-u.x);
   (G.fx=G.fx||[]).push({type:'slash',x:tgt.x,y:tgt.y,ang:ang+(Math.random()*0.5-0.25),col,age:0,life:big?0.3:0.22,r:(big?TILE*0.95:TILE*0.62)}); }
 function fx(x,y,txt,col,pop){ (G.fx=G.fx||[]).push({x,y,txt,col,pop,age:0,life:pop?0.4:0.6,vy:-22}); }
+// 斬撃ヒット（飛ぶ斬撃／正面の大斬撃）。同列の敵が多い側を正面とする
+function slashDir(u,band){ const e=G.enemies.filter(x=>x.hp>0&&Math.abs(x.y-u.y)<=TILE*band); if(!e.length)return 1; const r=e.filter(x=>x.x>=u.x).length; return r>=e.length-r?1:-1; }
+function spawnFlySlash(u,o){ const dir=slashDir(u,0.9), dmg=u.cfg.atk*(u.atkBuff||1)*o.atk;
+  for(let i=0;i<o.n;i++){ (G.slashes=G.slashes||[]).push({x:u.x+dir*TILE*0.4,y:u.y,vx:dir*(o.speed||540),vy:0,r:o.r||34,dmg,col:u.cfg.color,ang:dir>0?0:Math.PI,age:-i*(o.gap||0.08),life:o.life||0.55,hit:new Set(),big:true}); } }
+function spawnFrontSlash(u,o){ const dir=slashDir(u,0.9), dmg=u.cfg.atk*(u.atkBuff||1)*o.atk;
+  for(let i=0;i<o.n;i++){ (G.slashes=G.slashes||[]).push({x:u.x+dir*TILE*0.7,y:u.y,vx:0,vy:0,r:o.r||46,dmg,col:u.cfg.color,ang:dir>0?0:Math.PI,age:-i*(o.gap||0.12),life:0.24,hit:new Set(),big:true,front:true}); } }
 
 function castSkill(u){
   u.skillActive=true; u.skillTimer=u.cfg.kind==="heal"||u.cfg.kind==="buff"?6:0.6; u.sp=u.cfg.skill.sp;
   if(u.cfg.skill.dr){ u.dr=u.cfg.skill.dr; u.skillTimer=7; if(u.cfg.skill.regen){ u.hp=Math.min(u.maxHp,u.hp+u.cfg.skill.regen);} }
   if(u.cfg.skill.epBurst){ G.ep=Math.min(G.epMax,G.ep+u.cfg.skill.epBurst); fx(u.x,u.y-14,"EP+"+u.cfg.skill.epBurst,"#ffd24a"); } // ブレイカー必殺：EP一括
+  if(u.cfg.skill.frontSlash){ spawnFrontSlash(u,u.cfg.skill.frontSlash); } // 目の前に大斬撃を複数
   // 必殺技名 ドーン
   $("coWho").textContent=u.cfg.name;
   $("coName").textContent=u.cfg.skill.name;
@@ -566,6 +580,7 @@ function fireBlade(u){
   if(bl.partyHeal){ const amt=(u.cfg.heal||u.cfg.atk||100)*bl.partyHeal;
     for(const a of G.units){ if(a.hp>0){ a.hp=Math.min(a.maxHp,a.hp+amt); fx(a.x,a.y,"+"+Math.round(amt),"#7ee0a0"); } } }
   if(bl.ep){ G.ep=Math.min(G.epMax,G.ep+bl.ep); fx(u.x,u.y-14,"EP+"+bl.ep,"#ffd24a"); }
+  if(bl.flySlash){ spawnFlySlash(u,bl.flySlash); } // 一列に飛ぶ斬撃
   // BLADE名 ドーン（通常スキルより豪華に）
   $("coWho").textContent=(u.cfg.blade.title?u.cfg.blade.title+"  —  ":"")+u.cfg.name+"  BLADE";
   $("coName").textContent=u.cfg.blade.name;
@@ -613,6 +628,18 @@ function draw(){
     ctx.fillStyle=s.col; ctx.beginPath(); ctx.arc(bx,by,1.4,0,7); ctx.fill();
   }
   ctx.globalAlpha=1; ctx.lineCap="butt";
+  // 斬撃（飛ぶ斬撃・正面大斬撃）
+  for(const sl of (G.slashes||[])){ if(sl.age<0)continue; const p=sl.age/sl.life;
+    ctx.save(); ctx.translate(sl.x,sl.y); ctx.rotate(sl.ang||0); ctx.lineCap="round";
+    const rad=sl.r*(sl.front?(0.7+p*0.5):1.0);
+    ctx.globalAlpha=Math.max(0,1-p);
+    ctx.strokeStyle=sl.col; ctx.lineWidth=(sl.front?10:6)*(1-p)+2;
+    ctx.beginPath(); ctx.arc(0,0,rad,-1.15,1.15); ctx.stroke();
+    ctx.strokeStyle="#ffffff"; ctx.lineWidth=(sl.front?4:2.5)*(1-p)+0.6;
+    ctx.beginPath(); ctx.arc(0,0,rad,-0.95,0.95); ctx.stroke();
+    ctx.restore(); ctx.globalAlpha=1;
+  }
+  ctx.lineCap="butt";
   // 敵
   for(const en of G.enemies){
     const r=en.e.r;
