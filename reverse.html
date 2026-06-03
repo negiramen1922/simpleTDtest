@@ -196,7 +196,7 @@ const CHARS={
     kind:"melee", icon:"⚔", color:"#7fb6ff", cost:15, hp:950, atk:195, interval:0.85, range:1.3, block:true,
     passive:{name:"神殺しの剣閃", factionAtk:0.10}, // 出撃中、味方ブレイドラインの攻撃力+10%
     skill:{name:"聖剣技 天蓋連牙", sp:12, atk:2.4}, // 前方へ飛び込み連撃（攻撃力50%×4相当）
-    blade:{name:"天牙煉斬閃", title:"エルスタニア流真聖剣技 瞬き天蓋に至りし第一席", gauge:16, dur:1.1, atk:3.9, aoe:1.8} }, // BLADE必殺：超火力＋薙ぎ払い
+    blade:{name:"天牙煉斬閃", title:"エルスタニア流真聖剣技 瞬き天蓋に至りし第一席", gauge:16, dur:1.1, atk:3.9, line:true} }, // BLADE必殺：正面一列を薙ぎ払う
   sonata_default:{ name:"ソナタ", sub:"DEFAULT", role:"ATTACKER", faction:"ブレイドライン", element:"衝撃", dmgType:"物理",
     kind:"melee", icon:"🛡", color:"#8fb8e0", cost:16, hp:1500, atk:150, interval:1.0, range:1.2, block:true,
     passive:{name:"我慢強い", selfDR:0.15}, // 被ダメ-15%
@@ -502,13 +502,15 @@ function update(dt){
         const atk=(c.atk)*(u.atkBuff||1)*((bld&&bld.atk)?bld.atk:(u.skillActive&&c.skill.atk?c.skill.atk:1));
         const aoeR=(bld&&bld.aoe)?bld.aoe:((u.skillActive&&c.skill.aoe?c.skill.aoe:c.aoe)||0);
         const stun=(bld&&bld.stun)?bld.stun:((u.skillActive&&c.skill.stun?c.skill.stun:c.stun)||0);
-        const targets=aoeR>0 ? G.enemies.filter(en=>en.hp>0&&dist(en,tgt)<=aoeR*TILE) : [tgt];
+        const targets=(bld&&bld.line) ? G.enemies.filter(en=>en.hp>0 && Math.abs(en.y-u.y)<=TILE*0.75)  // 正面一列：同じ列の敵全員
+                      : (aoeR>0 ? G.enemies.filter(en=>en.hp>0&&dist(en,tgt)<=aoeR*TILE) : [tgt]);
         for(const en of targets){
           hurt(en,atk);
           if(stun) en.stunT=Math.max(en.stunT||0,stun);
           if(en.hp<=0 && c.breakerEP){ G.ep=Math.min(G.epMax,G.ep+c.breakerEP); fx(en.x,en.y-12,"EP+"+c.breakerEP,"#ffd24a"); } // ブレイカー：撃破でEP獲得
         }
-        if(c.kind==="melee") slashFx(u,tgt,c.color,!!bld); else shot(u,tgt,c.color);
+        if(c.kind==="melee"){ if(bld&&bld.line){ for(const en of targets) slashFx(u,en,c.color,true); } else slashFx(u,tgt,c.color,!!bld); }
+        else shot(u,tgt,c.color);
       }
     }
   }
