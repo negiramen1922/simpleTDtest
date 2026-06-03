@@ -1200,6 +1200,9 @@ const ENEMY={
   stinger:{name:"空雷", hp:300, spd:1.9, atk:50, interval:0.8, life:1, r:11, col:"#5be0c8", fly:true, ranged:2.2},
   boss  :{name:"BOSS", hp:7000,spd:0.5,  atk:420, interval:1.3, life:5, r:24, col:"#ff5b6e", ranged:3.0}
 };
+// 敵アイコン画像（icons/enemies/<type>.png）。canvasで図形の代わりに描画、未読込は図形にフォールバック
+const ENE_IMG={};
+for(const _k in ENEMY){ const _im=new Image(); _im.src="icons/enemies/"+_k+".png?v=1"; ENE_IMG[_k]=_im; }
 // ステージ定義（複数ステージ）
 // map: 使用マップ / mods: ギミック（fog=射程低下, dpRate=DP獲得倍率, costScale=配置コスト倍率, redeploy=再出撃CT倍率, lifeLeak=漏れダメ倍率）
 const STAGES=[
@@ -2871,6 +2874,8 @@ function drawEnemy(en){
   const r=en.e.r;
   const lift=en.fly?16:0;       // 飛行敵は浮かせて描画
   const x=en.x, y=en.y-lift;
+  const eim=ENE_IMG[en.type];
+  const hasIcon=eim&&eim.complete&&eim.naturalWidth;
   // 影（飛行敵は地面に影）
   if(en.fly){
     const bob=Math.sin(G.t*5+en.x*0.1)*2;
@@ -2880,28 +2885,32 @@ function drawEnemy(en){
   if(en.type==="boss"){
     ctx.fillStyle=hexA(en.e.col,.25);ctx.beginPath();ctx.arc(x,y,r+6,0,7);ctx.fill();
   }
-  // 飛行敵：翼
-  if(en.fly){
+  // 飛行敵：翼（アイコン未読込時のみ。アイコンは翼を内包）
+  if(en.fly && !hasIcon){
     const flap=Math.sin(G.t*12+en.x*0.2)*0.5;
     ctx.fillStyle=hexA(en.e.col,.55);
     ctx.beginPath();ctx.ellipse(x-r,y,r*0.9,r*0.4,flap,0,7);ctx.fill();
     ctx.beginPath();ctx.ellipse(x+r,y,r*0.9,r*0.4,-flap,0,7);ctx.fill();
   }
-  ctx.fillStyle=en.e.col;
-  if(en.type==="runner"){ // ダイヤ
-    ctx.beginPath();ctx.moveTo(x,y-r);ctx.lineTo(x+r,y);ctx.lineTo(x,y+r);ctx.lineTo(x-r,y);ctx.closePath();ctx.fill();
-  }else if(en.type==="brute"||en.type==="boss"){ // 四角
-    ctx.fillRect(x-r,y-r,r*2,r*2);
-    ctx.strokeStyle="rgba(0,0,0,.4)";ctx.lineWidth=2;ctx.strokeRect(x-r,y-r,r*2,r*2);
-  }else if(en.fly){ // 飛行体（三角形）
-    ctx.beginPath();ctx.moveTo(x,y-r);ctx.lineTo(x+r*0.85,y+r*0.7);ctx.lineTo(x-r*0.85,y+r*0.7);ctx.closePath();ctx.fill();
-    ctx.strokeStyle="rgba(0,0,0,.35)";ctx.lineWidth=1.5;ctx.stroke();
-  }else{ // 円
-    ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill();
-  }
-  // 遠隔攻撃持ちのマーク
-  if(en.e.ranged){
-    ctx.fillStyle="rgba(255,255,255,.85)";ctx.beginPath();ctx.arc(x,y,2.4,0,7);ctx.fill();
+  if(hasIcon){
+    const s=r*2.3; ctx.drawImage(eim, x-s/2, y-s/2, s, s);
+  }else{
+    ctx.fillStyle=en.e.col;
+    if(en.type==="runner"){ // ダイヤ
+      ctx.beginPath();ctx.moveTo(x,y-r);ctx.lineTo(x+r,y);ctx.lineTo(x,y+r);ctx.lineTo(x-r,y);ctx.closePath();ctx.fill();
+    }else if(en.type==="brute"||en.type==="boss"){ // 四角
+      ctx.fillRect(x-r,y-r,r*2,r*2);
+      ctx.strokeStyle="rgba(0,0,0,.4)";ctx.lineWidth=2;ctx.strokeRect(x-r,y-r,r*2,r*2);
+    }else if(en.fly){ // 飛行体（三角形）
+      ctx.beginPath();ctx.moveTo(x,y-r);ctx.lineTo(x+r*0.85,y+r*0.7);ctx.lineTo(x-r*0.85,y+r*0.7);ctx.closePath();ctx.fill();
+      ctx.strokeStyle="rgba(0,0,0,.35)";ctx.lineWidth=1.5;ctx.stroke();
+    }else{ // 円
+      ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill();
+    }
+    // 遠隔攻撃持ちのマーク（アイコン未使用時）
+    if(en.e.ranged){
+      ctx.fillStyle="rgba(255,255,255,.85)";ctx.beginPath();ctx.arc(x,y,2.4,0,7);ctx.fill();
+    }
   }
   // 減速/スタン表示
   if(en.slow<1){ctx.strokeStyle="#3fc7f4";ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,r+3,0,7);ctx.stroke();}
