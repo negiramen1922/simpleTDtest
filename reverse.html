@@ -77,15 +77,19 @@
   .bbtns{display:flex;gap:8px;margin-top:8px}
   .bbtns button{flex:1;padding:11px;border-radius:9px;border:1px solid var(--line2);background:var(--panel);color:var(--txt);font-weight:700;cursor:pointer}
   .bbtns .start{background:linear-gradient(180deg,#1c4fa0,#12356e);border-color:var(--azure);color:#fff}
-  /* skill callout（必殺技名ドーン） */
+  /* BLADE callout（必殺技名を一文字ずつ） */
   #callout{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:50}
   #callout .co{opacity:0;text-align:center}
-  #callout .co.show{animation:co 1.5s ease-out}
+  #callout .co.show{animation:coHold 1.7s ease-out forwards}
   #callout .co .who{font-size:13px;letter-spacing:.3em;color:var(--cyan)}
   #callout .co .nm{font-size:clamp(28px,8vw,64px);font-weight:900;letter-spacing:.06em;
-    background:linear-gradient(90deg,#7fe0ff,#fff 40%,#ff5bd0);-webkit-background-clip:text;background-clip:text;color:transparent;
-    text-shadow:0 0 50px rgba(255,91,208,.5);filter:drop-shadow(0 4px 16px rgba(0,0,0,.6))}
-  @keyframes co{0%{opacity:0;transform:scale(.6) skewX(-12deg)}15%{opacity:1;transform:scale(1.05) skewX(0)}80%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1.1)}}
+    filter:drop-shadow(0 4px 16px rgba(0,0,0,.6))}
+  #callout .co.show .nm span{display:inline-block;opacity:0;will-change:transform,opacity;
+    background:linear-gradient(90deg,#7fe0ff,#fff 45%,#ff5bd0);-webkit-background-clip:text;background-clip:text;color:transparent;
+    animation:chpop .5s cubic-bezier(.18,1.7,.4,1) forwards}
+  @keyframes coHold{0%{opacity:0}6%{opacity:1}82%{opacity:1}100%{opacity:0}}
+  @keyframes chpop{0%{opacity:0;transform:translateY(-42px) scale(2.7) skewX(-22deg)}
+    55%{opacity:1;transform:translateY(0) scale(.88) skewX(0)}75%{transform:scale(1.06)}100%{opacity:1;transform:scale(1)}}
   /* result */
   #result{position:fixed;inset:0;background:rgba(4,9,20,.86);display:none;align-items:center;justify-content:center;z-index:60;padding:20px}
   #result.show{display:flex}
@@ -566,11 +570,7 @@ function castSkill(u){
   if(u.cfg.skill.dr){ u.dr=u.cfg.skill.dr; u.skillTimer=7; if(u.cfg.skill.regen){ u.hp=Math.min(u.maxHp,u.hp+u.cfg.skill.regen);} }
   if(u.cfg.skill.epBurst){ G.ep=Math.min(G.epMax,G.ep+u.cfg.skill.epBurst); fx(u.x,u.y-14,"EP+"+u.cfg.skill.epBurst,"#ffd24a"); } // ブレイカー必殺：EP一括
   if(u.cfg.skill.frontSlash){ spawnFrontSlash(u,u.cfg.skill.frontSlash); } // 目の前に大斬撃を複数
-  // 必殺技名 ドーン
-  $("coWho").textContent=u.cfg.name;
-  $("coName").textContent=u.cfg.skill.name;
-  const co=$("coInner"); co.classList.remove("show"); void co.offsetWidth; co.classList.add("show");
-  G.callout=1.2;
+  // スキルは文字演出なし（BLADEのみ名前を表示）
 }
 // BLADE必殺：準備完了か／手動発動
 // 攻撃系スキルの自動発動条件：射程内（または足止め中）に敵がいるか
@@ -587,9 +587,10 @@ function fireBlade(u){
     for(const a of G.units){ if(a.hp>0){ a.hp=Math.min(a.maxHp,a.hp+amt); fx(a.x,a.y,"+"+Math.round(amt),"#7ee0a0"); } } }
   if(bl.ep){ G.ep=Math.min(G.epMax,G.ep+bl.ep); fx(u.x,u.y-14,"EP+"+bl.ep,"#ffd24a"); }
   if(bl.flySlash){ spawnFlySlash(u,bl.flySlash); } // 一列に飛ぶ斬撃
-  // BLADE名 ドーン（通常スキルより豪華に）
+  // BLADE名 ドーン：名前を一文字ずつ勢いよく表示
   $("coWho").textContent=(u.cfg.blade.title?u.cfg.blade.title+"  —  ":"")+u.cfg.name+"  BLADE";
-  $("coName").textContent=u.cfg.blade.name;
+  const esc=ch=>ch==='&'?'&amp;':ch==='<'?'&lt;':ch==='>'?'&gt;':(ch===' '||ch==='　')?'&nbsp;':ch;
+  $("coName").innerHTML=[...bl.name].map((ch,i)=>`<span style="animation-delay:${(i*0.07).toFixed(2)}s">${esc(ch)}</span>`).join('');
   const co=$("coInner"); co.classList.remove("show"); void co.offsetWidth; co.classList.add("show");
   G.callout=1.5; flash("⚔ BLADE 発動！ "+u.cfg.blade.name);
   return true;
