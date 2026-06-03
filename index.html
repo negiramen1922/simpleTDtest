@@ -1094,6 +1094,10 @@ const TYPES={
     hp:640,atk:100,interval:0.9,block:1,kind:"melee",bonusDP:5,targets:"ground",
     skill:{name:"資源強奪",spMax:9,dur:0.6,frontSlash:{n:5,mul:0.85,r:2.0,gap:0.09},
            ultName:"略奪乱舞",ultFrontSlash:{n:7,mul:1.3,r:2.3,gap:0.08},ultBonusMul:3}},
+  fuga:{name:"風雅",role:"BREAK",letter:"風",color:"#7ad0c0",place:"road",cost:12,
+    hp:800,atk:150,interval:0.85,block:1,kind:"melee",bonusDP:3,deployDP:12,targets:"ground",
+    skill:{name:"士道天瞑流 鬼哭",spMax:12,dur:5,atk:1.8,spd:1.3,
+           ultName:"惨式風禍塵儡【爻】",ultDotField:{r:2.2,burst:2.0,dps:0.5}}},
   guardian:{name:"ガーディアン",role:"GUARD",letter:"G",color:"#6b9bd1",place:"road",cost:16,
     hp:2200,atk:50,interval:1.8,block:5,kind:"melee",targets:"ground",
     skill:{name:"絶対防壁",spMax:18,dur:9,dr:0.7,regen:80,block:5}},
@@ -1185,7 +1189,7 @@ const TYPES={
     hp:480,block:0,range:3.3,kind:"support",slow:1,spdBuff:1.2,atkAura:1.3,targets:"both",
     skill:{name:"進軍号令",spMax:18,dur:8,slow:0.7,spd:1.6,atk:1.8}}
 };
-const ORDER=["tank","attacker","shooter","healer","support","trickster","breaker","guardian","lancer","berserker","sniper","mage","artillery","archer","flak","halberdier","guardknight","duelist","revenger","marksman","gunner","poisoner","chaincaster","freezer","shaman","summoner","commander","bard","alchemist","prospector","netcaster","warlord","archmage","valkyrie","highpriest","archon"];
+const ORDER=["tank","attacker","shooter","healer","support","trickster","breaker","guardian","lancer","berserker","sniper","mage","artillery","archer","flak","halberdier","guardknight","duelist","revenger","marksman","gunner","poisoner","chaincaster","freezer","shaman","summoner","commander","bard","alchemist","prospector","netcaster","fuga","warlord","archmage","valkyrie","highpriest","archon"];
 // キャラアイコン画像（icons/<type>.png）。全キャラにアイコンを割り当て（読み込み失敗時はonerrorで文字にフォールバック）
 for(const t in TYPES){ TYPES[t].img="icons/"+t+".png?v=4"; }
 // アイコン用HTML（DOMカード共通）：画像があれば<img>、無ければ文字
@@ -1885,7 +1889,7 @@ const UNLOCK_COST={
   // 上位：300〜450
   mage:350, artillery:400, archer:300, flak:350, halberdier:350, guardknight:400, duelist:350,
   revenger:400, marksman:400, poisoner:400, chaincaster:450, freezer:450, shaman:450,
-  summoner:500, bard:450, alchemist:400, prospector:350, netcaster:400,
+  summoner:500, bard:450, alchemist:400, prospector:350, netcaster:400, fuga:350,
   gunner:300, commander:450,
   // 高コスト最上位：500〜600
   warlord:600, archmage:600, valkyrie:550, highpriest:550, archon:600
@@ -2097,7 +2101,7 @@ function fireSkill(u){
   return true;
 }
 // スキルが発動時に固有の一撃を持つか（汎用ボーナスを抑制する判定に使用）
-function hasCustomActivate(sk){ return !!(sk && (sk.smash||sk.frontSlash||sk.ultFrontSlash||sk.ultFlySlash||sk.ultChargeAlly||sk.ultBarrage)); }
+function hasCustomActivate(sk){ return !!(sk && (sk.smash||sk.frontSlash||sk.ultFrontSlash||sk.ultFlySlash||sk.ultChargeAlly||sk.ultBarrage||sk.ultDotField)); }
 // エンチャンターのバフ対象：射程内で攻撃/回復する味方のうち、最もバフ残量が少ない味方
 function pickBuffAlly(u,R){
   let best=null,bv=Infinity;
@@ -2142,6 +2146,13 @@ function skillActivate(u,isUlt){
   if(isUlt && sk.ultBarrage){ const q=sk.ultBarrage; u.bombQueue={left:q.n,t:0,gap:q.gap,mul:q.mul,aoe:q.aoe,stun:q.stun}; return; }
   // 必殺技：一列に飛ぶ斬撃×n（カノン 天牙煉斬閃）
   if(isUlt && sk.ultFlySlash){ doFlySlash(u,sk.ultFlySlash); return; }
+  // 必殺技：着弾AoE＋周囲に持続ダメージ領域（風雅 惨式風禍塵儡）。領域は必殺技中（ultActive）毎フレーム処理
+  if(isUlt && sk.ultDotField){
+    const f=sk.ultDotField, R=f.r*TILE, dmg=statATK(u.cfg,u.type)*(f.burst||2)*(u.atkBuff||1);
+    for(const e of G.enemies){ if(e.hp>0&&canHit(u,e)&&dist(u,e)<=R) hurtEnemy(e,dmg,u.cfg.color,u); }
+    addFx({type:"ring",x:u.x,y:u.y,r:R,col:u.cfg.color,life:0.5}); Sound.play("aoe");
+    return;
+  }
   // 必殺技：専用の前方連撃（レイダー 略奪乱舞＝7連撃でスキルより強い）
   if(isUlt && sk.ultFrontSlash){ const f=sk.ultFrontSlash; u.combo={left:f.n,t:0,gap:f.gap,mul:f.mul,r:f.r}; return; }
   // スキル：目の前に大斬撃×n（カノン 天蓋連牙）。連撃キューで時間差発生
@@ -2334,6 +2345,11 @@ function update(dt){
     if(u.combo){ u.combo.t-=dt; if(u.combo.t<=0 && u.combo.left>0){ frontSlashHit(u,u.combo.mul,u.combo.r); u.combo.left--; u.combo.t=u.combo.gap; if(u.combo.left<=0)u.combo=null; } }
     // 爆弾連射キュー（爆裂連弾：高火力スタン爆弾を連射）
     if(u.bombQueue){ u.bombQueue.t-=dt; if(u.bombQueue.t<=0 && u.bombQueue.left>0){ throwBomb(u,u.bombQueue.mul,u.bombQueue.aoe,u.bombQueue.stun); u.bombQueue.left--; u.bombQueue.t=u.bombQueue.gap; if(u.bombQueue.left<=0)u.bombQueue=null; } }
+    // 持続ダメージ領域（風雅 惨式風禍塵儡）：必殺技中、周囲の敵に継続ダメージ
+    if(u.ultActive && sk.ultDotField){ const f=sk.ultDotField, R=f.r*TILE, dps=statATK(u.cfg,u.type)*f.dps*(u.atkBuff||1);
+      for(const e of G.enemies){ if(e.hp>0 && canHit(u,e) && dist(u,e)<=R) hurtEnemy(e,dps*dt,u.cfg.color,u); }
+      if(Math.random()<dt*10){ const a=Math.random()*7, rr=R*(0.4+Math.random()*0.55); addFx({type:"frag",x:u.x+Math.cos(a)*rr,y:u.y+Math.sin(a)*rr,vx:Math.cos(a)*30,vy:Math.sin(a)*30,col:u.cfg.color,life:0.45,r:2.5}); }
+    }
   }
 
   // --- オーラ初期化（サポート） ---
