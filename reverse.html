@@ -195,6 +195,31 @@ const CHARS={
     passive:{name:"神殺しの剣閃", factionAtk:0.10}, // 出撃中、味方ブレイドラインの攻撃力+10%
     skill:{name:"聖剣技 天蓋連牙", sp:12, atk:2.4}, // 前方へ飛び込み連撃（攻撃力50%×4相当）
     blade:{name:"天牙煉斬閃", title:"エルスタニア流真聖剣技 瞬き天蓋に至りし第一席", gauge:16, dur:1.1, atk:3.9, aoe:1.8} }, // BLADE必殺：超火力＋薙ぎ払い
+  sonata_default:{ name:"ソナタ", sub:"DEFAULT", role:"ATTACKER", faction:"ブレイドライン", element:"衝撃", dmgType:"物理",
+    kind:"melee", icon:"🛡", color:"#8fb8e0", cost:16, hp:1500, atk:150, interval:1.0, range:1.2, block:true,
+    passive:{name:"我慢強い", selfDR:0.15}, // 被ダメ-15%
+    skill:{name:"SQ.207ax 花冠の偽証", sp:11, atk:1.7},
+    blade:{name:"劫花凛然", title:"エルスタニア流聖盾技 九拾九式", gauge:20, dur:8, atk:1.6, aoe:1.6, dr:0.6} }, // 身代わり：長時間ダメージ激減
+  fuga_default:{ name:"風雅", sub:"DEFAULT", role:"BREAKER", faction:"ブレイドライン", element:"衝撃", dmgType:"物理",
+    kind:"melee", icon:"🌀", color:"#7ad0c0", cost:10, hp:780, atk:155, interval:0.9, range:1.2, block:true, breakerEP:3,
+    passive:{name:"斥候マスタリー", deployEP:14}, // 出撃時EP+14
+    skill:{name:"士道天瞑流 鬼哭", sp:12, atk:1.8},
+    blade:{name:"惨式風禍塵儡【爻】", title:"士道天瞑流", gauge:18, dur:8, atk:2.0, aoe:1.4, dot:0.12} }, // 連撃＋8秒の周囲DoT
+  rondo_default:{ name:"ロンド", sub:"DEFAULT", role:"BREAKER", faction:"ブレイドライン", element:"破壊", dmgType:"物理",
+    kind:"melee", icon:"🍵", color:"#ffb454", cost:11, hp:760, atk:150, interval:0.9, range:1.2, block:true, breakerEP:4,
+    passive:{name:"戦術機動", epRegen:0.6}, // EP回復速度UP
+    skill:{name:"爆散シルバートレイ", sp:10, atk:1.6, stun:0.4},
+    blade:{name:"爆裂ティータイム", title:"ロンド流メイド式紅茶術", gauge:16, dur:1.2, atk:2.6, aoe:1.8, stun:2.0} }, // 範囲＋気絶
+  troimerei_default:{ name:"トロイメライ", sub:"DEFAULT", role:"HEALER", faction:"ブレイドライン", element:"爆発", dmgType:"特殊",
+    kind:"heal", icon:"✚", color:"#7ee0a0", cost:14, hp:430, heal:115, interval:1.0, range:3.2,
+    passive:{name:"効率志向"},
+    skill:{name:"来たれ、浄罪の光", sp:9, healMul:1.7},
+    blade:{name:"デフラワリングフレア", title:"リタ・レルリア天祈術第9088秘匿禁技", gauge:18, dur:0.4, partyHeal:4} }, // 味方全員を大回復
+  blue_default:{ name:"ブルー", sub:"DEFAULT", role:"SHOOTER", faction:"ブレイドライン", element:"衝撃", dmgType:"特殊",
+    kind:"range", icon:"🏹", color:"#46c2ff", cost:17, hp:380, atk:235, interval:1.1, range:4.4,
+    passive:{name:"アジャイル"},
+    skill:{name:"一射当千", sp:11, atk:2.2},
+    blade:{name:"組曲「神音」第4番", title:"ブーゲンビリア流双剣技", gauge:18, dur:1.2, atk:2.6, aoe:1.8} }, // 前方広範囲
 };
 const ORDER=Object.keys(CHARS);
 const ROLE_JP={ATTACKER:"アタッカー",SHOOTER:"シューター",BREAKER:"ブレイカー",SUPPORTER:"サポーター",HEALER:"ヒーラー",TRICKSTER:"トリックスター"};
@@ -221,7 +246,7 @@ const STAGES=[
 /* ===== セーブ（rv_ 接頭辞で現行ゲームと分離） ===== */
 const CLEAR_KEY="rv_cleared_v1", SQUAD_KEY="rv_squad_v1";
 let cleared={}; try{ cleared=JSON.parse(localStorage.getItem(CLEAR_KEY))||{}; }catch(e){ cleared={}; }
-const SQUAD_MAX=5;
+const SQUAD_MAX=6;
 let squad=[]; try{ squad=JSON.parse(localStorage.getItem(SQUAD_KEY))||[]; }catch(e){ squad=[]; }
 squad=squad.filter(t=>CHARS[t]); if(!squad.length) squad=ORDER.slice(0,SQUAD_MAX);
 function saveSquad(){ try{ localStorage.setItem(SQUAD_KEY,JSON.stringify(squad)); }catch(e){} }
@@ -344,8 +369,10 @@ cv.addEventListener("click",e=>{
   const needRoad=(cfg.kind==="melee"); // 前衛/タンクは経路上、それ以外は経路外
   if(needRoad!==onRoad){ flash(needRoad?"前衛は経路上に配置":"射手/支援は経路外に配置"); return; }
   if(unitAt(c,r)){ flash("そのマスは使用中"); return; }
+  if(G.units.some(u=>u.t===G.sel && u.hp>0)){ flash("そのキャラは既に出撃中です"); return; } // 1キャラ1体まで
   if(G.ep<cfg.cost){ flash("EPが足りません"); return; }
   G.ep-=cfg.cost;
+  if(cfg.passive&&cfg.passive.deployEP){ G.ep=Math.min(G.epMax,G.ep+cfg.passive.deployEP); fx(center(c,r).x,center(c,r).y-14,"EP+"+cfg.passive.deployEP,"#ffd24a"); } // 出撃時EP回復
   const p=center(c,r);
   G.units.push({ t:G.sel,cfg,c,r,x:p.x,y:p.y, hp:cfg.hp,maxHp:cfg.hp, cd:Math.random()*0.3,
     sp:0,skillActive:false,skillTimer:0, bg:0,bladeActive:false,bladeTimer:0, dr:0,atkBuff:1,spdBuff:1 });
@@ -369,19 +396,31 @@ function spawnEnemy(type){
 
 /* ===== 更新 ===== */
 function update(dt){
-  // EP回復
-  G.ep=Math.min(G.epMax, G.ep+dt*2.2);
+  // EP回復（特性「戦術機動」等で加速）
+  let epr=2.2; for(const u of G.units){ if(u.hp>0 && u.cfg.passive&&u.cfg.passive.epRegen) epr+=u.cfg.passive.epRegen; }
+  G.ep=Math.min(G.epMax, G.ep+dt*epr);
   // スポーン
   if(G.state==="wave"){
     G.waveTime+=dt;
     while(G.spawnQ.length && G.spawnQ[0].t<=G.waveTime){ spawnEnemy(G.spawnQ.shift().type); }
   }
   // バフ初期化（乗算で重ねる）
-  for(const u of G.units){ u.atkBuff=1; u.spdBuff=1; if(!u.skillActive)u.dr=0; }
+  for(const u of G.units){ u.atkBuff=1; u.spdBuff=1;
+    let dr=(u.cfg.passive&&u.cfg.passive.selfDR)||0;
+    if(u.skillActive&&u.cfg.skill.dr) dr=Math.max(dr,u.cfg.skill.dr);
+    if(u.bladeActive&&u.cfg.blade&&u.cfg.blade.dr) dr=Math.max(dr,u.cfg.blade.dr);
+    u.dr=dr;
+  }
   // 特性パッシブ：同じ派閥(階級)の味方を強化（出撃中ずっと）
   for(const u of G.units){ const ps=u.cfg.passive; if(ps&&ps.factionAtk){
     for(const a of G.units){ if(a.cfg.faction===u.cfg.faction) a.atkBuff*=(1+ps.factionAtk); }
   } }
+  // 派閥シナジー：同派閥が多いほど全体にボーナス（攻撃力・最大2体目以降+6%/体、上限+30%）
+  const facCount={};
+  for(const u of G.units){ if(u.cfg.faction) facCount[u.cfg.faction]=(facCount[u.cfg.faction]||0)+1; }
+  G.facBonus={};
+  for(const f in facCount){ const n=facCount[f]; if(n>=2) G.facBonus[f]=Math.min(0.06*(n-1),0.30); }
+  for(const u of G.units){ const b=G.facBonus[u.cfg.faction]; if(b) u.atkBuff*=(1+b); }
   // サポーター：味方バフ＋敵減速
   for(const u of G.units){
     if(u.cfg.kind==="buff"){
@@ -452,9 +491,9 @@ function update(dt){
       if(c.kind==="melee"){ const bl=G.enemies.find(en=>en.blocked===u&&en.hp>0); if(bl)tgt=bl; }
       if(tgt){ u.cd=itv;
         const bld=u.bladeActive?u.cfg.blade:null;
-        const atk=(c.atk)*(u.atkBuff||1)*(bld?bld.atk:(u.skillActive&&c.skill.atk?c.skill.atk:1));
-        const aoeR=bld?(bld.aoe||1.6):((u.skillActive&&c.skill.aoe?c.skill.aoe:c.aoe)||0);
-        const stun=bld?(bld.stun||0):((u.skillActive&&c.skill.stun?c.skill.stun:c.stun)||0);
+        const atk=(c.atk)*(u.atkBuff||1)*((bld&&bld.atk)?bld.atk:(u.skillActive&&c.skill.atk?c.skill.atk:1));
+        const aoeR=(bld&&bld.aoe)?bld.aoe:((u.skillActive&&c.skill.aoe?c.skill.aoe:c.aoe)||0);
+        const stun=(bld&&bld.stun)?bld.stun:((u.skillActive&&c.skill.stun?c.skill.stun:c.stun)||0);
         const targets=aoeR>0 ? G.enemies.filter(en=>en.hp>0&&dist(en,tgt)<=aoeR*TILE) : [tgt];
         for(const en of targets){
           hurt(en,atk);
@@ -463,6 +502,14 @@ function update(dt){
         }
         shot(u,tgt,c.color);
       }
+    }
+  }
+  // BLADE中の周囲DoT（風雅など）
+  for(const u of G.units){
+    if(u.bladeActive && u.cfg.blade && u.cfg.blade.dot){
+      u._dotCd=(u._dotCd||0)-dt;
+      if(u._dotCd<=0){ u._dotCd=1; const R=2.2*TILE, dmg=u.cfg.atk*(u.atkBuff||1)*u.cfg.blade.dot;
+        for(const en of G.enemies){ if(en.hp>0 && dist(en,u)<=R) hurt(en,dmg); } }
     }
   }
   // 死亡・退場処理
@@ -500,7 +547,12 @@ function castSkill(u){
 function bladeReady(u){ return u.cfg.blade && !u.bladeActive && (u.bg||0)>=u.cfg.blade.gauge; }
 function fireBlade(u){
   if(!bladeReady(u))return false;
-  u.bladeActive=true; u.bladeTimer=u.cfg.blade.dur||1.0; u.bg=0; u.cd=0;
+  const bl=u.cfg.blade;
+  u.bladeActive=true; u.bladeTimer=bl.dur||1.0; u.bg=0; u.cd=0; u._dotCd=0;
+  // 発動時の一回効果：全体回復／EP一括
+  if(bl.partyHeal){ const amt=(u.cfg.heal||u.cfg.atk||100)*bl.partyHeal;
+    for(const a of G.units){ if(a.hp>0){ a.hp=Math.min(a.maxHp,a.hp+amt); fx(a.x,a.y,"+"+Math.round(amt),"#7ee0a0"); } } }
+  if(bl.ep){ G.ep=Math.min(G.epMax,G.ep+bl.ep); fx(u.x,u.y-14,"EP+"+bl.ep,"#ffd24a"); }
   // BLADE名 ドーン（通常スキルより豪華に）
   $("coWho").textContent=(u.cfg.blade.title?u.cfg.blade.title+"  —  ":"")+u.cfg.name+"  BLADE";
   $("coName").textContent=u.cfg.blade.name;
