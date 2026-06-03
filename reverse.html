@@ -474,10 +474,10 @@ function update(dt){
     if(u.hp<=0)continue;
     // スキル進行
     if(u.skillActive){ u.skillTimer-=dt; if(u.skillTimer<=0){ u.skillActive=false; u.sp=0; u.dr=0; } }
-    else if(u.cfg.skill){ u.sp+=dt; if(u.sp>=u.cfg.skill.sp){ castSkill(u); } }
+    else if(u.cfg.skill && G.state==="wave"){ u.sp+=dt; if(u.sp>=u.cfg.skill.sp){ castSkill(u); } }
     // BLADE必殺ゲージ（手動発動）
     if(u.bladeActive){ u.bladeTimer-=dt; if(u.bladeTimer<=0){ u.bladeActive=false; u.bg=0; } }
-    else if(u.cfg.blade){ u.bg=Math.min(u.cfg.blade.gauge, (u.bg||0)+dt); }
+    else if(u.cfg.blade && G.state==="wave"){ u.bg=Math.min(u.cfg.blade.gauge, (u.bg||0)+dt); }
     const c=u.cfg, itv=(c.interval||1)/(u.spdBuff||1);
     u.cd-=dt; if(u.cd>0)continue;
     if(c.kind==="heal"){
@@ -508,7 +508,7 @@ function update(dt){
           if(stun) en.stunT=Math.max(en.stunT||0,stun);
           if(en.hp<=0 && c.breakerEP){ G.ep=Math.min(G.epMax,G.ep+c.breakerEP); fx(en.x,en.y-12,"EP+"+c.breakerEP,"#ffd24a"); } // ブレイカー：撃破でEP獲得
         }
-        shot(u,tgt,c.color);
+        if(c.kind==="melee") slashFx(u,tgt,c.color,!!bld); else shot(u,tgt,c.color);
       }
     }
   }
@@ -539,6 +539,8 @@ function update(dt){
 function applyToUnit(u,dmg){ dmg*=(1-(u.dr||0)); u.hp-=dmg; fx(u.x,u.y,"",null); }
 function hurt(en,dmg){ en.hp-=dmg; fx(en.x,en.y,Math.round(dmg),"#ff9ad1"); }
 function shot(u,tgt,col){ (G.shots=G.shots||[]).push({x1:u.x,y1:u.y,x2:tgt.x,y2:tgt.y,col,age:0}); }
+function slashFx(u,tgt,col,big){ const ang=Math.atan2(tgt.y-u.y,tgt.x-u.x);
+  (G.fx=G.fx||[]).push({type:'slash',x:tgt.x,y:tgt.y,ang:ang+(Math.random()*0.5-0.25),col,age:0,life:big?0.3:0.22,r:(big?TILE*0.95:TILE*0.62)}); }
 function fx(x,y,txt,col,pop){ (G.fx=G.fx||[]).push({x,y,txt,col,pop,age:0,life:pop?0.4:0.6,vy:-22}); }
 
 function castSkill(u){
@@ -647,6 +649,12 @@ function draw(){
   // ダメージ数字
   for(const f of (G.fx||[])){
     if(f.pop){ ctx.strokeStyle=f.col;ctx.globalAlpha=1-f.age/f.life;ctx.lineWidth=2;ctx.beginPath();ctx.arc(f.x,f.y,6+f.age*40,0,7);ctx.stroke();ctx.globalAlpha=1; continue; }
+    if(f.type==='slash'){ const p=f.age/f.life, rad=f.r*(0.55+p*0.85), a=1-p;
+      ctx.save(); ctx.translate(f.x,f.y); ctx.rotate(f.ang);
+      ctx.globalAlpha=a; ctx.lineCap="round";
+      ctx.strokeStyle=f.col; ctx.lineWidth=6*(1-p)+2; ctx.beginPath(); ctx.arc(0,0,rad,-1.0,1.0); ctx.stroke();
+      ctx.strokeStyle="#ffffff"; ctx.lineWidth=2.5*(1-p)+0.5; ctx.beginPath(); ctx.arc(0,0,rad,-0.9,0.9); ctx.stroke();
+      ctx.globalAlpha=1; ctx.restore(); continue; }
     if(!f.txt)continue;
     ctx.globalAlpha=1-f.age/f.life; ctx.fillStyle=f.col||"#fff"; ctx.font="700 13px sans-serif"; ctx.textAlign="center";
     ctx.fillText(f.txt,f.x,f.y+f.vy*f.age*0.05-6); ctx.globalAlpha=1;
