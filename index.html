@@ -1178,31 +1178,31 @@ for(const _t in TYPES){ if(TYPES[_t].img){ const _im=new Image(); _im.src=TYPES[
 
 /* ============ 敵定義 ============ */
 const ENEMY={
-  grunt :{name:"歩兵", hp:260, spd:1.05, atk:80,  interval:1.0, life:1, r:13, col:"#9aa7b4"},
-  runner:{name:"高速", hp:140, spd:2.1,  atk:45,  interval:0.9, life:1, r:10, col:"#f4d35e"},
-  brute :{name:"重装", hp:1050,spd:0.62, atk:170, interval:1.2, life:2, r:18, col:"#c97b5a"},
-  swarm :{name:"群体", hp:75,  spd:1.55, atk:25,  interval:0.8, life:1, r:8,  col:"#a78bfa"},
-  gunner:{name:"砲兵", hp:340, spd:0.8,  atk:70,  interval:1.4, life:1, r:14, col:"#d98cff", ranged:2.4},
-  flyer :{name:"飛行", hp:230, spd:1.35, atk:60,  interval:1.1, life:1, r:12, col:"#67d8e8", fly:true, ranged:2.6},
-  raptor:{name:"飛竜", hp:620, spd:1.0,  atk:130, interval:1.2, life:2, r:17, col:"#4fb0c4", fly:true, ranged:2.8},
+  grunt :{name:"ゴブリン", hp:260, spd:1.05, atk:80,  interval:1.0, life:1, r:13, col:"#9aa7b4"},
+  runner:{name:"ウルフ", hp:140, spd:2.1,  atk:45,  interval:0.9, life:1, r:10, col:"#f4d35e"},
+  brute :{name:"オーガ", hp:1050,spd:0.62, atk:170, interval:1.2, life:2, r:18, col:"#c97b5a"},
+  swarm :{name:"スライム", hp:75,  spd:1.55, atk:25,  interval:0.8, life:1, r:8,  col:"#7fd86a"},
+  gunner:{name:"コボルト弓兵", hp:340, spd:0.8,  atk:70,  interval:1.4, life:1, r:14, col:"#c79be8", ranged:2.4},
+  flyer :{name:"バット", hp:230, spd:1.35, atk:60,  interval:1.1, life:1, r:12, col:"#6b7bd6", fly:true, ranged:2.6},
+  raptor:{name:"ワイバーン", hp:620, spd:1.0,  atk:130, interval:1.2, life:2, r:17, col:"#4fb0c4", fly:true, ranged:2.8},
   // 自己回復する敵：徐々にHPを回復し続ける。継続火力(毒)で押し切るのが有効
-  mender:{name:"治癒兵", hp:520, spd:0.9, atk:60, interval:1.2, life:1, r:14, col:"#7ee0a0", selfHeal:28},
+  mender:{name:"マイコニド", hp:520, spd:0.9, atk:60, interval:1.2, life:1, r:14, col:"#7ee0a0", selfHeal:28},
   // シールド持ち：一定のシールドを持ち、まずそれを削る必要がある
-  shielder:{name:"盾兵", hp:480, spd:0.85, atk:90, interval:1.1, life:2, r:15, col:"#88c0ff", shield:600},
+  shielder:{name:"タートル", hp:480, spd:0.85, atk:90, interval:1.1, life:2, r:15, col:"#88c0ff", shield:600},
   // 隊長：周囲の敵の移動速度と攻撃力を強化する。優先的に倒したい
-  captain:{name:"隊長", hp:700, spd:0.8, atk:110, interval:1.2, life:2, r:16, col:"#ffd24a", auraR:2.2, auraSpd:1.35, auraAtk:1.4},
+  captain:{name:"ゴブリンキング", hp:700, spd:0.8, atk:110, interval:1.2, life:2, r:16, col:"#ffd24a", auraR:2.2, auraSpd:1.35, auraAtk:1.4},
   // 分裂体：倒すと小型の分裂体を2体生み出す
-  splitter:{name:"分裂体", hp:560, spd:0.95, atk:70, interval:1.0, life:2, r:16, col:"#ff9ad1", splitInto:"splitling", splitN:2},
-  splitling:{name:"分裂子", hp:120, spd:1.5, atk:35, interval:0.9, life:1, r:9, col:"#ffc2e6"},
+  splitter:{name:"キングスライム", hp:560, spd:0.95, atk:70, interval:1.0, life:2, r:16, col:"#ff9ad1", splitInto:"splitling", splitN:2},
+  splitling:{name:"こスライム", hp:120, spd:1.5, atk:35, interval:0.9, life:1, r:9, col:"#ffc2e6"},
   // 大型砲撃艦：大型・高火力・長射程で地上ユニットを一方的に砲撃する空中要塞。対空でないと反撃できない
-  gunship:{name:"砲撃艦", hp:1600, spd:0.55, atk:180, interval:1.5, life:3, r:22, col:"#7b9cff", fly:true, ranged:3.4},
+  gunship:{name:"古龍", hp:1600, spd:0.55, atk:180, interval:1.5, life:3, r:22, col:"#7b9cff", fly:true, ranged:3.4},
   // 空雷：素早く硬めの小型飛行。群れで押し寄せる空のラッシュ役
-  stinger:{name:"空雷", hp:300, spd:1.9, atk:50, interval:0.8, life:1, r:11, col:"#5be0c8", fly:true, ranged:2.2},
-  boss  :{name:"BOSS", hp:7000,spd:0.5,  atk:420, interval:1.3, life:5, r:24, col:"#ff5b6e", ranged:3.0}
+  stinger:{name:"キラーワスプ", hp:300, spd:1.9, atk:50, interval:0.8, life:1, r:11, col:"#ffd24a", fly:true, ranged:2.2},
+  boss  :{name:"デーモンロード", hp:7000,spd:0.5,  atk:420, interval:1.3, life:5, r:24, col:"#ff5b6e", ranged:3.0}
 };
 // 敵アイコン画像（icons/enemies/<type>.png）。canvasで図形の代わりに描画、未読込は図形にフォールバック
 const ENE_IMG={};
-for(const _k in ENEMY){ const _im=new Image(); _im.src="icons/enemies/"+_k+".png?v=1"; ENE_IMG[_k]=_im; }
+for(const _k in ENEMY){ const _im=new Image(); _im.src="icons/enemies/"+_k+".png?v=2"; ENE_IMG[_k]=_im; }
 // ステージ定義（複数ステージ）
 // map: 使用マップ / mods: ギミック（fog=射程低下, dpRate=DP獲得倍率, costScale=配置コスト倍率, redeploy=再出撃CT倍率, lifeLeak=漏れダメ倍率）
 const STAGES=[

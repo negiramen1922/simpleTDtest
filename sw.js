@@ -1,5 +1,5 @@
 /* シンプルTD Service Worker — オフライン対応＆高速化 */
-const CACHE = "simpletd-v3";
+const CACHE = "simpletd-v4";
 // 起動に必須のものを事前キャッシュ（相対パス：GitHub Pages のサブパスでも動く）
 const CORE = [
   "./",
