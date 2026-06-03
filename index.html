@@ -1078,7 +1078,7 @@ const TYPES={
            ultName:"天牙煉斬閃",ultFlySlash:{n:5,mul:1.2,r:0.9,spd:560,life:0.7}}},
   shooter:{name:"レンジャー",role:"SHOOT",letter:"S",color:"#3fc7f4",place:"hill",cost:11,
     hp:360,atk:140,interval:0.85,block:0,range:3.6,kind:"range",targets:"both",
-    skill:{name:"必中狙撃",spMax:15,dur:7,atk:2.2,spd:1.3}},
+    skill:{name:"速射態勢",spMax:13,dur:7,atk:1.7,spd:1.7,ultName:"鷹眼掃射",ultRange:1.8}},
   healer:{name:"メディック",role:"HEAL",letter:"H",color:"#4ade80",place:"hill",cost:12,
     hp:430,heal:130,interval:1.1,block:0,range:3.2,kind:"heal",targets:"none",
     skill:{name:"治療領域",spMax:16,dur:8,heal:1.4,spd:1.5,aoe:true}},
@@ -1990,7 +1990,9 @@ function clearTransient(){G.fx=[];G.shots=[];} // ダメージ表記・弾・着
 /* ============ 配置 ============ */
 function unitCost(t){return Math.round((TYPES[t].cost + COST_STEP*G.roster[t].times)*mod("costScale",1));}
 function mod(key,def){const m=currentStage&&currentStage.mods; return (m&&m[key]!=null)?m[key]:def;}
-function unitRange(u){return u.cfg.range?u.cfg.range*TILE*mod("fog",1)*(u.artRange||1):0;}
+function unitRange(u){ if(!u.cfg.range)return 0;
+  const ur=(u.ultActive && u.cfg.skill && u.cfg.skill.ultRange)?u.cfg.skill.ultRange:1; // 必殺技中は射程延長
+  return u.cfg.range*TILE*mod("fog",1)*(u.artRange||1)*ur; }
 function tryPlace(c,r){
   const t=G.selectedType; if(!t)return;
   const cfg=TYPES[t];
