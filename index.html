@@ -1073,8 +1073,9 @@ const TYPES={
     skill:{name:"シールドバッシュ",spMax:8,dur:8,dr:0.10,smash:3,smashMul:2.6,knockback:0.5,
            ultDr:0.30,ultShield:700}},
   attacker:{name:"ウォリアー",role:"ATTACK",letter:"A",color:"#ff5b6e",place:"road",cost:13,
-    hp:780,atk:230,interval:1.0,block:1,kind:"melee",targets:"ground",
-    skill:{name:"乱れ撃ち",spMax:14,dur:6,atk:1.8,spd:1.6}},
+    hp:780,atk:230,interval:1.0,block:2,kind:"melee",targets:"ground",
+    skill:{name:"聖剣技 天蓋連牙",spMax:9,dur:0.5,frontSlash:{n:4,mul:0.9,r:1.7,gap:0.1},
+           ultName:"天牙煉斬閃",ultFlySlash:{n:5,mul:1.2,r:0.55,spd:560,life:0.7}}},
   shooter:{name:"レンジャー",role:"SHOOT",letter:"S",color:"#3fc7f4",place:"hill",cost:11,
     hp:360,atk:140,interval:0.85,block:0,range:3.6,kind:"range",targets:"both",
     skill:{name:"必中狙撃",spMax:15,dur:7,atk:2.2,spd:1.3}},
@@ -2090,6 +2091,14 @@ function fireSkill(u){
   skillActivate(u,false);
   return true;
 }
+// スキルが発動時に固有の一撃を持つか（汎用ボーナスを抑制する判定に使用）
+function hasCustomActivate(sk){ return !!(sk && (sk.smash||sk.frontSlash||sk.ultFlySlash)); }
+// 攻撃の「前方」向き＝最も進んだ射程内の敵の方向（無ければ右）
+function forwardAngle(u,R){
+  let ang=0,best=-1,found=false;
+  for(const en of G.enemies){ if(en.hp>0&&canHit(u,en)&&dist(en,u)<=R){ if(en.progress>best){best=en.progress;ang=Math.atan2(en.y-u.y,en.x-u.x);found=true;} } }
+  return {ang,found};
+}
 // スキル/必殺技 発動時の一撃系効果（キャラ固有）。isUlt=必殺技なら威力増し
 function skillActivate(u,isUlt){
   const sk=u.cfg.skill; if(!sk)return;
@@ -2104,6 +2113,27 @@ function skillActivate(u,isUlt){
     addFx({type:"ring",x:u.x,y:u.y,r:R,col:u.cfg.color,life:0.4});
     Sound.play("melee");
   }
+  // 必殺技：一列に飛ぶ斬撃×n（カノン 天牙煉斬閃）
+  if(isUlt && sk.ultFlySlash){ doFlySlash(u,sk.ultFlySlash); return; }
+  // スキル：目の前に大斬撃×n（カノン 天蓋連牙）。連撃キューで時間差発生
+  if(sk.frontSlash){ const f=sk.frontSlash; u.combo={left:f.n,t:0,gap:f.gap,mul:f.mul*(isUlt?ULT_POW:1),r:f.r}; }
+}
+// 目の前への大斬撃1回（連撃キューから呼ばれる）
+function frontSlashHit(u,mul,rTiles){
+  const R=rTiles*TILE, dmg=statATK(u.cfg,u.type)*mul*(u.atkBuff||1);
+  const fa=forwardAngle(u,R+TILE);
+  for(const en of G.enemies){ if(en.hp>0 && canHit(u,en) && dist(en,u)<=R) hurtEnemy(en,dmg,u.cfg.color,u); }
+  addFx({type:"swordslash",x:u.x,y:u.y,ang:fa.found?fa.ang:0,r:R*0.7,col:u.cfg.color,life:0.26,wide:true});
+  Sound.play("melee");
+}
+// 一列に飛ぶ斬撃（貫通する飛翔斬撃をn枚、前方へ放つ）
+function doFlySlash(u,f){
+  const fa=forwardAngle(u,99*TILE); const ang=fa.found?fa.ang:0;
+  const dx=Math.cos(ang),dy=Math.sin(ang), dmg=statATK(u.cfg,u.type)*f.mul*(u.atkBuff||1);
+  for(let i=0;i<f.n;i++){
+    G.shots.push({fly:true,x:u.x-dx*i*22,y:u.y-dy*i*22,dirx:dx,diry:dy,spd:f.spd,life:f.life,dmg,col:u.cfg.color,owner:u,r:f.r*TILE,hit:new Set()});
+  }
+  addFx({type:"skill",x:u.x,y:u.y,col:u.cfg.color,life:0.6}); Sound.play("skill");
 }
 // ===== 必殺技（ULT）：スキルの強化版を手動発動。リバースのBLADEよりやや溜まりづらい =====
 const ULT_GAUGE=24, ULT_POW=1.5, ULT_DUR=1.7;
@@ -2118,13 +2148,13 @@ function fireUlt(u){
   if(sk.ultShield){ u.shield=Math.max(u.shield||0,sk.ultShield); u.shieldMax=Math.max(u.shieldMax||0,u.shield); }
   // 一撃ボーナス：攻撃役は周囲に炸裂ダメージ（固有スマッシュ持ちは除く）／回復役は全員回復
   const atk=statATK(u.cfg,u.type);
-  if(atk>0 && !sk.smash){ const R=2.6*TILE, dmg=atk*4*(u.atkBuff||1);
+  if(atk>0 && !hasCustomActivate(sk)){ const R=2.6*TILE, dmg=atk*4*(u.atkBuff||1);
     for(const en of G.enemies){ if(en.hp>0 && dist(en,u)<=R && canHit(u,en)){ hurtEnemy(en,dmg,"#fff",u); en.stun=Math.max(en.stun||0,0.4); } }
     addFx({type:"ring",x:u.x,y:u.y,r:R,col:u.cfg.color,life:0.5});
   }
   if(u.cfg.heal){ const h=statHEAL(u.cfg,u.type)*3; for(const a of G.units){ if(a!==u&&a.hp<a.maxHp&&dist(u,a)<=unitRange(u)*1.3){ a.hp=Math.min(a.maxHp,a.hp+h); addFx({type:"heal",x:a.x,y:a.y,life:0.5}); } } }
   addFx({type:"skill",x:u.x,y:u.y,col:u.cfg.color,life:0.9});
-  ultCallout(u.cfg.name, sk.name);
+  ultCallout(u.cfg.name, sk.ultName||sk.name);
   Sound.play("skill");
   return true;
 }
@@ -2251,6 +2281,8 @@ function update(dt){
       if(u.sp<sk.spMax) u.sp=Math.min(sk.spMax,u.sp+dt*(u.artSkill||1)); // 満タンで待機（自動/手動で発動）
     }
     if(!u.isToken) u.ug=Math.min(ULT_GAUGE,(u.ug||0)+dt); // 必殺技ゲージ（updateはwave時のみ走るため戦闘中だけ充填）
+    // 連撃キュー（天蓋連牙など、目の前への大斬撃を時間差で繰り出す）
+    if(u.combo){ u.combo.t-=dt; if(u.combo.t<=0 && u.combo.left>0){ frontSlashHit(u,u.combo.mul,u.combo.r); u.combo.left--; u.combo.t=u.combo.gap; if(u.combo.left<=0)u.combo=null; } }
   }
 
   // --- オーラ初期化（サポート） ---
@@ -2594,6 +2626,17 @@ function update(dt){
 
   // --- 弾 ---
   for(const s of G.shots){
+    // 飛翔斬撃：固定方向に進み、通過した敵を貫通して斬る
+    if(s.fly){
+      s.x+=s.dirx*s.spd*dt; s.y+=s.diry*s.spd*dt; s.life-=dt;
+      for(const en of G.enemies){ if(en._dead||en.hp<=0||s.hit.has(en))continue;
+        if(canHit(s.owner,en) && dist(s,en)<=s.r+(en.e?en.e.r:12)){
+          hurtEnemy(en,s.dmg,s.col,s.owner); s.hit.add(en);
+          addFx({type:"swordslash",x:en.x,y:en.y,ang:Math.atan2(s.diry,s.dirx),r:TILE*0.55,col:s.col,life:0.16});
+        } }
+      if(s.life<=0)s._dead=true;
+      continue;
+    }
     if(!s.target||s.target._dead){s._dead=true;continue;}
     if(s.enemy && !G.units.includes(s.target)){s._dead=true;continue;} // 撤退済みの味方狙い弾は消滅
     const reach = s.enemy ? 16 : (s.target.e?s.target.e.r:14);
@@ -2862,6 +2905,17 @@ function draw(){
 
   // 弾(下層)
   for(const s of G.shots){
+    if(s.fly){
+      // 飛翔斬撃：進行方向に弧を描く刃
+      const a=Math.atan2(s.diry,s.dirx);
+      ctx.save();ctx.translate(s.x,s.y);ctx.rotate(a);ctx.lineCap="round";
+      ctx.strokeStyle=hexA(s.col,0.7);ctx.lineWidth=7;
+      ctx.beginPath();ctx.arc(0,0,13,-0.85,0.85);ctx.stroke();
+      ctx.strokeStyle="rgba(255,255,255,.95)";ctx.lineWidth=2.5;
+      ctx.beginPath();ctx.arc(0,0,13,-0.85,0.85);ctx.stroke();
+      ctx.restore();ctx.lineCap="butt";
+      continue;
+    }
     ctx.strokeStyle=s.col;ctx.lineWidth=s.kind==="aoe"?3:2;
     const a=Math.atan2(s.target.y-s.y,s.target.x-s.x);
     ctx.beginPath();ctx.moveTo(s.x,s.y);ctx.lineTo(s.x-Math.cos(a)*10,s.y-Math.sin(a)*10);ctx.stroke();
