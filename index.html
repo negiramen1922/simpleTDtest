@@ -1070,7 +1070,8 @@ const COST_STEP=5;       // 再出撃ごとに増えるコスト
 const TYPES={
   tank:{name:"ヴァンガード",role:"TANK",letter:"T",color:"#5b8dd6",place:"road",cost:14,
     hp:1600,atk:90,interval:1.5,block:3,kind:"melee",targets:"ground",
-    skill:{name:"鉄壁防御",spMax:16,dur:8,dr:0.55,regen:50}},
+    skill:{name:"シールドバッシュ",spMax:14,dur:8,dr:0.10,smash:3,smashMul:2.6,knockback:0.5,
+           ultDr:0.30,ultShield:700}},
   attacker:{name:"ウォリアー",role:"ATTACK",letter:"A",color:"#ff5b6e",place:"road",cost:13,
     hp:780,atk:230,interval:1.0,block:1,kind:"melee",targets:"ground",
     skill:{name:"乱れ撃ち",spMax:14,dur:6,atk:1.8,spd:1.6}},
@@ -2008,7 +2009,7 @@ function tryPlace(c,r){
     type:t,cfg,c,r,x:p.x,y:p.y,level:getLevel(t),
     hp,maxHp:hp,atk,heal,cd:0,blocking:[],spdBuff:1,atkBuff:1,
     artSpd:ab.spd,artRange:ab.range,artSkill:ab.skill,
-    sp:0,skillActive:false,skillTimer:0,skillMode:G.defaultSkillMode||"auto",shield:0,
+    sp:0,skillActive:false,skillTimer:0,skillMode:G.defaultSkillMode||"auto",shield:0,shieldMax:0,
     ug:0,ultActive:false
   });
   // 出撃時DP生産（プロスペクター等）
@@ -2032,8 +2033,29 @@ function retreat(u){
 }
 // スキルが発動可能か（満タン・未発動）
 function skillReady(u){ const sk=u.cfg.skill; return sk && !u.skillActive && u.sp>=sk.spMax; }
-// 味方へのダメージ適用（シールドを先に削る）
+// 味方の被ダメージ軽減（スキル/必殺技のダメージカット）
+function unitDR(u){
+  const sk=u.cfg.skill; let dr=0;
+  if(u.skillActive && sk && sk.dr) dr=sk.dr;
+  if(u.ultActive && sk && sk.ultDr) dr=Math.max(dr,sk.ultDr);
+  return Math.min(0.9,dr);
+}
+// 敵を経路に沿って後方へ押し戻す（ノックバック）。tiles＝タイル数
+function knockback(en,tiles){
+  if(!en||en.hp<=0)return;
+  const way=en.way||(en.fly?FLYWAY:WAY);
+  let d=tiles*TILE;
+  while(d>0 && en.wp>0){
+    const prev=way[en.wp-1]; if(!prev)break;
+    const dx=prev.x-en.x, dy=prev.y-en.y, dd=Math.hypot(dx,dy);
+    if(dd<=d){ en.x=prev.x; en.y=prev.y; en.wp--; d-=dd; }
+    else { en.x+=dx/dd*d; en.y+=dy/dd*d; d=0; }
+  }
+  const t=way[en.wp]; if(t){ const dd=Math.hypot(t.x-en.x,t.y-en.y); en.progress=en.wp+(1-dd/Math.max(1,TILE)); }
+}
+// 味方へのダメージ適用（カット→シールド→HPの順）
 function applyToUnit(u,dmg){
+  dmg*=(1-unitDR(u));
   if(u.shield>0){ const a=Math.min(u.shield,dmg); u.shield-=a; dmg-=a;
     addFx({type:"hit",x:u.x,y:u.y,col:"#8fb8e0",life:0.22}); }
   if(dmg>0){ u.hp-=dmg; addFx({type:"hit",x:u.x,y:u.y,col:"#ff5b6e",life:0.25});
@@ -2065,7 +2087,23 @@ function fireSkill(u){
   const sk=u.cfg.skill; if(!sk||u.skillActive||u.sp<sk.spMax)return false;
   u.skillActive=true; u.skillTimer=sk.dur; u.sp=sk.spMax;
   addFx({type:"skill",x:u.x,y:u.y,col:u.cfg.color,life:0.7}); Sound.play("skill");
+  skillActivate(u,false);
   return true;
+}
+// スキル/必殺技 発動時の一撃系効果（キャラ固有）。isUlt=必殺技なら威力増し
+function skillActivate(u,isUlt){
+  const sk=u.cfg.skill; if(!sk)return;
+  // 前方スマッシュ：周囲〜前方 smash マスの敵にダメージ＋ノックバック（ヴァンガード等）
+  if(sk.smash){
+    const R=sk.smash*TILE, dmg=statATK(u.cfg,u.type)*(sk.smashMul||2)*(u.atkBuff||1)*(isUlt?ULT_POW:1);
+    for(const en of G.enemies){ if(en.hp>0 && dist(en,u)<=R && canHit(u,en)){
+      hurtEnemy(en,dmg,u.cfg.color,u);
+      if(sk.knockback) knockback(en, sk.knockback*(isUlt?1.6:1));
+    }}
+    addFx({type:"swordslash",x:u.x,y:u.y,ang:-Math.PI/2,r:R*0.55,col:u.cfg.color,life:0.32,wide:true});
+    addFx({type:"ring",x:u.x,y:u.y,r:R,col:u.cfg.color,life:0.4});
+    Sound.play("melee");
+  }
 }
 // ===== 必殺技（ULT）：スキルの強化版を手動発動。リバースのBLADEよりやや溜まりづらい =====
 const ULT_GAUGE=24, ULT_POW=1.5, ULT_DUR=1.7;
@@ -2074,9 +2112,13 @@ function fireUlt(u){
   if(!ultReady(u))return false;
   const sk=u.cfg.skill;
   u.skillActive=true; u.ultActive=true; u.skillTimer=sk.dur*ULT_DUR; u.sp=sk.spMax; u.ug=0;
-  // 一撃ボーナス：攻撃役は周囲に必殺の炸裂ダメージ／回復役は全員回復
+  // キャラ固有の発動時効果（前方スマッシュ等）
+  skillActivate(u,true);
+  // シールド付与（ヴァンガード等）：シールドがある間はHPの代わりに削れる
+  if(sk.ultShield){ u.shield=Math.max(u.shield||0,sk.ultShield); u.shieldMax=Math.max(u.shieldMax||0,u.shield); }
+  // 一撃ボーナス：攻撃役は周囲に炸裂ダメージ（固有スマッシュ持ちは除く）／回復役は全員回復
   const atk=statATK(u.cfg,u.type);
-  if(atk>0){ const R=2.6*TILE, dmg=atk*4*(u.atkBuff||1);
+  if(atk>0 && !sk.smash){ const R=2.6*TILE, dmg=atk*4*(u.atkBuff||1);
     for(const en of G.enemies){ if(en.hp>0 && dist(en,u)<=R && canHit(u,en)){ hurtEnemy(en,dmg,"#fff",u); en.stun=Math.max(en.stun||0,0.4); } }
     addFx({type:"ring",x:u.x,y:u.y,r:R,col:u.cfg.color,life:0.5});
   }
@@ -2335,7 +2377,6 @@ function update(dt){
           en.cd=en.e.interval;
           const u=en.blockedBy;
           let dmg=en.atk*(en.enAtkBuff||1);
-          if(u.skillActive&&u.cfg.skill&&u.cfg.skill.dr)dmg*=(1-u.cfg.skill.dr);
           dmg=applyToUnit(u,dmg);
           if(u.hp<=0)retreat(u);
         }
@@ -2435,7 +2476,8 @@ function update(dt){
         // ハルバーディア：ブロック中の地上敵と低空の敵を同時に薙ぐ
         if(u.cfg.airReach && u.blocking.length && airTarget && !hits.includes(airTarget)) hits.push(airTarget);
         for(const h of hits){
-          addFx({type:"slash",x:h.x,y:h.y,col:u.cfg.color,life:0.2});
+          addFx({type:"swordslash",x:u.x,y:u.y,ang:Math.atan2(h.y-u.y,h.x-u.x),r:TILE*0.74,col:u.cfg.color,life:0.22});
+          addFx({type:"hit",x:h.x,y:h.y,col:"#fff",life:0.14});
           hurtEnemy(h,dmg,u.cfg.color,u);
         }
         Sound.play("melee");
@@ -2894,8 +2936,20 @@ function drawUnit(u){
   // 強化中
   if(u.spdBuff>1){ctx.strokeStyle=hexA("#ff6ba9",.8);ctx.lineWidth=2;
     ctx.beginPath();ctx.arc(x,y,s/2+3,0,7);ctx.stroke();}
-  // HPバー
-  if(u.cfg.kind==="melee"||u.hp<u.maxHp) hpBar(x,y-s/2-7,s,u.hp/u.maxHp,"#4ade80");
+  // シールド中：青いわっか
+  if(u.shield>0){
+    const pulse=0.5+0.5*Math.sin(G.t*6);
+    ctx.strokeStyle=hexA("#5ab0ff",0.55+0.35*pulse);ctx.lineWidth=2.5;
+    ctx.beginPath();ctx.arc(x,y,s/2+5,0,7);ctx.stroke();
+    ctx.fillStyle=hexA("#5ab0ff",0.06+0.06*pulse);
+    ctx.beginPath();ctx.arc(x,y,s/2+5,0,7);ctx.fill();
+  }
+  // HPバー（＋シールドぶんを青で重ね描き）
+  if(u.cfg.kind==="melee"||u.hp<u.maxHp||u.shield>0){
+    hpBar(x,y-s/2-7,s,u.hp/u.maxHp,"#4ade80");
+    if(u.shield>0){ const sr=Math.min(1,u.shield/(u.shieldMax||u.shield));
+      ctx.fillStyle="#5ab0ff"; ctx.fillRect(x-s/2,y-s/2-7,s*sr,3); }
+  }
   // SP（スキル）バー
   if(u.cfg.skill){
     const sk=u.cfg.skill;
@@ -3019,6 +3073,16 @@ function drawFx(f){
   if(f.type==="hit"||f.type==="slash"){
     ctx.strokeStyle=hexA(f.col,1-p);ctx.lineWidth=3;
     ctx.beginPath();ctx.arc(f.x,f.y,4+p*12,0,7);ctx.stroke();
+  }else if(f.type==="swordslash"){
+    // 剣で斬る一閃：刃が弧を描いて振り抜ける
+    const span=f.wide?2.0:1.25, a0=f.ang-span/2, a1=f.ang+span/2;
+    const lead=a0+(a1-a0)*Math.min(1,p*1.5), R=f.r||TILE*0.7;
+    ctx.lineCap="round";
+    ctx.strokeStyle=hexA(f.col,(1-p)*0.5);ctx.lineWidth=(f.wide?9:6)*(1-p*0.5);
+    ctx.beginPath();ctx.arc(f.x,f.y,R,a0,lead);ctx.stroke();
+    ctx.strokeStyle=hexA("#fff",1-p);ctx.lineWidth=2.5;
+    ctx.beginPath();ctx.arc(f.x,f.y,R,Math.max(a0,lead-0.55),lead);ctx.stroke();
+    ctx.lineCap="butt";
   }else if(f.type==="shell"){
     const tp=Math.min(1,f.age/f.delay);
     ctx.strokeStyle=hexA(f.col,.85);ctx.lineWidth=2;
