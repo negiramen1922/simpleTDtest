@@ -153,7 +153,7 @@
       <button class="start" id="rStart">⚔ 侵攻開始</button>
       <button id="rSpeed">速度 ×1</button>
     </div>
-    <p class="sub" id="rHint" style="margin-top:8px">デッキから回帰者を選び、光ったマスに配置。<b>タンク/前衛は経路上</b>（敵を足止め）、<b>射手/支援は経路外</b>に置けます。EPは時間で回復。</p>
+    <p class="sub" id="rHint" style="margin-top:8px">デッキから回帰者を選び、光ったマスに配置。<b>タンク/前衛は経路上</b>（敵を足止め）、<b>射手/支援は経路外</b>に置けます。EPは時間で回復。 <b style="color:var(--mag)">★ ユニット下の金ゲージが満タン（✦）になったら、そのユニットをタップで必殺技 BLADE を発動！</b></p>
   </div>
 </div>
 
@@ -193,7 +193,8 @@ const CHARS={
   kanon_default:{ name:"カノン", sub:"DEFAULT", role:"ATTACKER", faction:"ブレイドライン", element:"破壊", dmgType:"物理",
     kind:"melee", icon:"⚔", color:"#7fb6ff", cost:15, hp:950, atk:195, interval:0.85, range:1.3, block:true,
     passive:{name:"神殺しの剣閃", factionAtk:0.10}, // 出撃中、味方ブレイドラインの攻撃力+10%
-    skill:{name:"聖剣技 天蓋連牙", sp:12, atk:2.4} }, // 前方へ飛び込み連撃（攻撃力50%×4相当）
+    skill:{name:"聖剣技 天蓋連牙", sp:12, atk:2.4}, // 前方へ飛び込み連撃（攻撃力50%×4相当）
+    blade:{name:"天牙煉斬閃", title:"エルスタニア流真聖剣技 瞬き天蓋に至りし第一席", gauge:16, dur:1.1, atk:3.9, aoe:1.8} }, // BLADE必殺：超火力＋薙ぎ払い
 };
 const ORDER=Object.keys(CHARS);
 const ROLE_JP={ATTACKER:"アタッカー",SHOOTER:"シューター",BREAKER:"ブレイカー",SUPPORTER:"サポーター",HEALER:"ヒーラー",TRICKSTER:"トリックスター"};
@@ -331,7 +332,13 @@ cv.addEventListener("click",e=>{
   const x=(e.clientX-rect.left)/rect.width*W, y=(e.clientY-rect.top)/rect.height*H;
   const [c,r]=cellFromXY(x,y);
   if(c<0||c>=COLS||r<0||r>=ROWS)return;
-  if(!G.sel)return;
+  if(!G.sel){
+    // デッキ未選択時：BLADE準備完了のユニットをタップで発動
+    let best=null,bd=1e9;
+    for(const u of G.units){ if(u.hp>0 && bladeReady(u)){ const d=Math.hypot(u.x-x,u.y-y); if(d<TILE*0.7 && d<bd){bd=d;best=u;} } }
+    if(best) fireBlade(best);
+    return;
+  }
   const cfg=CHARS[G.sel];
   const onRoad=roadSet.has(cellKey(c,r));
   const needRoad=(cfg.kind==="melee"); // 前衛/タンクは経路上、それ以外は経路外
@@ -341,7 +348,7 @@ cv.addEventListener("click",e=>{
   G.ep-=cfg.cost;
   const p=center(c,r);
   G.units.push({ t:G.sel,cfg,c,r,x:p.x,y:p.y, hp:cfg.hp,maxHp:cfg.hp, cd:Math.random()*0.3,
-    sp:0,skillActive:false,skillTimer:0, dr:0,atkBuff:1,spdBuff:1 });
+    sp:0,skillActive:false,skillTimer:0, bg:0,bladeActive:false,bladeTimer:0, dr:0,atkBuff:1,spdBuff:1 });
   G.sel=null; refreshDeck(); updateHUD();
 });
 
@@ -421,6 +428,9 @@ function update(dt){
     // スキル進行
     if(u.skillActive){ u.skillTimer-=dt; if(u.skillTimer<=0){ u.skillActive=false; u.sp=0; u.dr=0; } }
     else if(u.cfg.skill){ u.sp+=dt; if(u.sp>=u.cfg.skill.sp){ castSkill(u); } }
+    // BLADE必殺ゲージ（手動発動）
+    if(u.bladeActive){ u.bladeTimer-=dt; if(u.bladeTimer<=0){ u.bladeActive=false; u.bg=0; } }
+    else if(u.cfg.blade){ u.bg=Math.min(u.cfg.blade.gauge, (u.bg||0)+dt); }
     const c=u.cfg, itv=(c.interval||1)/(u.spdBuff||1);
     u.cd-=dt; if(u.cd>0)continue;
     if(c.kind==="heal"){
@@ -441,9 +451,10 @@ function update(dt){
       // 前衛は自分をブロック中の敵を優先
       if(c.kind==="melee"){ const bl=G.enemies.find(en=>en.blocked===u&&en.hp>0); if(bl)tgt=bl; }
       if(tgt){ u.cd=itv;
-        const atk=(c.atk)*(u.atkBuff||1)*(u.skillActive&&c.skill.atk?c.skill.atk:1);
-        const aoeR=(u.skillActive&&c.skill.aoe?c.skill.aoe:c.aoe)||0;
-        const stun=(u.skillActive&&c.skill.stun?c.skill.stun:c.stun)||0;
+        const bld=u.bladeActive?u.cfg.blade:null;
+        const atk=(c.atk)*(u.atkBuff||1)*(bld?bld.atk:(u.skillActive&&c.skill.atk?c.skill.atk:1));
+        const aoeR=bld?(bld.aoe||1.6):((u.skillActive&&c.skill.aoe?c.skill.aoe:c.aoe)||0);
+        const stun=bld?(bld.stun||0):((u.skillActive&&c.skill.stun?c.skill.stun:c.stun)||0);
         const targets=aoeR>0 ? G.enemies.filter(en=>en.hp>0&&dist(en,tgt)<=aoeR*TILE) : [tgt];
         for(const en of targets){
           hurt(en,atk);
@@ -484,6 +495,18 @@ function castSkill(u){
   $("coName").textContent=u.cfg.skill.name;
   const co=$("coInner"); co.classList.remove("show"); void co.offsetWidth; co.classList.add("show");
   G.callout=1.2;
+}
+// BLADE必殺：準備完了か／手動発動
+function bladeReady(u){ return u.cfg.blade && !u.bladeActive && (u.bg||0)>=u.cfg.blade.gauge; }
+function fireBlade(u){
+  if(!bladeReady(u))return false;
+  u.bladeActive=true; u.bladeTimer=u.cfg.blade.dur||1.0; u.bg=0; u.cd=0;
+  // BLADE名 ドーン（通常スキルより豪華に）
+  $("coWho").textContent=(u.cfg.blade.title?u.cfg.blade.title+"  —  ":"")+u.cfg.name+"  BLADE";
+  $("coName").textContent=u.cfg.blade.name;
+  const co=$("coInner"); co.classList.remove("show"); void co.offsetWidth; co.classList.add("show");
+  G.callout=1.5; flash("⚔ BLADE 発動！ "+u.cfg.blade.name);
+  return true;
 }
 
 /* ===== 描画 ===== */
@@ -528,7 +551,10 @@ function draw(){
   // ユニット
   for(const u of G.units){
     const s=TILE*0.74, c=u.cfg;
-    if(u.skillActive){ ctx.fillStyle="rgba(127,224,255,.18)"; ctx.beginPath(); ctx.arc(u.x,u.y,s*0.9,0,7); ctx.fill(); }
+    const bready=bladeReady(u);
+    if(u.bladeActive){ const pl=0.5+0.5*Math.sin(G.t*14); ctx.fillStyle="rgba(255,91,208,"+(0.22+0.2*pl)+")"; ctx.beginPath(); ctx.arc(u.x,u.y,s*1.0,0,7); ctx.fill(); }
+    else if(u.skillActive){ ctx.fillStyle="rgba(127,224,255,.18)"; ctx.beginPath(); ctx.arc(u.x,u.y,s*0.9,0,7); ctx.fill(); }
+    else if(bready){ const pl=0.5+0.5*Math.sin(G.t*7); ctx.strokeStyle="rgba(255,210,74,"+(0.5+0.5*pl)+")"; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(u.x,u.y,s*0.78,0,7); ctx.stroke(); }
     ctx.fillStyle=c.color; rr(u.x-s/2,u.y-s/2,s,s,9); ctx.fill();
     ctx.fillStyle="rgba(255,255,255,.16)"; rr(u.x-s/2,u.y-s/2,s,s/2,9); ctx.fill();
     ctx.strokeStyle="rgba(0,0,0,.4)"; ctx.lineWidth=2; rr(u.x-s/2,u.y-s/2,s,s,9); ctx.stroke();
@@ -541,6 +567,11 @@ function draw(){
     if(c.skill){ const p=u.skillActive?1:Math.min(1,u.sp/c.skill.sp);
       ctx.fillStyle="rgba(0,0,0,.5)"; ctx.fillRect(u.x-s/2,u.y+s/2+2,s,3);
       ctx.fillStyle=u.skillActive?"#ffd24a":"#46c2ff"; ctx.fillRect(u.x-s/2,u.y+s/2+2,s*p,3); }
+    // BLADEゲージ（金〜マゼンタ）。満タンで点滅＋✦
+    if(c.blade){ const bp=u.bladeActive?1:Math.min(1,(u.bg||0)/c.blade.gauge);
+      ctx.fillStyle="rgba(0,0,0,.5)"; ctx.fillRect(u.x-s/2,u.y+s/2+6,s,3);
+      ctx.fillStyle=bready||u.bladeActive?"#ff5bd0":"#a06bff"; ctx.fillRect(u.x-s/2,u.y+s/2+6,s*bp,3);
+      if(bready){ const bl=0.5+0.5*Math.sin(G.t*8); ctx.fillStyle="rgba(255,210,74,"+(0.6+0.4*bl)+")"; ctx.font="700 13px sans-serif"; ctx.textAlign="center"; ctx.fillText("✦",u.x,u.y-s/2-12); } }
   }
   // ダメージ数字
   for(const f of (G.fx||[])){
