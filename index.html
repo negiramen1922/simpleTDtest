@@ -284,6 +284,9 @@
   .tb.n{background:rgba(120,140,160,.12);color:var(--dim);border:1px solid var(--line2)}
   .codex .sk{font-size:12px;color:var(--gold);margin-top:8px;border-top:1px solid var(--line);padding-top:8px;line-height:1.55}
   .codex .sk b{color:#ffe08a}
+  .codex .sk.ult{color:#ff9ad1;border-top-style:dashed}
+  .codex .sk.ult b{color:#ffb3df}
+  .codex .sk .meta{color:var(--dim);font-weight:400;font-size:11px}
 
   /* 編成グリッド */
   .squad-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
@@ -3630,7 +3633,8 @@ function renderDetail(t){
       <div class="stats">${statHTML}</div>
       ${own?`<div class="art-equip">${artSlotsHTML(t)}</div>`:''}
       <div class="desc">${CODEX_DESC[t]||""}</div>
-      <div class="sk">★ <b>${c.skill.name}</b>：${SKILL_DESC[t]||""}</div>
+      <div class="sk">★ <b>${c.skill.name}</b> <span class="meta">／ チャージ ${c.skill.spMax}秒</span><br>${SKILL_DESC[t]||""}</div>
+      <div class="sk ult">✦ <b>${c.skill.ultName||c.skill.name}</b> <span class="meta">／ 必要ポイント ${ULT_GAUGE}（戦闘中 約${ULT_GAUGE}秒で満タン）</span><br>${ULT_DESC[t]||ULT_DESC._default}</div>
     </div>`;
   if(own) wireArtSlots(t);
   const tb=document.getElementById("detailTrainBtn");
@@ -3721,14 +3725,15 @@ const CODEX_DESC={
   commander:"常時、周囲の味方の攻撃力を底上げするオーラ役。スキル中はさらに敵を減速させつつ全体を鼓舞する。"
 };
 const SKILL_DESC={
-  tank:"一定時間ダメージを大幅軽減し自己回復する。",
-  attacker:"攻撃力と攻撃速度を大きく強化する。",
-  shooter:"攻撃力が約2.2倍になる集中砲火。",
-  healer:"射程内の味方全員を高速回復する。",
-  support:"減速・攻撃速度・攻撃力バフがすべて強化される。",
-  trickster:"範囲・威力・スタンが増した連続爆撃。",
-  breaker:"攻撃・速度UPに加え撃破DPが2.5倍に。",
-  guardian:"ダメージ70%カット＋自己回復でブロックを維持。",
+  tank:"前方3マスに攻撃しノックバック。自身の被ダメージを10%軽減する。",
+  attacker:"目の前に大斬撃を4連続で叩き込む。",
+  shooter:"攻撃力と連射速度を大きく強化する。",
+  healer:"最もHPが低い味方3人を同時に回復する。",
+  support:"周囲の味方と敵にバフ／デバフ（鈍足・被ダメ上昇・攻撃強化）を一括付与。",
+  trickster:"命中した敵をスタンさせる爆弾を投げる。",
+  breaker:"前方3マスに5連撃を叩き込む。",
+  guardian:"被ダメージを30%軽減し、与えたダメージの50%を回復する。",
+  harvester:"攻撃力と攻撃速度を強化して連続で斬りつける。",
   lancer:"攻撃・速度UP＋貫通数が3体に増加。",
   berserker:"攻撃・速度UP＋与ダメの35%を自己回復。",
   sniper:"攻撃力2.6倍の超火力狙撃。",
@@ -3757,6 +3762,19 @@ const SKILL_DESC={
   netcaster:"投網範囲を広げ捕捉数を3体に増やし、攻撃力もUP。空の大群を一網打尽。",
   gunner:"二丁拳銃を乱射。攻撃力UP＋攻撃速度が一気に跳ね上がる。",
   commander:"周囲の味方の攻撃力・速度を大幅強化しつつ、射程内の敵を減速させる進軍の号令。"
+};
+// 必殺技（ULT）の効果説明。未指定は _default（スキルの強化版＋炸裂）
+const ULT_DESC={
+  _default:"スキルの強化版（効果が約1.5倍＋持続が延長）。攻撃できるキャラは発動時、周囲へ炸裂ダメージを与える。",
+  tank:"前方をスマッシュ＋ノックバック。自身にシールドを張り被ダメージを30%軽減（シールド中はHPの代わりにシールドが減る）。",
+  attacker:"一列に飛んで敵を貫く斬撃を5連射する。",
+  shooter:"連射速度・攻撃力を強化し、さらに射程が1.8倍に伸びる。",
+  healer:"範囲内の味方全員を一気に回復し、各自にHP20%ぶんのシールドを付与する。",
+  support:"範囲内で必殺技ゲージが最も少ない味方を、即座にフルチャージする。",
+  trickster:"高火力のスタン爆弾を8連射する。",
+  breaker:"前方3マスに7連撃。発動中は撃破時のDP生産が3倍に加速する。",
+  harvester:"周囲を範囲攻撃し、発動中ずっと周囲へ持続ダメージを与え続ける。",
+  guardian:"周囲の敵に5連撃。被ダメージを70%軽減し、与えたダメージの50%を回復する。"
 };
 
 /* ----- 育成 ----- */
