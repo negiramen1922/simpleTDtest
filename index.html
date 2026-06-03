@@ -1100,7 +1100,8 @@ const TYPES={
            ultName:"デッドハーヴェスト",ultDotField:{r:2.2,burst:2.0,dps:0.5}}},
   guardian:{name:"ガーディアン",role:"GUARD",letter:"G",color:"#6b9bd1",place:"road",cost:16,
     hp:2200,atk:50,interval:1.8,block:5,kind:"melee",targets:"ground",
-    skill:{name:"絶対防壁",spMax:18,dur:9,dr:0.7,regen:80,block:5}},
+    skill:{name:"絶対防壁",spMax:14,dur:5,dr:0.3,lifesteal:0.5,
+           ultName:"鉄壁乱打",ultDr:0.7,ultFrontSlash:{n:5,mul:2.5,r:1.8,gap:0.1}}},
   lancer:{name:"ランサー",role:"LANCE",letter:"L",color:"#7ad0c0",place:"road",cost:15,
     hp:820,atk:165,interval:1.05,block:1,kind:"melee",pierce:2,targets:"ground",
     skill:{name:"螺旋突撃",spMax:16,dur:7,atk:1.9,spd:1.35,pierce:3}},
@@ -2158,11 +2159,14 @@ function skillActivate(u,isUlt){
   // スキル：目の前に大斬撃×n（カノン 天蓋連牙）。連撃キューで時間差発生
   if(sk.frontSlash){ const f=sk.frontSlash; u.combo={left:f.n,t:0,gap:f.gap,mul:f.mul*(isUlt?ULT_POW:1),r:f.r}; }
 }
-// 目の前への大斬撃1回（連撃キューから呼ばれる）
+// 目の前への大斬撃1回（連撃キューから呼ばれる）。周囲の敵に当たる。lifesteal対応
 function frontSlashHit(u,mul,rTiles){
   const R=rTiles*TILE, dmg=statATK(u.cfg,u.type)*mul*(u.atkBuff||1);
+  const sk=u.cfg.skill, ls=(u.skillActive&&sk&&sk.lifesteal)?sk.lifesteal:0;
+  let total=0;
+  for(const en of G.enemies){ if(en.hp>0 && canHit(u,en) && dist(en,u)<=R){ hurtEnemy(en,dmg,u.cfg.color,u); total+=dmg; } }
+  if(ls>0 && total>0){ u.hp=Math.min(u.maxHp,u.hp+total*ls); addFx({type:"heal",x:u.x,y:u.y,life:0.4}); }
   const fa=forwardAngle(u,R+TILE);
-  for(const en of G.enemies){ if(en.hp>0 && canHit(u,en) && dist(en,u)<=R) hurtEnemy(en,dmg,u.cfg.color,u); }
   addFx({type:"swordslash",x:u.x,y:u.y,ang:fa.found?fa.ang:0,r:R*0.95,col:u.cfg.color,life:0.32,wide:true});
   Sound.play("melee");
 }
