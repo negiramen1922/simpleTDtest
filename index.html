@@ -1110,8 +1110,9 @@ const TYPES={
     skill:{name:"絶対防壁",spMax:10,dur:5,dr:0.3,lifesteal:0.5,
            ultGauge:26,ultName:"鉄壁乱打",ultDr:0.7,ultFrontSlash:{n:5,mul:2.5,r:1.8,gap:0.1}}},
   lancer:{name:"ランサー",role:"LANCE",letter:"L",color:"#7ad0c0",place:"road",cost:15,
-    hp:820,atk:165,interval:1.05,block:1,kind:"melee",pierce:2,targets:"ground",
-    skill:{name:"螺旋突撃",spMax:12,dur:7,atk:1.9,spd:1.35,pierce:3}},
+    hp:820,atk:165,interval:1.05,block:1,kind:"melee",targets:"ground",reach:1.5,maxHits:3,thrust:true,
+    skill:{name:"螺旋突撃",spMax:12,dur:5,spd:1.6,frontSlash:{n:5,mul:1.0,r:3,gap:0.1,thrust:true},ultGauge:22,
+           ultName:"ランスチャージ",ultLanceCharge:{mul:5.0,knockback:0.6,r:0.7,spd:900,life:0.8}}},
   berserker:{name:"バーサーカー",role:"BERSERK",letter:"W",color:"#e8504e",place:"road",cost:14,
     hp:900,atk:170,interval:0.8,block:1,kind:"melee",rage:1.7,targets:"ground",
     skill:{name:"血の渇き",spMax:11,dur:7,atk:1.5,spd:1.5,lifesteal:0.35}},
@@ -2109,7 +2110,7 @@ function fireSkill(u){
   return true;
 }
 // スキルが発動時に固有の一撃を持つか（汎用ボーナスを抑制する判定に使用）
-function hasCustomActivate(sk){ return !!(sk && (sk.smash||sk.frontSlash||sk.ultFrontSlash||sk.ultFlySlash||sk.ultChargeAlly||sk.ultBarrage||sk.ultDotField)); }
+function hasCustomActivate(sk){ return !!(sk && (sk.smash||sk.frontSlash||sk.ultFrontSlash||sk.ultFlySlash||sk.ultChargeAlly||sk.ultBarrage||sk.ultDotField||sk.ultLanceCharge)); }
 // エンチャンターのバフ対象：射程内で攻撃/回復する味方のうち、最もバフ残量が少ない味方
 function pickBuffAlly(u,R){
   let best=null,bv=Infinity;
@@ -2162,19 +2163,30 @@ function skillActivate(u,isUlt){
     return;
   }
   // 必殺技：専用の前方連撃（レイダー 略奪乱舞＝7連撃でスキルより強い）
-  if(isUlt && sk.ultFrontSlash){ const f=sk.ultFrontSlash; u.combo={left:f.n,t:0,gap:f.gap,mul:f.mul,r:f.r}; return; }
+  if(isUlt && sk.ultFrontSlash){ const f=sk.ultFrontSlash; u.combo={left:f.n,t:0,gap:f.gap,mul:f.mul,r:f.r,thrust:f.thrust}; return; }
+  // 必殺技：正面に突撃して直線上の敵全てを貫く（ランサー ランスチャージ）
+  if(isUlt && sk.ultLanceCharge){ doLanceCharge(u,sk.ultLanceCharge); return; }
   // スキル：目の前に大斬撃×n（カノン 天蓋連牙）。連撃キューで時間差発生
-  if(sk.frontSlash){ const f=sk.frontSlash; u.combo={left:f.n,t:0,gap:f.gap,mul:f.mul*(isUlt?ULT_POW:1),r:f.r}; }
+  if(sk.frontSlash){ const f=sk.frontSlash; u.combo={left:f.n,t:0,gap:f.gap,mul:f.mul*(isUlt?ULT_POW:1),r:f.r,thrust:f.thrust}; }
 }
-// 目の前への大斬撃1回（連撃キューから呼ばれる）。周囲の敵に当たる。lifesteal対応
-function frontSlashHit(u,mul,rTiles){
+// 目の前への大斬撃/突き1回（連撃キューから呼ばれる）。周囲の敵に当たる。lifesteal対応
+function frontSlashHit(u,mul,rTiles,thrust){
   const R=rTiles*TILE, dmg=statATK(u.cfg,u.type)*mul*(u.atkBuff||1);
   const sk=u.cfg.skill, ls=(u.skillActive&&sk&&sk.lifesteal)?sk.lifesteal:0;
   let total=0;
   for(const en of G.enemies){ if(en.hp>0 && canHit(u,en) && dist(en,u)<=R){ hurtEnemy(en,dmg,u.cfg.color,u); total+=dmg; } }
   if(ls>0 && total>0){ u.hp=Math.min(u.maxHp,u.hp+total*ls); addFx({type:"heal",x:u.x,y:u.y,life:0.4}); }
-  const fa=forwardAngle(u,R+TILE);
-  addFx({type:"swordslash",x:u.x,y:u.y,ang:fa.found?fa.ang:0,r:R*0.95,col:u.cfg.color,life:0.32,wide:true});
+  const fa=forwardAngle(u,R+TILE), ang=fa.found?fa.ang:0;
+  if(thrust) addFx({type:"thrust",x:u.x,y:u.y,ang,len:R,col:u.cfg.color,life:0.2,wide:true});
+  else addFx({type:"swordslash",x:u.x,y:u.y,ang,r:R*0.95,col:u.cfg.color,life:0.32,wide:true});
+  Sound.play("melee");
+}
+// 正面に突撃：直線上の敵全てを貫く飛翔突き＋ノックバック（ランサー）
+function doLanceCharge(u,f){
+  const fa=forwardAngle(u,99*TILE); const ang=fa.found?fa.ang:0;
+  const dx=Math.cos(ang),dy=Math.sin(ang), dmg=statATK(u.cfg,u.type)*f.mul*(u.atkBuff||1);
+  G.shots.push({fly:true,thrust:true,x:u.x,y:u.y,dirx:dx,diry:dy,spd:f.spd,life:f.life,dmg,col:u.cfg.color,owner:u,r:f.r*TILE,hit:new Set(),knockback:f.knockback});
+  addFx({type:"thrust",x:u.x,y:u.y,ang,len:3*TILE,col:u.cfg.color,life:0.35,wide:true});
   Sound.play("melee");
 }
 // 一列に飛ぶ斬撃（貫通する飛翔斬撃をn枚、前方へ放つ）
@@ -2355,7 +2367,7 @@ function update(dt){
     }
     if(!u.isToken) u.ug=Math.min(ultMax(u.cfg),(u.ug||0)+dt); // 必殺技ゲージ（updateはwave時のみ走るため戦闘中だけ充填）
     // 連撃キュー（天蓋連牙など、目の前への大斬撃を時間差で繰り出す）
-    if(u.combo){ u.combo.t-=dt; if(u.combo.t<=0 && u.combo.left>0){ frontSlashHit(u,u.combo.mul,u.combo.r); u.combo.left--; u.combo.t=u.combo.gap; if(u.combo.left<=0)u.combo=null; } }
+    if(u.combo){ u.combo.t-=dt; if(u.combo.t<=0 && u.combo.left>0){ frontSlashHit(u,u.combo.mul,u.combo.r,u.combo.thrust); u.combo.left--; u.combo.t=u.combo.gap; if(u.combo.left<=0)u.combo=null; } }
     // 爆弾連射キュー（爆裂連弾：高火力スタン爆弾を連射）
     if(u.bombQueue){ u.bombQueue.t-=dt; if(u.bombQueue.t<=0 && u.bombQueue.left>0){ throwBomb(u,u.bombQueue.mul,u.bombQueue.aoe,u.bombQueue.stun); u.bombQueue.left--; u.bombQueue.t=u.bombQueue.gap; if(u.bombQueue.left<=0)u.bombQueue=null; } }
     // 持続ダメージ領域（ハーヴェスター デッドハーヴェスト）：必殺技中、周囲の敵に継続ダメージ
@@ -2539,6 +2551,10 @@ function update(dt){
     if(u.cd<=0){
       if(k==="melee"){
         if(u.blocking.length)willAct=true;
+        else if(u.cfg.reach){
+          const rR=u.cfg.reach*TILE;
+          willAct=G.enemies.some(e=>canHit(u,e) && dist(u,e)<=rR);
+        }
         else if(u.cfg.airReach){
           const aR=u.cfg.airReach*TILE*2.2; // スキル拡大分も見越して広めに判定
           willAct=G.enemies.some(e=>e.fly && dist(u,e)<=aR);
@@ -2568,7 +2584,14 @@ function update(dt){
         let bp=-1;
         for(const e of G.enemies){ if(e.fly && dist(u,e)<=aR && e.progress>bp){bp=e.progress;airTarget=e;} }
       }
-      if((u.blocking.length||airTarget)&&u.cd<=0){
+      // ランサー等：reach（射程）を持つ近接は前方reachマス内の敵を最大maxHits体まで突く
+      let reachTargets=null;
+      if(u.cfg.reach){
+        const rR=u.cfg.reach*TILE, mx=u.cfg.maxHits||3;
+        reachTargets=G.enemies.filter(e=>e.hp>0&&canHit(u,e)&&dist(u,e)<=rR).sort((a,b)=>b.progress-a.progress).slice(0,mx);
+      }
+      const meleeTrigger = u.cfg.reach ? (reachTargets&&reachTargets.length>0) : (u.blocking.length||airTarget);
+      if(meleeTrigger&&u.cd<=0){
         u.cd=itv;
         // バーサーカー/リベンジャー：HPが減るほど攻撃力UP
         let rageMult=1;
@@ -2577,21 +2600,28 @@ function update(dt){
         let duelMul=1;
         if(u.cfg.duelMul){ duelMul=(active&&sk&&sk.duelMul)?sk.duelMul:u.cfg.duelMul; }
         const dmg=u.atk*atkMult*rageMult*duelMul;
-        const tg=u.blocking[0]||airTarget;
-        // ランサー：自分のマス＋進路後方の敵も貫通攻撃
-        const pierce=(active&&sk&&sk.pierce)?sk.pierce:(u.cfg.pierce||1);
-        let hits=[tg];
-        if(pierce>1){
-          const extra=G.enemies
-            .filter(e=>e!==tg && !e.fly && Math.abs(e.x-u.x)<TILE*0.7 && Math.abs(e.y-u.y)<pierce*TILE && dist(e,u)<=pierce*TILE)
-            .sort((a,b)=>dist(a,u)-dist(b,u))
-            .slice(0,pierce-1);
-          hits=hits.concat(extra);
+        let hits;
+        if(u.cfg.reach){
+          hits=reachTargets;
+        } else {
+          const tg=u.blocking[0]||airTarget;
+          // ランサー旧仕様/貫通：自分のマス＋進路後方の敵も貫通攻撃
+          const pierce=(active&&sk&&sk.pierce)?sk.pierce:(u.cfg.pierce||1);
+          hits=[tg];
+          if(pierce>1){
+            const extra=G.enemies
+              .filter(e=>e!==tg && !e.fly && Math.abs(e.x-u.x)<TILE*0.7 && Math.abs(e.y-u.y)<pierce*TILE && dist(e,u)<=pierce*TILE)
+              .sort((a,b)=>dist(a,u)-dist(b,u))
+              .slice(0,pierce-1);
+            hits=hits.concat(extra);
+          }
+          // ハルバーディア：ブロック中の地上敵と低空の敵を同時に薙ぐ
+          if(u.cfg.airReach && u.blocking.length && airTarget && !hits.includes(airTarget)) hits.push(airTarget);
         }
-        // ハルバーディア：ブロック中の地上敵と低空の敵を同時に薙ぐ
-        if(u.cfg.airReach && u.blocking.length && airTarget && !hits.includes(airTarget)) hits.push(airTarget);
         for(const h of hits){
-          addFx({type:"swordslash",x:u.x,y:u.y,ang:Math.atan2(h.y-u.y,h.x-u.x),r:TILE*0.74,col:u.cfg.color,life:0.22});
+          const ang=Math.atan2(h.y-u.y,h.x-u.x);
+          if(u.cfg.thrust) addFx({type:"thrust",x:u.x,y:u.y,ang,len:(u.cfg.reach||1)*TILE,col:u.cfg.color,life:0.18});
+          else addFx({type:"swordslash",x:u.x,y:u.y,ang,r:TILE*0.74,col:u.cfg.color,life:0.22});
           addFx({type:"hit",x:h.x,y:h.y,col:"#fff",life:0.14});
           hurtEnemy(h,dmg,u.cfg.color,u);
         }
@@ -2722,13 +2752,16 @@ function update(dt){
 
   // --- 弾 ---
   for(const s of G.shots){
-    // 飛翔斬撃：固定方向に進み、通過した敵を貫通して斬る
+    // 飛翔斬撃/突き：固定方向に進み、通過した敵を貫通して斬る/突く
     if(s.fly){
       s.x+=s.dirx*s.spd*dt; s.y+=s.diry*s.spd*dt; s.life-=dt;
+      const ang=Math.atan2(s.diry,s.dirx);
       for(const en of G.enemies){ if(en._dead||en.hp<=0||s.hit.has(en))continue;
         if(canHit(s.owner,en) && dist(s,en)<=s.r+(en.e?en.e.r:12)){
           hurtEnemy(en,s.dmg,s.col,s.owner); s.hit.add(en);
-          addFx({type:"swordslash",x:en.x,y:en.y,ang:Math.atan2(s.diry,s.dirx),r:TILE*0.95,col:s.col,life:0.22,wide:true});
+          if(s.knockback) knockback(en,s.knockback);
+          if(s.thrust) addFx({type:"thrust",x:en.x-s.dirx*TILE*0.6,y:en.y-s.diry*TILE*0.6,ang,len:TILE*1.1,col:s.col,life:0.18,wide:true});
+          else addFx({type:"swordslash",x:en.x,y:en.y,ang,r:TILE*0.95,col:s.col,life:0.22,wide:true});
         } }
       if(s.life<=0)s._dead=true;
       continue;
@@ -3016,13 +3049,24 @@ function draw(){
   // 弾(下層)
   for(const s of G.shots){
     if(s.fly){
-      // 飛翔斬撃：進行方向に弧を描く大きな刃
-      const a=Math.atan2(s.diry,s.dirx), rad=(s.r||30)*0.9;
+      const a=Math.atan2(s.diry,s.dirx);
       ctx.save();ctx.translate(s.x,s.y);ctx.rotate(a);ctx.lineCap="round";
-      ctx.strokeStyle=hexA(s.col,0.65);ctx.lineWidth=16;
-      ctx.beginPath();ctx.arc(0,0,rad,-1.0,1.0);ctx.stroke();
-      ctx.strokeStyle="rgba(255,255,255,.95)";ctx.lineWidth=5;
-      ctx.beginPath();ctx.arc(0,0,rad,-1.0,1.0);ctx.stroke();
+      if(s.thrust){
+        // 突撃：前方へ伸びる槍の穂先
+        const len=(s.r||30)*2.2;
+        ctx.strokeStyle=hexA(s.col,0.8);ctx.lineWidth=12;
+        ctx.beginPath();ctx.moveTo(-len*0.7,0);ctx.lineTo(len*0.4,0);ctx.stroke();
+        ctx.strokeStyle="rgba(255,255,255,.95)";ctx.lineWidth=4;
+        ctx.beginPath();ctx.moveTo(-len*0.2,0);ctx.lineTo(len*0.4,0);ctx.stroke();
+        ctx.fillStyle="#fff";ctx.beginPath();ctx.arc(len*0.4,0,5,0,7);ctx.fill();
+      }else{
+        // 飛翔斬撃：進行方向に弧を描く大きな刃
+        const rad=(s.r||30)*0.9;
+        ctx.strokeStyle=hexA(s.col,0.65);ctx.lineWidth=16;
+        ctx.beginPath();ctx.arc(0,0,rad,-1.0,1.0);ctx.stroke();
+        ctx.strokeStyle="rgba(255,255,255,.95)";ctx.lineWidth=5;
+        ctx.beginPath();ctx.arc(0,0,rad,-1.0,1.0);ctx.stroke();
+      }
       ctx.restore();ctx.lineCap="butt";
       continue;
     }
@@ -3247,6 +3291,15 @@ function drawFx(f){
     ctx.beginPath();ctx.arc(f.x,f.y,R,a0,lead);ctx.stroke();
     ctx.strokeStyle=hexA("#fff",1-p);ctx.lineWidth=f.wide?5:3.5;
     ctx.beginPath();ctx.arc(f.x,f.y,R,Math.max(a0,lead-0.6),lead);ctx.stroke();
+    ctx.lineCap="butt";
+  }else if(f.type==="thrust"){
+    // 突き：穂先が前方へ鋭く伸びる
+    const len=f.len||TILE, reach=len*(0.45+p*0.55);
+    const ex=f.x+Math.cos(f.ang)*reach, ey=f.y+Math.sin(f.ang)*reach;
+    ctx.lineCap="round";
+    ctx.strokeStyle=hexA(f.col,(1-p)*0.85);ctx.lineWidth=(f.wide?7:4.5)*(1-p*0.3);
+    ctx.beginPath();ctx.moveTo(f.x,f.y);ctx.lineTo(ex,ey);ctx.stroke();
+    ctx.fillStyle=hexA("#fff",1-p);ctx.beginPath();ctx.arc(ex,ey,(f.wide?5:3.2)*(1-p*0.3),0,7);ctx.fill();
     ctx.lineCap="butt";
   }else if(f.type==="shell"){
     const tp=Math.min(1,f.age/f.delay);
@@ -3748,7 +3801,7 @@ const SKILL_DESC={
   breaker:"前方3マスに5連撃を叩き込む。",
   guardian:"被ダメージを30%軽減し、与えたダメージの50%を回復する。",
   harvester:"攻撃力と攻撃速度を強化して連続で斬りつける。",
-  lancer:"攻撃・速度UP＋貫通数が3体に増加。",
+  lancer:"正面3マスに5回の突きを繰り出す。さらに自身を加速し通常攻撃を高速化する。",
   berserker:"攻撃・速度UP＋与ダメの35%を自己回復。",
   sniper:"攻撃力2.6倍の超火力狙撃。",
   mage:"範囲・威力UP＋スタンを付与。",
@@ -3788,7 +3841,8 @@ const ULT_DESC={
   trickster:"高火力のスタン爆弾を8連射する。",
   breaker:"前方3マスに7連撃。発動中は撃破時のDP生産が3倍に加速する。",
   harvester:"周囲を範囲攻撃し、発動中ずっと周囲へ持続ダメージを与え続ける。",
-  guardian:"周囲の敵に5連撃。被ダメージを70%軽減し、与えたダメージの50%を回復する。"
+  guardian:"周囲の敵に5連撃。被ダメージを70%軽減し、与えたダメージの50%を回復する。",
+  lancer:"槍を構えて正面に突撃し、直線上の敵すべてを貫いてダメージ＋ノックバックする。"
 };
 
 /* ----- 育成 ----- */
