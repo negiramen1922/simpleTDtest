@@ -1169,7 +1169,7 @@ const TYPES={
 };
 const ORDER=["tank","attacker","shooter","healer","support","trickster","breaker","guardian","lancer","berserker","sniper","mage","artillery","archer","flak","halberdier","guardknight","duelist","revenger","marksman","gunner","poisoner","chaincaster","freezer","shaman","summoner","commander","bard","alchemist","prospector","netcaster","warlord","archmage","valkyrie","highpriest","archon"];
 // キャラアイコン画像（icons/<type>.png）。全キャラにアイコンを割り当て（読み込み失敗時はonerrorで文字にフォールバック）
-for(const t in TYPES){ TYPES[t].img="icons/"+t+".png"; }
+for(const t in TYPES){ TYPES[t].img="icons/"+t+".png?v=2"; }
 // アイコン用HTML（DOMカード共通）：画像があれば<img>、無ければ文字
 function iconHTML(c){ return c&&c.img ? `<img class="iconimg" src="${c.img}" alt="" draggable="false" onerror="this.replaceWith(document.createTextNode('${(c.letter||'').replace(/'/g,'')}'))">` : (c&&c.letter||""); }
 // canvas描画用に画像を事前読み込み（type→Image）
