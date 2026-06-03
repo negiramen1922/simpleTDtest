@@ -282,11 +282,15 @@
   .tb.a{background:rgba(103,216,232,.14);color:#67d8e8;border:1px solid rgba(103,216,232,.5)}
   .tb.b{background:rgba(192,139,255,.14);color:#c08bff;border:1px solid rgba(192,139,255,.5)}
   .tb.n{background:rgba(120,140,160,.12);color:var(--dim);border:1px solid var(--line2)}
-  .codex .sk{font-size:12px;color:var(--gold);margin-top:8px;border-top:1px solid var(--line);padding-top:8px;line-height:1.55}
-  .codex .sk b{color:#ffe08a}
-  .codex .sk.ult{color:#ff9ad1;border-top-style:dashed}
-  .codex .sk.ult b{color:#ffb3df}
-  .codex .sk .meta{color:var(--dim);font-weight:400;font-size:11px}
+  .codex .sksec{margin-top:10px}
+  .codex .skhdr{font-size:11px;font-weight:700;letter-spacing:.2em;color:var(--gold);
+    display:flex;align-items:center;gap:8px;margin-bottom:5px}
+  .codex .skhdr::before,.codex .skhdr::after{content:"";flex:1;height:1px;background:var(--line)}
+  .codex .skname{font-size:13px;font-weight:700;color:#ffe08a;line-height:1.4}
+  .codex .skname .meta{font-size:11px;font-weight:400;color:var(--dim);margin-left:8px}
+  .codex .skeff{font-size:12px;color:var(--fg);line-height:1.55;margin-top:2px}
+  .codex .sksec.ult .skhdr{color:#ff9ad1}
+  .codex .sksec.ult .skname{color:#ffb3df}
 
   /* 編成グリッド */
   .squad-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
@@ -1074,37 +1078,37 @@ const TYPES={
   tank:{name:"ヴァンガード",role:"TANK",letter:"T",color:"#5b8dd6",place:"road",cost:14,
     hp:1600,atk:90,interval:1.5,block:3,kind:"melee",targets:"ground",
     skill:{name:"シールドバッシュ",spMax:6,dur:8,dr:0.10,smash:3,smashMul:2.6,knockback:0.5,
-           ultDr:0.30,ultShield:700}},
+           ultGauge:20,ultDr:0.30,ultShield:700}},
   attacker:{name:"ウォリアー",role:"ATTACK",letter:"A",color:"#ff5b6e",place:"road",cost:13,
     hp:780,atk:230,interval:1.0,block:2,kind:"melee",targets:"ground",
     skill:{name:"聖剣技 天蓋連牙",spMax:7,dur:0.5,frontSlash:{n:4,mul:0.9,r:2.2,gap:0.1},
-           ultName:"天牙煉斬閃",ultFlySlash:{n:5,mul:1.2,r:0.9,spd:560,life:0.7}}},
+           ultGauge:22,ultName:"天牙煉斬閃",ultFlySlash:{n:5,mul:1.2,r:0.9,spd:560,life:0.7}}},
   shooter:{name:"レンジャー",role:"SHOOT",letter:"S",color:"#3fc7f4",place:"hill",cost:11,
     hp:360,atk:140,interval:0.85,block:0,range:3.6,kind:"range",targets:"both",
-    skill:{name:"速射態勢",spMax:10,dur:7,atk:1.7,spd:1.7,ultName:"鷹眼掃射",ultRange:1.8}},
+    skill:{name:"速射態勢",spMax:10,dur:7,atk:1.7,spd:1.7,ultGauge:22,ultName:"鷹眼掃射",ultRange:1.8}},
   healer:{name:"メディック",role:"HEAL",letter:"H",color:"#4ade80",place:"hill",cost:12,
     hp:430,heal:130,interval:1.1,block:0,range:3.2,kind:"heal",targets:"none",
-    skill:{name:"治療領域",spMax:12,dur:8,heal:1.4,spd:1.5,healN:3,ultName:"守護の聖域",ultShieldPct:0.2}},
+    skill:{name:"治療領域",spMax:12,dur:8,heal:1.4,spd:1.5,healN:3,ultGauge:28,ultName:"守護の聖域",ultShieldPct:0.2}},
   support:{name:"エンチャンター",role:"SUPPORT",letter:"B",color:"#ff6ba9",place:"hill",cost:13,
     hp:400,atk:24,interval:1.2,block:0,range:3.2,kind:"enchanter",targets:"both",
     encSlow:0.6,encSlowDur:2.0,encVuln:1.25,encVulnDur:3.0,encSpd:1.3,encAtk:1.2,encBuffDur:2.5,
-    skill:{name:"総攻撃指令",spMax:12,dur:8,ultName:"アンコール",ultChargeAlly:true}},
+    skill:{name:"総攻撃指令",spMax:12,dur:8,ultGauge:30,ultName:"アンコール",ultChargeAlly:true}},
   trickster:{name:"ボマー",role:"TRICK",letter:"X",color:"#ffd24a",place:"hill",cost:17,
     hp:340,atk:95,interval:2.0,block:0,range:3.3,kind:"aoe",aoe:1.3,stun:0,targets:"both",
     skill:{name:"大爆発",spMax:13,dur:7,atk:2.0,aoe:1.8,spd:1.5,stun:1.2,
-           ultName:"爆裂連弾",ultBarrage:{n:8,mul:2.5,aoe:1.8,stun:1.5,gap:0.13}}},
+           ultGauge:26,ultName:"爆裂連弾",ultBarrage:{n:8,mul:2.5,aoe:1.8,stun:1.5,gap:0.13}}},
   breaker:{name:"レイダー",role:"BREAK",letter:"$",color:"#ff8c42",place:"road",cost:13,
     hp:640,atk:100,interval:0.9,block:1,kind:"melee",bonusDP:5,targets:"ground",
     skill:{name:"資源強奪",spMax:7,dur:0.6,frontSlash:{n:5,mul:0.85,r:2.0,gap:0.09},
-           ultName:"略奪乱舞",ultFrontSlash:{n:7,mul:1.3,r:2.3,gap:0.08},ultBonusMul:3}},
+           ultGauge:18,ultName:"略奪乱舞",ultFrontSlash:{n:7,mul:1.3,r:2.3,gap:0.08},ultBonusMul:3}},
   harvester:{name:"ハーヴェスター",role:"BREAK",letter:"刈",color:"#7ad0c0",place:"road",cost:12,
     hp:800,atk:150,interval:0.85,block:1,kind:"melee",bonusDP:3,deployDP:12,targets:"ground",
     skill:{name:"鎌嵐",spMax:9,dur:5,atk:1.8,spd:1.3,
-           ultName:"デッドハーヴェスト",ultDotField:{r:2.2,burst:2.0,dps:0.5}}},
+           ultGauge:22,ultName:"デッドハーヴェスト",ultDotField:{r:2.2,burst:2.0,dps:0.5}}},
   guardian:{name:"ガーディアン",role:"GUARD",letter:"G",color:"#6b9bd1",place:"road",cost:16,
     hp:2200,atk:50,interval:1.8,block:5,kind:"melee",targets:"ground",
     skill:{name:"絶対防壁",spMax:10,dur:5,dr:0.3,lifesteal:0.5,
-           ultName:"鉄壁乱打",ultDr:0.7,ultFrontSlash:{n:5,mul:2.5,r:1.8,gap:0.1}}},
+           ultGauge:26,ultName:"鉄壁乱打",ultDr:0.7,ultFrontSlash:{n:5,mul:2.5,r:1.8,gap:0.1}}},
   lancer:{name:"ランサー",role:"LANCE",letter:"L",color:"#7ad0c0",place:"road",cost:15,
     hp:820,atk:165,interval:1.05,block:1,kind:"melee",pierce:2,targets:"ground",
     skill:{name:"螺旋突撃",spMax:12,dur:7,atk:1.9,spd:1.35,pierce:3}},
@@ -2138,8 +2142,8 @@ function skillActivate(u,isUlt){
     const R=unitRange(u)*1.3;
     const cands=G.units.filter(a=>a!==u && !a.isToken && a.cfg.skill && !a.ultActive && dist(u,a)<=R);
     if(cands.length){
-      cands.sort((a,b)=>(a.ug||0)/ULT_GAUGE-(b.ug||0)/ULT_GAUGE);
-      const t=cands[0]; t.ug=ULT_GAUGE;
+      cands.sort((a,b)=>(a.ug||0)/ultMax(a.cfg)-(b.ug||0)/ultMax(b.cfg));
+      const t=cands[0]; t.ug=ultMax(t.cfg);
       addFx({type:"beam",x1:u.x,y1:u.y,x2:t.x,y2:t.y,col:u.cfg.color,life:0.45});
       addFx({type:"skill",x:t.x,y:t.y,col:"#ffd24a",life:0.8});
       flash(t.cfg.name+" の必殺技チャージ完了！");
@@ -2196,7 +2200,9 @@ function throwBomb(u,mul,aoeTiles,stun){
 }
 // ===== 必殺技（ULT）：スキルの強化版を手動発動。リバースのBLADEよりやや溜まりづらい =====
 const ULT_GAUGE=24, ULT_POW=1.5, ULT_DUR=1.7;
-function ultReady(u){ return !!u.cfg.skill && !u.ultActive && (u.ug||0)>=ULT_GAUGE; }
+// 必殺技の必要ポイント（キャラ毎。skill.ultGauge指定が無ければ既定ULT_GAUGE）
+function ultMax(cfg){ return (cfg&&cfg.skill&&cfg.skill.ultGauge)||ULT_GAUGE; }
+function ultReady(u){ return !!u.cfg.skill && !u.ultActive && (u.ug||0)>=ultMax(u.cfg); }
 function fireUlt(u){
   if(!ultReady(u))return false;
   const sk=u.cfg.skill;
@@ -2347,7 +2353,7 @@ function update(dt){
     }else{
       if(u.sp<sk.spMax) u.sp=Math.min(sk.spMax,u.sp+dt*(u.artSkill||1)); // 満タンで待機（自動/手動で発動）
     }
-    if(!u.isToken) u.ug=Math.min(ULT_GAUGE,(u.ug||0)+dt); // 必殺技ゲージ（updateはwave時のみ走るため戦闘中だけ充填）
+    if(!u.isToken) u.ug=Math.min(ultMax(u.cfg),(u.ug||0)+dt); // 必殺技ゲージ（updateはwave時のみ走るため戦闘中だけ充填）
     // 連撃キュー（天蓋連牙など、目の前への大斬撃を時間差で繰り出す）
     if(u.combo){ u.combo.t-=dt; if(u.combo.t<=0 && u.combo.left>0){ frontSlashHit(u,u.combo.mul,u.combo.r); u.combo.left--; u.combo.t=u.combo.gap; if(u.combo.left<=0)u.combo=null; } }
     // 爆弾連射キュー（爆裂連弾：高火力スタン爆弾を連射）
@@ -3124,7 +3130,7 @@ function drawUnit(u){
     }
     // 必殺技ゲージ（紫〜マゼンタ）＋準備完了の✦
     if(!u.isToken){
-      const up=Math.min(1,(u.ug||0)/ULT_GAUGE);
+      const up=Math.min(1,(u.ug||0)/ultMax(u.cfg));
       ctx.fillStyle="rgba(0,0,0,.5)";ctx.fillRect(x-s/2,y+s/2+6,s,2.5);
       ctx.fillStyle=ultReady(u)?"#ff5bd0":"#9a6bff";ctx.fillRect(x-s/2,y+s/2+6,s*up,2.5);
       if(ultReady(u)){
@@ -3352,7 +3358,7 @@ function refreshSkillBtn(){
   unitPanel.classList.add("show");
   upName.textContent=u.cfg.name+" Lv."+(u.level||1)+" ／ "+u.cfg.skill.name;
   // SP状態表示＋必殺技ゲージ
-  const ugp=Math.floor(Math.min(1,(u.ug||0)/ULT_GAUGE)*100);
+  const ugp=Math.floor(Math.min(1,(u.ug||0)/ultMax(u.cfg))*100);
   if(u.skillActive) upSP.textContent=(u.ultActive?"必殺技 ":"発動中 ")+u.skillTimer.toFixed(1)+"s";
   else { const p=Math.min(1,u.sp/u.cfg.skill.spMax); upSP.textContent="SP "+Math.floor(p*100)+"%　必殺 "+ugp+"%"; }
   // モードトグル反映
@@ -3633,8 +3639,16 @@ function renderDetail(t){
       <div class="stats">${statHTML}</div>
       ${own?`<div class="art-equip">${artSlotsHTML(t)}</div>`:''}
       <div class="desc">${CODEX_DESC[t]||""}</div>
-      <div class="sk">★ <b>${c.skill.name}</b> <span class="meta">／ チャージ ${c.skill.spMax}秒</span><br>${SKILL_DESC[t]||""}</div>
-      <div class="sk ult">✦ <b>${c.skill.ultName||c.skill.name}</b> <span class="meta">／ 必要ポイント ${ULT_GAUGE}（戦闘中 約${ULT_GAUGE}秒で満タン）</span><br>${ULT_DESC[t]||ULT_DESC._default}</div>
+      <div class="sksec">
+        <div class="skhdr">スキル</div>
+        <div class="skname">${c.skill.name}<span class="meta">チャージ ${c.skill.spMax}秒</span></div>
+        <div class="skeff">${SKILL_DESC[t]||""}</div>
+      </div>
+      <div class="sksec ult">
+        <div class="skhdr">必殺技</div>
+        <div class="skname">${c.skill.ultName||c.skill.name}<span class="meta">必要ポイント ${ultMax(c)}</span></div>
+        <div class="skeff">${ULT_DESC[t]||ULT_DESC._default}</div>
+      </div>
     </div>`;
   if(own) wireArtSlots(t);
   const tb=document.getElementById("detailTrainBtn");
