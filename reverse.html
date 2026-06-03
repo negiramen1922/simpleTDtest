@@ -526,7 +526,7 @@ function update(dt){
   G.units=G.units.filter(u=>u.hp>0);
   G.fx=(G.fx||[]).filter(f=>{ f.age+=dt; return f.age<f.life; });
   // 弾
-  G.shots=(G.shots||[]).filter(s=>{ s.age+=dt; return s.age<0.18; });
+  G.shots=(G.shots||[]).filter(s=>{ s.age+=dt; if(s.age>=s.life){ impactFx(s.x2,s.y2,s.col); return false; } return true; });
   // コールアウト
   if(G.callout>0)G.callout-=dt;
   // 勝敗
@@ -538,7 +538,8 @@ function update(dt){
 }
 function applyToUnit(u,dmg){ dmg*=(1-(u.dr||0)); u.hp-=dmg; fx(u.x,u.y,"",null); }
 function hurt(en,dmg){ en.hp-=dmg; fx(en.x,en.y,Math.round(dmg),"#ff9ad1"); }
-function shot(u,tgt,col){ (G.shots=G.shots||[]).push({x1:u.x,y1:u.y,x2:tgt.x,y2:tgt.y,col,age:0}); }
+function shot(u,tgt,col){ const d=Math.hypot(tgt.x-u.x,tgt.y-u.y); (G.shots=G.shots||[]).push({x1:u.x,y1:u.y,x2:tgt.x,y2:tgt.y,col,age:0,life:Math.max(0.05,d/980)}); }
+function impactFx(x,y,col){ (G.fx=G.fx||[]).push({x,y,col,pop:true,age:0,life:0.26}); }
 function slashFx(u,tgt,col,big){ const ang=Math.atan2(tgt.y-u.y,tgt.x-u.x);
   (G.fx=G.fx||[]).push({type:'slash',x:tgt.x,y:tgt.y,ang:ang+(Math.random()*0.5-0.25),col,age:0,life:big?0.3:0.22,r:(big?TILE*0.95:TILE*0.62)}); }
 function fx(x,y,txt,col,pop){ (G.fx=G.fx||[]).push({x,y,txt,col,pop,age:0,life:pop?0.4:0.6,vy:-22}); }
@@ -597,8 +598,19 @@ function draw(){
     }
   }
   // 弾
-  for(const s of (G.shots||[])){ ctx.strokeStyle=s.col;ctx.lineWidth=2.5;ctx.globalAlpha=1-s.age/0.18;
-    ctx.beginPath();ctx.moveTo(s.x1,s.y1);ctx.lineTo(s.x2,s.y2);ctx.stroke();ctx.globalAlpha=1; }
+  // 弾：原点→着弾点を進む弾頭＋短い軌跡
+  for(const s of (G.shots||[])){
+    const t=Math.min(1,s.age/s.life);
+    const bx=s.x1+(s.x2-s.x1)*t, by=s.y1+(s.y2-s.y1)*t;
+    const tb=Math.max(0,t-0.28), tx=s.x1+(s.x2-s.x1)*tb, ty=s.y1+(s.y2-s.y1)*tb;
+    ctx.lineCap="round";
+    ctx.strokeStyle=s.col; ctx.globalAlpha=0.85; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.moveTo(tx,ty); ctx.lineTo(bx,by); ctx.stroke();
+    ctx.globalAlpha=1; ctx.fillStyle="#ffffff";
+    ctx.beginPath(); ctx.arc(bx,by,2.8,0,7); ctx.fill();
+    ctx.fillStyle=s.col; ctx.beginPath(); ctx.arc(bx,by,1.4,0,7); ctx.fill();
+  }
+  ctx.globalAlpha=1; ctx.lineCap="butt";
   // 敵
   for(const en of G.enemies){
     const r=en.e.r;
