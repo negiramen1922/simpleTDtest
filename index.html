@@ -1126,7 +1126,8 @@ const TYPES={
            ultName:"極大魔導光",ultGauge:26,ultBeam:{dur:1.3,width:1.8,len:8,dps:8}}},
   artillery:{name:"アーティラリー",role:"ARTILLERY",letter:"R",color:"#f4a259",place:"hill",cost:17,
     hp:320,atk:90,interval:2.6,block:0,range:6.0,kind:"barrage",aoe:1.3,delay:1.0,targets:"ground",
-    skill:{name:"絨毯爆撃",spMax:15,dur:8,atk:1.5,aoe:1.7,spd:1.6,shots:3,antiAir:true}},
+    skill:{name:"絨毯爆撃",spMax:15,dur:8,atk:1.5,aoe:1.7,spd:1.6,shots:3,antiAir:true,
+           ultName:"全砲門斉射",ultGauge:26,ultBombard:{n:10,gap:0.18,mul:2.2,aoe:1.6}}},
   archer:{name:"アーチャー",role:"ANTI-AIR",letter:"Y",color:"#86e0a3",place:"hill",cost:13,
     hp:330,atk:155,interval:0.8,block:0,range:4.0,kind:"range",targets:"air",
     skill:{name:"連射の雨",spMax:11,dur:7,atk:1.6,spd:1.8}},
@@ -2114,7 +2115,7 @@ function fireSkill(u){
   return true;
 }
 // スキルが発動時に固有の一撃を持つか（汎用ボーナスを抑制する判定に使用）
-function hasCustomActivate(sk){ return !!(sk && (sk.smash||sk.frontSlash||sk.ultFrontSlash||sk.ultFlySlash||sk.ultChargeAlly||sk.ultBarrage||sk.ultDotField||sk.ultLanceCharge||sk.ultChargeAxe||sk.ultBeam)); }
+function hasCustomActivate(sk){ return !!(sk && (sk.smash||sk.frontSlash||sk.ultFrontSlash||sk.ultFlySlash||sk.ultChargeAlly||sk.ultBarrage||sk.ultDotField||sk.ultLanceCharge||sk.ultChargeAxe||sk.ultBeam||sk.ultBombard)); }
 // エンチャンターのバフ対象：射程内で攻撃/回復する味方のうち、最もバフ残量が少ない味方
 function pickBuffAlly(u,R){
   let best=null,bv=Infinity;
@@ -2176,6 +2177,8 @@ function skillActivate(u,isUlt){
   if(isUlt && sk.ultChargeAxe){ const f=sk.ultChargeAxe; u.axe={t:(f.charge||0.5),chargeDur:(f.charge||0.5),hitsLeft:f.n,gap:f.gap,mul:f.mul,r:f.r,ls:f.ls,charging:true}; return; }
   // 必殺技：強力な狙撃を連射（スナイパー）。スキル強化はそのまま＋追加でn連射
   if(isUlt && sk.ultBurst){ const f=sk.ultBurst; u.shotBurst={left:f.n,t:0,gap:f.gap,mul:f.mul}; }
+  // 必殺技：通路のランダムな敵へ連続砲撃（アーティラリー）。対象は毎回抽出
+  if(isUlt && sk.ultBombard){ const f=sk.ultBombard; u.bombard={left:f.n,t:0,gap:f.gap,mul:f.mul,aoe:f.aoe}; return; }
   // 必殺技：魔法陣を展開して巨大範囲ビーム（メイジ）
   if(isUlt && sk.ultBeam){ const f=sk.ultBeam; const fa=forwardAngle(u,99*TILE);
     u.magicBeam={t:f.dur,dur:f.dur,dir:fa.found?fa.ang:0,width:f.width*TILE,len:f.len*TILE,dps:statATK(u.cfg,u.type)*f.dps*(u.atkBuff||1),tick:0};
@@ -2453,6 +2456,15 @@ function update(dt){
     if(u.bombQueue){ u.bombQueue.t-=dt; if(u.bombQueue.t<=0 && u.bombQueue.left>0){ throwBomb(u,u.bombQueue.mul,u.bombQueue.aoe,u.bombQueue.stun); u.bombQueue.left--; u.bombQueue.t=u.bombQueue.gap; if(u.bombQueue.left<=0)u.bombQueue=null; } }
     // 狙撃連射キュー（スナイパー必殺技）：強力な弾を連射
     if(u.shotBurst){ u.shotBurst.t-=dt; if(u.shotBurst.t<=0 && u.shotBurst.left>0){ fireSniperShot(u,u.shotBurst.mul); u.shotBurst.left--; u.shotBurst.t=u.shotBurst.gap; if(u.shotBurst.left<=0)u.shotBurst=null; } }
+    // 連続砲撃キュー（アーティラリー必殺技）：通路のランダムな敵を毎回抽出して砲撃
+    if(u.bombard){ u.bombard.t-=dt; if(u.bombard.t<=0 && u.bombard.left>0){
+      const cands=G.enemies.filter(e=>e.hp>0);
+      if(cands.length){ const tg=cands[Math.floor(Math.random()*cands.length)];
+        const aoeR=(u.bombard.aoe||u.cfg.aoe)*TILE, dmg=statATK(u.cfg,u.type)*u.bombard.mul*(u.atkBuff||1);
+        G.fx.push({type:"shell",x:tg.x,y:tg.y,col:u.cfg.color,life:(u.cfg.delay||0.6)+0.02,age:0,delay:(u.cfg.delay||0.6),dmg,aoeR,fromU:u});
+      }
+      u.bombard.left--; u.bombard.t=u.bombard.gap; if(u.bombard.left<=0)u.bombard=null; Sound.play("shell");
+    } }
     // 魔法連撃キュー（メイジ スキル）：魔法弾を連続発射＋確率でスタック
     if(u.magicBurst){ u.magicBurst.t-=dt; if(u.magicBurst.t<=0 && u.magicBurst.left>0){ fireMagicShot(u,u.magicBurst.mul,u.magicBurst.stackChance); u.magicBurst.left--; u.magicBurst.t=u.magicBurst.gap; if(u.magicBurst.left<=0)u.magicBurst=null; } }
     // 巨大魔法ビーム（メイジ必殺技）：前方の帯状範囲に継続ダメージ
@@ -2965,8 +2977,14 @@ function update(dt){
       for(const en of G.enemies){
         if((!f.fromU||canHit(f.fromU,en)) && dist(en,f)<=f.aoeR){ hurtEnemy(en,f.dmg,f.col,f.fromU); }
       }
-      addFx({type:"ring",x:f.x,y:f.y,r:f.aoeR,col:f.col,life:0.4});
-      addFx({type:"pop",x:f.x,y:f.y,col:f.col,life:0.4});
+      // 砲撃の着弾演出：閃光＋多重衝撃波＋瓦礫＋立ち上る煙
+      addFx({type:"flash",x:f.x,y:f.y,r:f.aoeR*0.9,col:"#fff",life:0.16});
+      addFx({type:"ring",x:f.x,y:f.y,r:f.aoeR,col:"#ffe7b0",life:0.35});
+      addFx({type:"ring",x:f.x,y:f.y,r:f.aoeR*1.35,col:f.col,life:0.5});
+      addFx({type:"pop",x:f.x,y:f.y,col:f.col,life:0.45});
+      for(let i=0;i<9;i++){ const a=Math.random()*7, sp=60+Math.random()*140; addFx({type:"frag",x:f.x,y:f.y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,col:i%2?"#ffb340":"#8a7460",life:0.45+Math.random()*0.35,r:2+Math.random()*2}); }
+      for(let i=0;i<5;i++){ const a=Math.random()*7, d=Math.random()*f.aoeR*0.6; addFx({type:"smoke",x:f.x+Math.cos(a)*d,y:f.y+Math.sin(a)*d,r:f.aoeR*(0.35+Math.random()*0.3),life:0.7+Math.random()*0.5}); }
+      Sound.play("aoe");
     }
   }
   G.fx=G.fx.filter(f=>f.age<f.life);
@@ -3474,6 +3492,14 @@ function drawFx(f){
     const seg=6, rot=G.t*3; ctx.strokeStyle=hexA(f.col,al*0.85);ctx.lineWidth=2;
     for(let i=0;i<seg;i++){ const a=rot+i/seg*7; ctx.beginPath();ctx.moveTo(f.x+Math.cos(a)*rr*0.66,f.y+Math.sin(a)*rr*0.66);ctx.lineTo(f.x+Math.cos(a)*rr,f.y+Math.sin(a)*rr);ctx.stroke(); }
     ctx.fillStyle=hexA("#fff",al*0.5);ctx.beginPath();ctx.arc(f.x,f.y,rr*0.24,0,7);ctx.fill();
+  }else if(f.type==="flash"){
+    // 着弾の閃光
+    const al=Math.max(0,1-p), rr=(f.r||TILE)*(0.5+p*0.7);
+    ctx.fillStyle=hexA(f.col||"#ffffff",al*0.85);ctx.beginPath();ctx.arc(f.x,f.y,rr,0,7);ctx.fill();
+  }else if(f.type==="smoke"){
+    // 立ち上る煙
+    const al=Math.max(0,(1-p)*0.5), rr=(f.r||20)*(0.6+p*0.85), yy=f.y-p*16;
+    ctx.fillStyle=`rgba(124,120,116,${al})`;ctx.beginPath();ctx.arc(f.x,yy,rr,0,7);ctx.fill();
   }else if(f.type==="shell"){
     const tp=Math.min(1,f.age/f.delay);
     ctx.strokeStyle=hexA(f.col,.85);ctx.lineWidth=2;
@@ -4018,7 +4044,8 @@ const ULT_DESC={
   lancer:"槍を構えて正面に突撃し、直線上の敵すべてを貫いてダメージ＋ノックバックする。",
   berserker:"0.5秒ためてから斧を叩きつけ、正面2マスを衝撃波で多段攻撃。与ダメージの30%を回復する。",
   sniper:"攻撃力・連射速度を強化しつつ、強力な狙撃弾を5連射する。",
-  mage:"魔法陣を展開し、前方の広範囲を貫く巨大な魔導ビームを撃つ。"
+  mage:"魔法陣を展開し、前方の広範囲を貫く巨大な魔導ビームを撃つ。",
+  artillery:"通路のランダムな敵へ砲撃を10連射（対象は毎回抽出）。広範囲を制圧する。"
 };
 
 /* ----- 育成 ----- */
