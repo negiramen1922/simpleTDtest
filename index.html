@@ -1121,8 +1121,9 @@ const TYPES={
     hp:300,atk:520,interval:2.3,block:0,range:5.0,kind:"range",targets:"both",bullet:true,
     skill:{name:"必殺の一撃",spMax:13,dur:7,atk:2.6,spd:1.5,ultName:"連弾狙撃",ultGauge:26,ultBurst:{n:5,mul:3.0,gap:0.12}}},
   mage:{name:"メイジ",role:"MAGE",letter:"E",color:"#c08bff",place:"hill",cost:15,
-    hp:340,atk:130,interval:1.3,block:0,range:3.4,kind:"aoe",aoe:0.95,stun:0,targets:"both",
-    skill:{name:"魔力爆轟",spMax:13,dur:7,atk:1.8,aoe:1.4,spd:1.4,stun:0.4}},
+    hp:340,atk:130,interval:1.3,block:0,range:3.4,kind:"aoe",aoe:0.95,stun:0,targets:"both",magic:true,
+    skill:{name:"魔力爆轟",spMax:6,dur:0.7,magicCombo:{n:5,mul:1.2,gap:0.12},stackChance:0.3,
+           ultName:"極大魔導光",ultGauge:26,ultBeam:{dur:1.3,width:1.8,len:8,dps:8}}},
   artillery:{name:"アーティラリー",role:"ARTILLERY",letter:"R",color:"#f4a259",place:"hill",cost:17,
     hp:320,atk:90,interval:2.6,block:0,range:6.0,kind:"barrage",aoe:1.3,delay:1.0,targets:"ground",
     skill:{name:"絨毯爆撃",spMax:15,dur:8,atk:1.5,aoe:1.7,spd:1.6,shots:3,antiAir:true}},
@@ -2113,7 +2114,7 @@ function fireSkill(u){
   return true;
 }
 // スキルが発動時に固有の一撃を持つか（汎用ボーナスを抑制する判定に使用）
-function hasCustomActivate(sk){ return !!(sk && (sk.smash||sk.frontSlash||sk.ultFrontSlash||sk.ultFlySlash||sk.ultChargeAlly||sk.ultBarrage||sk.ultDotField||sk.ultLanceCharge||sk.ultChargeAxe)); }
+function hasCustomActivate(sk){ return !!(sk && (sk.smash||sk.frontSlash||sk.ultFrontSlash||sk.ultFlySlash||sk.ultChargeAlly||sk.ultBarrage||sk.ultDotField||sk.ultLanceCharge||sk.ultChargeAxe||sk.ultBeam)); }
 // エンチャンターのバフ対象：射程内で攻撃/回復する味方のうち、最もバフ残量が少ない味方
 function pickBuffAlly(u,R){
   let best=null,bv=Infinity;
@@ -2175,6 +2176,12 @@ function skillActivate(u,isUlt){
   if(isUlt && sk.ultChargeAxe){ const f=sk.ultChargeAxe; u.axe={t:(f.charge||0.5),chargeDur:(f.charge||0.5),hitsLeft:f.n,gap:f.gap,mul:f.mul,r:f.r,ls:f.ls,charging:true}; return; }
   // 必殺技：強力な狙撃を連射（スナイパー）。スキル強化はそのまま＋追加でn連射
   if(isUlt && sk.ultBurst){ const f=sk.ultBurst; u.shotBurst={left:f.n,t:0,gap:f.gap,mul:f.mul}; }
+  // 必殺技：魔法陣を展開して巨大範囲ビーム（メイジ）
+  if(isUlt && sk.ultBeam){ const f=sk.ultBeam; const fa=forwardAngle(u,99*TILE);
+    u.magicBeam={t:f.dur,dur:f.dur,dir:fa.found?fa.ang:0,width:f.width*TILE,len:f.len*TILE,dps:statATK(u.cfg,u.type)*f.dps*(u.atkBuff||1),tick:0};
+    addFx({type:"magicburst",x:u.x,y:u.y,r:TILE*1.6,col:u.cfg.color,life:0.6}); Sound.play("aoe"); return; }
+  // スキル：魔法を連続発射（メイジ）。命中ごとに確率で攻撃力スタック
+  if(!isUlt && sk.magicCombo){ const f=sk.magicCombo; u.magicBurst={left:f.n,t:0,gap:f.gap,mul:f.mul,stackChance:sk.stackChance||0}; }
   // スキル：目の前に大斬撃×n（カノン 天蓋連牙）。連撃キューで時間差発生
   if(sk.frontSlash){ const f=sk.frontSlash; u.combo={left:f.n,t:0,gap:f.gap,mul:f.mul*(isUlt?ULT_POW:1),r:f.r,thrust:f.thrust}; }
 }
@@ -2230,6 +2237,16 @@ function doFlySlash(u,f){
     G.shots.push({fly:true,x:u.x-dx*i*30,y:u.y-dy*i*30,dirx:dx,diry:dy,spd:f.spd,life:f.life,dmg,col:u.cfg.color,owner:u,r:f.r*TILE,hit:new Set()});
   }
   addFx({type:"skill",x:u.x,y:u.y,col:u.cfg.color,life:0.6}); Sound.play("skill");
+}
+// 魔法弾を1発撃つ（メイジ スキルの連撃から呼ばれる）。命中時に確率で攻撃力スタック獲得
+function fireMagicShot(u,mul,stackChance){
+  const tg=pickEnemy(u); if(!tg)return;
+  const s=shot(u,tg,statATK(u.cfg,u.type)*mul*(u.atkBuff||1),u.cfg.color,"aoe");
+  s.aoeR=(u.cfg.aoe||1)*TILE; s.stun=0; s.magic=true; G.shots.push(s); Sound.play("aoe");
+  if(stackChance>0 && Math.random()<stackChance){
+    u.atkStacks=Math.min(5,(u.atkStacks||0)+1); u.atkStackT=10;
+    floatNum(u.x,u.y-12,u.atkStacks,"#c08bff","魔力+"); addFx({type:"heal",x:u.x,y:u.y,life:0.3});
+  }
 }
 // 強力な狙撃弾を1発撃つ（スナイパー必殺技の連射から呼ばれる）
 function fireSniperShot(u,mul){
@@ -2436,6 +2453,17 @@ function update(dt){
     if(u.bombQueue){ u.bombQueue.t-=dt; if(u.bombQueue.t<=0 && u.bombQueue.left>0){ throwBomb(u,u.bombQueue.mul,u.bombQueue.aoe,u.bombQueue.stun); u.bombQueue.left--; u.bombQueue.t=u.bombQueue.gap; if(u.bombQueue.left<=0)u.bombQueue=null; } }
     // 狙撃連射キュー（スナイパー必殺技）：強力な弾を連射
     if(u.shotBurst){ u.shotBurst.t-=dt; if(u.shotBurst.t<=0 && u.shotBurst.left>0){ fireSniperShot(u,u.shotBurst.mul); u.shotBurst.left--; u.shotBurst.t=u.shotBurst.gap; if(u.shotBurst.left<=0)u.shotBurst=null; } }
+    // 魔法連撃キュー（メイジ スキル）：魔法弾を連続発射＋確率でスタック
+    if(u.magicBurst){ u.magicBurst.t-=dt; if(u.magicBurst.t<=0 && u.magicBurst.left>0){ fireMagicShot(u,u.magicBurst.mul,u.magicBurst.stackChance); u.magicBurst.left--; u.magicBurst.t=u.magicBurst.gap; if(u.magicBurst.left<=0)u.magicBurst=null; } }
+    // 巨大魔法ビーム（メイジ必殺技）：前方の帯状範囲に継続ダメージ
+    if(u.magicBeam){ const mb=u.magicBeam; mb.t-=dt; mb.tick-=dt;
+      const dx=Math.cos(mb.dir),dy=Math.sin(mb.dir);
+      for(const e of G.enemies){ if(e.hp<=0||!canHit(u,e))continue;
+        const rx=e.x-u.x, ry=e.y-u.y, along=rx*dx+ry*dy, perp=Math.abs(rx*dy-ry*dx);
+        if(along>=-TILE*0.3 && along<=mb.len && perp<=mb.width/2){ hurtEnemy(e,mb.dps*dt,u.cfg.color,u); } }
+      if(mb.tick<=0){ mb.tick=0.06; const dd=Math.random()*mb.len, pp=(Math.random()-0.5)*mb.width; addFx({type:"frag",x:u.x+dx*dd-dy*pp,y:u.y+dy*dd+dx*pp,vx:dx*60,vy:dy*60,col:u.cfg.color,life:0.3,r:3}); }
+      if(mb.t<=0)u.magicBeam=null;
+    }
     // 持続ダメージ領域（ハーヴェスター デッドハーヴェスト）：必殺技中、周囲の敵に継続ダメージ
     if(u.ultActive && sk.ultDotField){ const f=sk.ultDotField, R=f.r*TILE, dps=statATK(u.cfg,u.type)*f.dps*(u.atkBuff||1);
       for(const e of G.enemies){ if(e.hp>0 && canHit(u,e) && dist(u,e)<=R) hurtEnemy(e,dps*dt,u.cfg.color,u); }
@@ -2456,9 +2484,11 @@ function update(dt){
   }
   // 隊長が射程外になった敵のバフは毎フレーム減衰（captainSpdを一旦リセットして上で再付与）
   for(const e of G.enemies){ if(!G.enemies.some(c=>c.e.auraR && c!==e && dist(c,e)<=c.e.auraR*TILE)) e.captainSpd=1; }
-  for(const u of G.units){u.spdBuff=1;u.atkBuff=1;u.shield=u.shield||0; if(u.encBuffT>0)u.encBuffT-=dt;}
+  for(const u of G.units){u.spdBuff=1;u.atkBuff=1;u.shield=u.shield||0; if(u.encBuffT>0)u.encBuffT-=dt; if(u.atkStackT>0){u.atkStackT-=dt; if(u.atkStackT<=0)u.atkStacks=0;}}
   // エンチャンターのビームバフ（時限）
   for(const u of G.units){ if(u.encBuffT>0){ u.spdBuff=Math.max(u.spdBuff,u.encSpd||1); u.atkBuff=Math.max(u.atkBuff,u.encAtk||1); } }
+  // メイジの攻撃力スタック（魔力）：1スタックごとに攻撃力+10%
+  for(const u of G.units){ if(u.atkStackT>0 && u.atkStacks>0){ u.atkBuff*=(1+0.1*u.atkStacks); } }
   for(const u of G.units){
     if(u.cfg.kind!=="support")continue;
     const sk=u.cfg.skill, active=u.skillActive;
@@ -2748,6 +2778,7 @@ function update(dt){
           const s=shot(u,tg,u.atk*atkMult,u.cfg.color,"aoe");
           s.aoeR=(active&&sk.aoe?sk.aoe:u.cfg.aoe)*TILE;
           s.stun=(active&&sk.stun?sk.stun:u.cfg.stun);
+          if(u.cfg.magic)s.magic=true; // メイジ：魔法弾＋魔法陣の着弾
           G.shots.push(s); Sound.play("aoe");
         }
       }
@@ -2855,7 +2886,8 @@ function update(dt){
         for(const en of G.enemies){
           if(canHit(s.owner,en) && dist(en,s.target)<=R){en.stun=Math.max(en.stun,s.stun); hurtEnemy(en,s.dmg,s.col,s.owner);}
         }
-        addFx({type:"ring",x:s.target.x,y:s.target.y,r:R,col:s.col,life:0.4});
+        if(s.magic) addFx({type:"magicburst",x:s.target.x,y:s.target.y,r:R,col:s.col,life:0.5});
+        else addFx({type:"ring",x:s.target.x,y:s.target.y,r:R,col:s.col,life:0.4});
       } else if(s.kind==="chain"){
         // 連鎖：命中した敵から近い敵へ次々と飛ぶ（威力減衰）
         let cur=s.target, dmg=s.dmg, hit=new Set([cur]);
@@ -3152,6 +3184,16 @@ function draw(){
       ctx.fillStyle="#fff";ctx.beginPath();ctx.arc(s.x,s.y,2,0,7);ctx.fill();
       continue;
     }
+    if(s.magic){
+      // 魔法弾：光る魔力球＋淡い尾
+      const a=Math.atan2(s.target.y-s.y,s.target.x-s.x);
+      ctx.strokeStyle=hexA(s.col,0.4);ctx.lineWidth=5;ctx.lineCap="round";
+      ctx.beginPath();ctx.moveTo(s.x,s.y);ctx.lineTo(s.x-Math.cos(a)*14,s.y-Math.sin(a)*14);ctx.stroke();ctx.lineCap="butt";
+      ctx.fillStyle=hexA(s.col,0.4);ctx.beginPath();ctx.arc(s.x,s.y,6.5,0,7);ctx.fill();
+      ctx.fillStyle=s.col;ctx.beginPath();ctx.arc(s.x,s.y,4,0,7);ctx.fill();
+      ctx.fillStyle="#fff";ctx.beginPath();ctx.arc(s.x,s.y,1.8,0,7);ctx.fill();
+      continue;
+    }
     ctx.strokeStyle=s.col;ctx.lineWidth=s.kind==="aoe"?3:2;
     const a=Math.atan2(s.target.y-s.y,s.target.x-s.x);
     ctx.beginPath();ctx.moveTo(s.x,s.y);ctx.lineTo(s.x-Math.cos(a)*10,s.y-Math.sin(a)*10);ctx.stroke();
@@ -3187,6 +3229,20 @@ function drawGate(x,y,col,label){
 }
 function drawUnit(u){
   const x=u.x,y=u.y,s=TILE*0.74,col=u.cfg.color;
+  // 巨大魔法ビーム（メイジ必殺技）：帯状のビーム＋発射元の魔法陣
+  if(u.magicBeam){ const mb=u.magicBeam, prog=1-mb.t/mb.dur, pulse=0.6+0.4*Math.sin(G.t*30);
+    ctx.save();ctx.translate(x,y);ctx.rotate(mb.dir);
+    const w=mb.width*(0.5+0.5*Math.min(1,prog*4))*(mb.t<0.2?mb.t/0.2:1); // 出現と収束
+    ctx.fillStyle=hexA(col,0.22*pulse); ctx.fillRect(0,-w/2,mb.len,w);
+    ctx.fillStyle=hexA(col,0.5*pulse); ctx.fillRect(0,-w*0.28,mb.len,w*0.56);
+    ctx.fillStyle=hexA("#fff",0.85*pulse); ctx.fillRect(0,-w*0.1,mb.len,w*0.2);
+    ctx.restore();
+    // 発射元の回転魔法陣
+    const rr=s*0.95; ctx.strokeStyle=hexA(col,0.9);ctx.lineWidth=3;
+    ctx.beginPath();ctx.arc(x,y,rr,0,7);ctx.stroke();
+    ctx.strokeStyle=hexA("#fff",0.6);ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(x,y,rr*0.6,0,7);ctx.stroke();
+    for(let i=0;i<8;i++){const a=G.t*4+i/8*7;ctx.strokeStyle=hexA(col,0.8);ctx.beginPath();ctx.moveTo(x+Math.cos(a)*rr*0.6,y+Math.sin(a)*rr*0.6);ctx.lineTo(x+Math.cos(a)*rr,y+Math.sin(a)*rr);ctx.stroke();}
+  }
   // 必殺技中グロー（マゼンタ）／スキル発動中グロー
   if(u.ultActive){
     const pulse=0.5+0.5*Math.sin(G.t*14);
@@ -3410,6 +3466,14 @@ function drawFx(f){
     ctx.beginPath();ctx.moveTo(f.x,f.y);ctx.lineTo(ex,ey);ctx.stroke();
     ctx.fillStyle=hexA("#fff",1-p);ctx.beginPath();ctx.arc(ex,ey,(f.wide?5:3.2)*(1-p*0.3),0,7);ctx.fill();
     ctx.lineCap="butt";
+  }else if(f.type==="magicburst"){
+    // 魔法陣の着弾：広がる円＋回転する刻印＋中央フラッシュ
+    const R=f.r||TILE, al=1-p, rr=R*(0.5+p*0.6);
+    ctx.strokeStyle=hexA(f.col,al);ctx.lineWidth=2.5;ctx.beginPath();ctx.arc(f.x,f.y,rr,0,7);ctx.stroke();
+    ctx.strokeStyle=hexA("#fff",al*0.7);ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(f.x,f.y,rr*0.66,0,7);ctx.stroke();
+    const seg=6, rot=G.t*3; ctx.strokeStyle=hexA(f.col,al*0.85);ctx.lineWidth=2;
+    for(let i=0;i<seg;i++){ const a=rot+i/seg*7; ctx.beginPath();ctx.moveTo(f.x+Math.cos(a)*rr*0.66,f.y+Math.sin(a)*rr*0.66);ctx.lineTo(f.x+Math.cos(a)*rr,f.y+Math.sin(a)*rr);ctx.stroke(); }
+    ctx.fillStyle=hexA("#fff",al*0.5);ctx.beginPath();ctx.arc(f.x,f.y,rr*0.24,0,7);ctx.fill();
   }else if(f.type==="shell"){
     const tp=Math.min(1,f.age/f.delay);
     ctx.strokeStyle=hexA(f.col,.85);ctx.lineWidth=2;
@@ -3913,7 +3977,7 @@ const SKILL_DESC={
   lancer:"正面3マスに5回の突きを繰り出す。さらに自身を加速し通常攻撃を高速化する。",
   berserker:"攻撃・速度UP＋与ダメの35%を自己回復。",
   sniper:"攻撃力2.6倍の超火力狙撃。",
-  mage:"範囲・威力UP＋スタンを付与。",
+  mage:"魔法を5連射し、命中ごとに30%で攻撃力+10%（最大5スタック・10秒）を獲得する。",
   artillery:"1射ごとに3発の広範囲砲撃を投下。",
   archer:"攻撃速度が大幅UP。飛行敵を高速で撃ち落とす。",
   flak:"範囲・威力UP＋スタン付与の対空弾幕。",
@@ -3953,7 +4017,8 @@ const ULT_DESC={
   guardian:"周囲の敵に5連撃。被ダメージを70%軽減し、与えたダメージの50%を回復する。",
   lancer:"槍を構えて正面に突撃し、直線上の敵すべてを貫いてダメージ＋ノックバックする。",
   berserker:"0.5秒ためてから斧を叩きつけ、正面2マスを衝撃波で多段攻撃。与ダメージの30%を回復する。",
-  sniper:"攻撃力・連射速度を強化しつつ、強力な狙撃弾を5連射する。"
+  sniper:"攻撃力・連射速度を強化しつつ、強力な狙撃弾を5連射する。",
+  mage:"魔法陣を展開し、前方の広範囲を貫く巨大な魔導ビームを撃つ。"
 };
 
 /* ----- 育成 ----- */
