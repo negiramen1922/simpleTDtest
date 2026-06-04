@@ -1146,9 +1146,9 @@ const TYPES={
     hp:980,atk:150,interval:1.1,block:2,kind:"melee",targets:"both",airReach:1.6,thrust:true,
     skill:{name:"竜のブレス",spMax:12,dur:1.0,breath:{n:20,mul:0.5,range:3,dur:1.0,spread:0.55},
            ultName:"大ブレス",ultGauge:26,ultBreath:{n:40,mul:0.7,range:6,dur:1.6,spread:0.95}}},
-  guardknight:{name:"ガードナイト",role:"AEGIS",letter:"N",color:"#8fb8e0",place:"road",cost:15,
-    hp:1500,atk:80,interval:1.5,block:3,kind:"melee",targets:"ground",deathShield:400,
-    skill:{name:"守護の盾",spMax:12,dur:5,dr:0.5,shieldAura:200}},
+  sentinel:{name:"センチネル",role:"SENTINEL",letter:"哨",color:"#8fb8e0",place:"road",cost:15,
+    hp:1500,atk:120,interval:1.5,block:3,kind:"melee",targets:"ground",thrust:true,
+    skill:{name:"反撃の構え",spMax:10,dur:7,dr:0.3,counter:0.3}},
   duelist:{name:"デュエリスト",role:"DUEL",letter:"D",color:"#ff7a45",place:"road",cost:14,
     hp:760,atk:170,interval:0.85,block:1,kind:"melee",targets:"ground",duelMul:2.4,
     skill:{name:"決闘",spMax:10,dur:5,atk:1.6,spd:1.4,duelMul:3.4}},
@@ -1210,11 +1210,11 @@ const TYPES={
     hp:480,block:0,range:3.3,kind:"support",slow:1,spdBuff:1.2,atkAura:1.3,targets:"both",
     skill:{name:"進軍号令",spMax:13,dur:5,slow:0.7,spd:1.6,atk:1.8}}
 };
-const ORDER=["tank","attacker","shooter","healer","support","trickster","breaker","guardian","lancer","berserker","sniper","mage","artillery","archer","flak","dragonrider","guardknight","duelist","revenger","marksman","gunner","poisoner","chaincaster","freezer","shaman","summoner","commander","bard","alchemist","prospector","netcaster","harvester","warlord","archmage","valkyrie","highpriest","archon"];
+const ORDER=["tank","attacker","shooter","healer","support","trickster","breaker","guardian","lancer","berserker","sniper","mage","artillery","archer","flak","dragonrider","sentinel","duelist","revenger","marksman","gunner","poisoner","chaincaster","freezer","shaman","summoner","commander","bard","alchemist","prospector","netcaster","harvester","warlord","archmage","valkyrie","highpriest","archon"];
 // キャラアイコン画像（icons/<type>.png）。全キャラにアイコンを割り当て（読み込み失敗時はonerrorで文字にフォールバック）
 for(const t in TYPES){ TYPES[t].img="icons/"+t+".png?v=4"; }
 // 調整（レビュー）済みキャラ。未調整キャラは編成・出撃で使用不可（順次解放していく）
-const TUNED_LIST=["tank","attacker","shooter","healer","support","trickster","breaker","harvester","guardian","lancer","berserker","sniper","mage","artillery","archer","flak","dragonrider"];
+const TUNED_LIST=["tank","attacker","shooter","healer","support","trickster","breaker","harvester","guardian","lancer","berserker","sniper","mage","artillery","archer","flak","dragonrider","sentinel"];
 TUNED_LIST.forEach(t=>{ if(TYPES[t]) TYPES[t].tuned=true; });
 function isTuned(t){ return !!(TYPES[t]&&TYPES[t].tuned); }
 // アイコン用HTML（DOMカード共通）：画像があれば<img>、無ければ文字
@@ -1915,7 +1915,7 @@ const UNLOCK_COST={
   // 中堅：200〜300
   healer:200, support:200, trickster:250, breaker:250, guardian:300, lancer:250, berserker:300,
   // 上位：300〜450
-  mage:350, artillery:400, archer:300, flak:350, dragonrider:350, guardknight:400, duelist:350,
+  mage:350, artillery:400, archer:300, flak:350, dragonrider:350, sentinel:400, duelist:350,
   revenger:400, marksman:400, poisoner:400, chaincaster:450, freezer:450, shaman:450,
   summoner:500, bard:450, alchemist:400, prospector:350, netcaster:400, harvester:350,
   gunner:300, commander:450,
@@ -2063,7 +2063,7 @@ function tryPlace(c,r){
   track("unit_place", {unit:t, stage_id:currentStage&&currentStage.id});
 }
 function retreat(u){
-  // ガードナイト：倒れる/撤退時に周囲の味方へダメージシールドを残す
+  // センチネル：倒れる/撤退時に周囲の味方へダメージシールドを残す
   if(u.cfg.deathShield && u.hp<=0){
     for(const a of G.units){ if(a!==u && dist(u,a)<=2.2*TILE) a.shield=Math.max(a.shield||0,u.cfg.deathShield); }
     addFx({type:"ring",x:u.x,y:u.y,r:2.2*TILE,col:"#8fb8e0",life:0.5});
@@ -2097,8 +2097,15 @@ function knockback(en,tiles){
   const t=way[en.wp]; if(t){ const dd=Math.hypot(t.x-en.x,t.y-en.y); en.progress=en.wp+(1-dd/Math.max(1,TILE)); }
 }
 // 味方へのダメージ適用（カット→シールド→HPの順）
-function applyToUnit(u,dmg){
+function applyToUnit(u,dmg,attacker){
   dmg*=(1-unitDR(u));
+  // 反撃（センチネル）：反撃状態中に攻撃されると攻撃元へ攻撃力の一定割合を返す
+  const sk=u.cfg.skill;
+  if(attacker && attacker.hp>0 && u.skillActive && sk && sk.counter){
+    const back=statATK(u.cfg,u.type)*sk.counter;
+    hurtEnemy(attacker,back,"#ffd24a",u);
+    addFx({type:"thrust",x:u.x,y:u.y,ang:Math.atan2(attacker.y-u.y,attacker.x-u.x),len:TILE,col:"#ffd24a",life:0.18,wide:true});
+  }
   if(u.shield>0){ const a=Math.min(u.shield,dmg); u.shield-=a; dmg-=a;
     addFx({type:"hit",x:u.x,y:u.y,col:"#8fb8e0",life:0.22}); }
   if(dmg>0){ u.hp-=dmg; addFx({type:"hit",x:u.x,y:u.y,col:"#ff5b6e",life:0.25});
@@ -2592,7 +2599,7 @@ function update(dt){
     for(const a of G.units) if(a!==u && dist(u,a)<=R){a.spdBuff=Math.max(a.spdBuff,spdB); a.atkBuff=Math.max(a.atkBuff,atkB);}
   }
 
-  // --- ガードナイト：スキル中の周囲シールド付与 ---
+  // --- センチネル：スキル中の周囲シールド付与 ---
   for(const u of G.units){
     if(u.skillActive && u.cfg.skill && u.cfg.skill.shieldAura){
       const R=2.2*TILE, amt=u.cfg.skill.shieldAura;
@@ -2692,7 +2699,7 @@ function update(dt){
           en.cd=en.e.interval;
           const u=en.blockedBy;
           let dmg=en.atk*(en.enAtkBuff||1);
-          dmg=applyToUnit(u,dmg);
+          dmg=applyToUnit(u,dmg,en);
           if(u.hp<=0)retreat(u);
         }
       }
@@ -4057,7 +4064,7 @@ const ROLE_OF={
   tank:"tank", attacker:"attacker", shooter:"shooter", healer:"healer", support:"supporter",
   trickster:"trickster", breaker:"breaker", guardian:"tank", lancer:"attacker", berserker:"attacker",
   sniper:"shooter", mage:"shooter", artillery:"shooter", archer:"shooter", flak:"shooter",
-  dragonrider:"tank", guardknight:"tank", duelist:"attacker", revenger:"attacker", marksman:"shooter",
+  dragonrider:"tank", sentinel:"tank", duelist:"attacker", revenger:"attacker", marksman:"shooter",
   poisoner:"shooter", chaincaster:"trickster", freezer:"trickster", shaman:"supporter",
   summoner:"trickster", bard:"supporter", alchemist:"breaker", prospector:"breaker",
   gunner:"shooter", commander:"supporter",
@@ -4085,7 +4092,7 @@ const CODEX_DESC={
   archer:"対空特化の遠距離。飛行敵を撃ち落とす要。地上は撃てない。",
   flak:"対空の範囲攻撃。空に群がる飛行敵をまとめて撃ち落とす。地上は撃てない。",
   dragonrider:"地上をブロックしつつ低空の飛行敵も薙ぎ払える両対応の前衛。空の壁役。",
-  guardknight:"高HPの壁役。倒れる時に周囲の味方へダメージシールドを残す守り特化。",
+  sentinel:"高HPの反撃型タンク。反撃状態で被ダメを抑えつつ攻撃を受けるほど反撃でダメージを返す。",
   duelist:"1体しかブロックしないが、ブロック対象への与ダメが激増するタイマン特化。",
   revenger:"殴られるほどSPが溜まり、HPが減るほど攻撃力UP。被弾上等の前衛。",
   marksman:"射程内で最もHPの高い敵を優先狙撃する重装・ボスキラー。",
@@ -4124,7 +4131,7 @@ const SKILL_DESC={
   archer:"矢を一気に12本撃ち込む矢の雨（自身を少し加速）。",
   flak:"対空の範囲攻撃を5連射し、敵をノックバックする。",
   dragonrider:"前方3マスに竜のブレス（攻撃力50%×20ヒット）。地上か空中の片方だけに当たる。",
-  guardknight:"ダメージ50%カット＋周囲の味方へ継続的にシールドを付与。",
+  sentinel:"7秒間 反撃状態に。被ダメ-30%＋攻撃された時に攻撃力30%を相手へ返す。",
   duelist:"攻撃力・速度UP＋ブロック対象への与ダメ倍率がさらに増加。",
   revenger:"攻撃力・速度UP＋与ダメの40%を自己回復。",
   marksman:"攻撃力2.4倍の徹甲弾で重装を貫く。",
