@@ -1129,8 +1129,8 @@ const TYPES={
     skill:{name:"絨毯爆撃",spMax:15,dur:5,atk:1.5,aoe:1.7,spd:1.6,shots:3,antiAir:true,
            ultName:"全砲門斉射",ultGauge:26,ultBombard:{n:10,gap:0.18,mul:2.2,aoe:1.6}}},
   archer:{name:"アーチャー",role:"ANTI-AIR",letter:"Y",color:"#86e0a3",place:"hill",cost:13,
-    hp:330,atk:155,interval:0.8,block:0,range:4.0,kind:"range",targets:"air",
-    skill:{name:"連射の雨",spMax:11,dur:5,atk:1.6,spd:1.8}},
+    hp:330,atk:155,interval:0.8,block:0,range:4.0,kind:"range",targets:"air",arrow:true,
+    skill:{name:"連射の雨",spMax:11,dur:5,atk:1.1,spd:1.3,volley:7,ultName:"烈風連射",ultGauge:22,ultRange:1.8}},
   flak:{name:"フラック",role:"FLAK",letter:"F",color:"#7fc4ff",place:"hill",cost:16,
     hp:360,atk:120,interval:1.4,block:0,range:4.2,kind:"aoe",aoe:1.0,stun:0,targets:"air",
     skill:{name:"対空弾幕",spMax:13,dur:5,atk:1.6,aoe:1.6,spd:1.5,stun:0.4}},
@@ -2749,11 +2749,17 @@ function update(dt){
         if(tg){u.cd=itv;
           const s=shot(u,tg,u.atk*atkMult,u.cfg.color,"bolt");
           if(u.cfg.bullet) s.bullet=true; // スナイパー等：丸い弾頭で飛ばす
+          if(u.cfg.arrow) s.arrow=true;   // アーチャー：矢の見た目
           // ポイズナー：毒を付与
           if(u.cfg.poison){ s.poison=(active&&sk.poison?sk.poison:u.cfg.poison); s.poisonDur=(active&&sk.poisonDur?sk.poisonDur:u.cfg.poisonDur); }
           // フリーザー：凍結を付与
           if(u.cfg.freeze){ s.freeze=(active&&sk.freeze?sk.freeze:u.cfg.freeze); s.aoeFreeze=active&&sk.aoeFreeze?sk.aoeFreeze*TILE:0; }
           G.shots.push(s);
+          // アーチャー：スキル中は通常攻撃を一度にvolley発（射程内の敵へ分散、足りなければ最前へ）
+          if(active&&sk&&sk.volley&&sk.volley>1){
+            const R=unitRange(u), pool=G.enemies.filter(e=>e!==tg&&canHit(u,e)&&dist(u,e)<=R).sort((a,b)=>b.progress-a.progress);
+            for(let i=0;i<sk.volley-1;i++){ const t2=pool.length?pool[i%pool.length]:tg; const s2=shot(u,t2,u.atk*atkMult,u.cfg.color,"bolt"); if(u.cfg.arrow)s2.arrow=true; G.shots.push(s2); }
+          }
           Sound.play(u.type==="sniper"||u.type==="marksman"?"sniper":u.type==="archer"?"arrow":u.type==="freezer"?"shoot":"shoot");
         }
       }
@@ -3200,6 +3206,17 @@ function draw(){
       ctx.beginPath();ctx.moveTo(s.x,s.y);ctx.lineTo(s.x-Math.cos(a)*16,s.y-Math.sin(a)*16);ctx.stroke();ctx.lineCap="butt";
       ctx.fillStyle=s.col;ctx.beginPath();ctx.arc(s.x,s.y,4.5,0,7);ctx.fill();
       ctx.fillStyle="#fff";ctx.beginPath();ctx.arc(s.x,s.y,2,0,7);ctx.fill();
+      continue;
+    }
+    if(s.arrow){
+      // 矢：矢柄＋矢じり＋羽
+      const a=Math.atan2(s.target.y-s.y,s.target.x-s.x), c=Math.cos(a), sn=Math.sin(a);
+      ctx.strokeStyle=s.col;ctx.lineWidth=2;ctx.lineCap="round";
+      ctx.beginPath();ctx.moveTo(s.x-c*10,s.y-sn*10);ctx.lineTo(s.x+c*6,s.y+sn*6);ctx.stroke();ctx.lineCap="butt";
+      ctx.fillStyle=s.col;ctx.beginPath();ctx.moveTo(s.x+c*9,s.y+sn*9);ctx.lineTo(s.x+c*2-sn*3.5,s.y+sn*2+c*3.5);ctx.lineTo(s.x+c*2+sn*3.5,s.y+sn*2-c*3.5);ctx.closePath();ctx.fill();
+      ctx.strokeStyle=hexA("#ffffff",0.75);ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.moveTo(s.x-c*10,s.y-sn*10);ctx.lineTo(s.x-c*13-sn*3.5,s.y-sn*13+c*3.5);
+      ctx.moveTo(s.x-c*10,s.y-sn*10);ctx.lineTo(s.x-c*13+sn*3.5,s.y-sn*13-c*3.5);ctx.stroke();
       continue;
     }
     if(s.magic){
@@ -4005,7 +4022,7 @@ const SKILL_DESC={
   sniper:"攻撃力2.6倍の超火力狙撃。",
   mage:"魔法を5連射し、命中ごとに30%で攻撃力+10%（最大5スタック・10秒）を獲得する。",
   artillery:"1射ごとに3発の広範囲砲撃を投下。",
-  archer:"攻撃速度が大幅UP。飛行敵を高速で撃ち落とす。",
+  archer:"通常攻撃が一度に7本の矢を放つ矢の雨になる。",
   flak:"範囲・威力UP＋スタン付与の対空弾幕。",
   halberdier:"攻撃力・速度UP＋対空の薙ぎ範囲が拡大。",
   guardknight:"ダメージ50%カット＋周囲の味方へ継続的にシールドを付与。",
@@ -4045,7 +4062,8 @@ const ULT_DESC={
   berserker:"0.5秒ためてから斧を叩きつけ、正面2マスを衝撃波で多段攻撃。与ダメージの30%を回復する。",
   sniper:"攻撃力・連射速度を強化しつつ、強力な狙撃弾を5連射する。",
   mage:"魔法陣を展開し、前方の広範囲を貫く巨大な魔導ビームを撃つ。",
-  artillery:"通路のランダムな敵へ砲撃を10連射（対象は毎回抽出）。広範囲を制圧する。"
+  artillery:"通路のランダムな敵へ砲撃を10連射（対象は毎回抽出）。広範囲を制圧する。",
+  archer:"攻撃速度と射程が大きく伸び、矢の雨で空を制圧する。"
 };
 
 /* ----- 育成 ----- */
