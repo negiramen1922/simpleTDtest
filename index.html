@@ -1163,8 +1163,9 @@ const TYPES={
     skill:{name:"報復",spMax:11,dur:0.5,revenge:true,
            ultName:"復讐の進撃",ultGauge:24,ultDur:1.5,revUlt:true}},
   marksman:{name:"マークスマン",role:"MARKSMAN",letter:"J",color:"#5ad6c0",place:"hill",cost:15,
-    hp:310,atk:420,interval:2.0,block:0,range:5.2,kind:"range",targets:"both",aimMax:true,
-    skill:{name:"徹甲弾",spMax:13,dur:5,atk:2.4,spd:1.4}},
+    hp:310,atk:420,interval:2.0,block:0,range:5.2,kind:"range",targets:"both",aimMax:true,bullet:true,magSize:5,reloadTime:1.8,vulnStack:0.1,vulnMax:1.5,vulnDur:5,
+    skill:{name:"徹甲弾",spMax:11,dur:0.6,apBurst:{n:3,mul:2.0},
+           ultName:"クイックドロウ",ultGauge:24,ultApBurst:{n:5,mul:1.5}}},
   poisoner:{name:"ポイズナー",role:"POISON",letter:"P",color:"#9bd44a",place:"hill",cost:13,
     hp:320,atk:55,interval:1.2,block:0,range:3.6,kind:"range",targets:"both",poison:70,poisonDur:4,
     skill:{name:"猛毒散布",spMax:13,dur:5,poison:180,poisonDur:5,spd:1.4}},
@@ -1222,7 +1223,7 @@ const ORDER=["tank","attacker","shooter","healer","support","trickster","breaker
 // キャラアイコン画像（icons/<type>.png）。全キャラにアイコンを割り当て（読み込み失敗時はonerrorで文字にフォールバック）
 for(const t in TYPES){ TYPES[t].img="icons/"+t+".png?v=4"; }
 // 調整（レビュー）済みキャラ。未調整キャラは編成・出撃で使用不可（順次解放していく）
-const TUNED_LIST=["tank","attacker","shooter","healer","support","trickster","breaker","harvester","guardian","lancer","berserker","sniper","mage","artillery","archer","flak","dragonrider","sentinel","paladin","duelist","gunner","revenger"];
+const TUNED_LIST=["tank","attacker","shooter","healer","support","trickster","breaker","harvester","guardian","lancer","berserker","sniper","mage","artillery","archer","flak","dragonrider","sentinel","paladin","duelist","gunner","revenger","marksman"];
 TUNED_LIST.forEach(t=>{ if(TYPES[t]) TYPES[t].tuned=true; });
 function isTuned(t){ return !!(TYPES[t]&&TYPES[t].tuned); }
 // アイコン用HTML（DOMカード共通）：画像があれば<img>、無ければ文字
@@ -2152,7 +2153,7 @@ function fireSkill(u){
   return true;
 }
 // スキルが発動時に固有の一撃を持つか（汎用ボーナスを抑制する判定に使用）
-function hasCustomActivate(sk){ return !!(sk && (sk.smash||sk.frontSlash||sk.ultFrontSlash||sk.ultFlySlash||sk.ultChargeAlly||sk.ultBarrage||sk.ultDotField||sk.ultLanceCharge||sk.ultChargeAxe||sk.ultBeam||sk.ultBombard||sk.ultBreath||sk.ultTaunt||sk.ultDuelCombo||sk.ultGatling||sk.revUlt)); }
+function hasCustomActivate(sk){ return !!(sk && (sk.smash||sk.frontSlash||sk.ultFrontSlash||sk.ultFlySlash||sk.ultChargeAlly||sk.ultBarrage||sk.ultDotField||sk.ultLanceCharge||sk.ultChargeAxe||sk.ultBeam||sk.ultBombard||sk.ultBreath||sk.ultTaunt||sk.ultDuelCombo||sk.ultGatling||sk.revUlt||sk.ultApBurst)); }
 // エンチャンターのバフ対象：射程内で攻撃/回復する味方のうち、最もバフ残量が少ない味方
 function pickBuffAlly(u,R){
   let best=null,bv=Infinity;
@@ -2231,6 +2232,9 @@ function skillActivate(u,isUlt){
   if(isUlt && sk.ultDuelCombo){ const f=sk.ultDuelCombo; u.duelQ={left:f.n,t:0,gap:f.gap||0.15,mul:f.mul}; }
   // ガンナー：二丁乱射（通常攻撃を連続）＋撃ち切り後にリロード完了
   if(!isUlt && sk.gunReload){ u.gunBurst={left:sk.gunReload,t:0,gap:0.06}; }
+  // マークスマン：徹甲弾バースト（スキル）／即時リロードして5連射（必殺技）。どちらも防御50%貫通
+  if(!isUlt && sk.apBurst){ const f=sk.apBurst; u.apQ={left:f.n,t:0,gap:0.18,mul:f.mul}; }
+  if(isUlt && sk.ultApBurst){ const f=sk.ultApBurst; u.mag=0; u.reloadT=0; u.apQ={left:f.n,t:0,gap:0.12,mul:f.mul}; return; }
   // リベンジャー：報復スキル（HP依存2連撃）＋ウルト強化スタック
   if(!isUlt && sk.revenge){ u.revSkillQ={left:2,t:0,gap:0.14}; u.revStacks=Math.min(5,(u.revStacks||0)+1); u.revStackT=12; floatNum(u.x,u.y-14,u.revStacks,"#ff5b7a","復讐+"); }
   // リベンジャー必殺技：前進しながら10連撃ノックバック（スタックで火力UP）
@@ -2363,6 +2367,15 @@ function fireGunShot(u){
   const per=u.cfg.perShot||1;
   for(let i=0;i<per;i++){ const s=shot(u,tg,statATK(u.cfg,u.type)*(u.atkBuff||1),u.cfg.color,"bolt"); s.bullet=!!u.cfg.bullet; s.spd=900; s.x+=(Math.random()*8-4); G.shots.push(s); }
   Sound.play("shoot");
+}
+// 徹甲弾を1発撃つ（マークスマン）。シールド50%貫通＋被ダメスタック
+function fireApShot(u,mul){
+  const tg=pickEnemy(u); if(!tg)return;
+  const s=shot(u,tg,statATK(u.cfg,u.type)*mul*(u.atkBuff||1),u.cfg.color,"bolt");
+  s.bullet=true; s.spd=1300; s.armorPierce=0.5;
+  if(u.cfg.vulnStack){ s.vulnStack=u.cfg.vulnStack; s.vulnMax=u.cfg.vulnMax; s.vulnDur=u.cfg.vulnDur; }
+  G.shots.push(s); Sound.play("sniper");
+  addFx({type:"hit",x:u.x,y:u.y,col:u.cfg.color,life:0.1});
 }
 // ガトリング1ティック：対象へまっすぐ弾を当てつつ、放射状に派手な火花をまき散らす
 function gatlingTick(u,mul){
@@ -2616,6 +2629,8 @@ function update(dt){
     if(u.duelQ){ u.duelQ.t-=dt; if(u.duelQ.t<=0 && u.duelQ.left>0){ duelStrike(u,u.duelQ.mul); u.duelQ.left--; u.duelQ.t=u.duelQ.gap; if(u.duelQ.left<=0)u.duelQ=null; } }
     // ガンナー：二丁乱射の連射キュー。撃ち切ったらリロード完了（マガジン満タン）
     if(u.gunBurst){ u.gunBurst.t-=dt; if(u.gunBurst.t<=0 && u.gunBurst.left>0){ fireGunShot(u); u.gunBurst.left--; u.gunBurst.t=u.gunBurst.gap; if(u.gunBurst.left<=0){ u.gunBurst=null; u.mag=0; u.reloadT=0; floatNum(u.x,u.y-14,0,"#7fe0ff","RELOAD!"); } } }
+    // マークスマン：徹甲弾バーストの連射
+    if(u.apQ){ u.apQ.t-=dt; if(u.apQ.t<=0 && u.apQ.left>0){ fireApShot(u,u.apQ.mul); u.apQ.left--; u.apQ.t=u.apQ.gap; if(u.apQ.left<=0){ u.apQ=null; u.mag=0; u.reloadT=0; } } }
     // リベンジャー：報復スキルの2連撃
     if(u.revSkillQ){ u.revSkillQ.t-=dt; if(u.revSkillQ.t<=0&&u.revSkillQ.left>0){ revHit(u,2.0,4.0,1,false,0); u.revSkillQ.left--; u.revSkillQ.t=u.revSkillQ.gap; if(u.revSkillQ.left<=0)u.revSkillQ=null; } }
     // リベンジャー：必殺技の前進10連撃
@@ -2926,13 +2941,15 @@ function update(dt){
           const s=shot(u,tg,u.atk*atkMult,u.cfg.color,"bolt");
           if(u.cfg.bullet) s.bullet=true; // スナイパー等：丸い弾頭で飛ばす
           if(u.cfg.arrow) s.arrow=true;   // アーチャー：矢の見た目
+          // マークスマン：攻撃した敵に被ダメ上昇スタックを付与
+          if(u.cfg.vulnStack){ s.vulnStack=u.cfg.vulnStack; s.vulnMax=u.cfg.vulnMax; s.vulnDur=u.cfg.vulnDur; }
           // ポイズナー：毒を付与
           if(u.cfg.poison){ s.poison=(active&&sk.poison?sk.poison:u.cfg.poison); s.poisonDur=(active&&sk.poisonDur?sk.poisonDur:u.cfg.poisonDur); }
           // フリーザー：凍結を付与
           if(u.cfg.freeze){ s.freeze=(active&&sk.freeze?sk.freeze:u.cfg.freeze); s.aoeFreeze=active&&sk.aoeFreeze?sk.aoeFreeze*TILE:0; }
           G.shots.push(s);
-          // ガンナー：1回の攻撃でperShot発（2連撃）
-          if(u.cfg.perShot>1){ for(let i=1;i<u.cfg.perShot;i++){ const s2=shot(u,tg,u.atk*atkMult,u.cfg.color,"bolt"); s2.bullet=!!u.cfg.bullet; s2.x+=(Math.random()*8-4); s2.y+=(Math.random()*8-4); G.shots.push(s2); } }
+          // ガンナー：1回の攻撃でperShot発（2連撃・後方にずらして時差に見せる）
+          if(u.cfg.perShot>1){ const ang2=Math.atan2(tg.y-u.y,tg.x-u.x); for(let i=1;i<u.cfg.perShot;i++){ const s2=shot(u,tg,u.atk*atkMult,u.cfg.color,"bolt"); s2.bullet=!!u.cfg.bullet; s2.x=u.x-Math.cos(ang2)*i*16; s2.y=u.y-Math.sin(ang2)*i*16; G.shots.push(s2); } }
           // アーチャー：スキル中は通常攻撃を一度にvolley発（射程内の敵へ分散、足りなければ最前へ）
           if(active&&sk&&sk.volley&&sk.volley>1){
             const R=unitRange(u), pool=G.enemies.filter(e=>e!==tg&&canHit(u,e)&&dist(u,e)<=R).sort((a,b)=>b.progress-a.progress);
@@ -3273,7 +3290,11 @@ function hurtEnemy(en,dmg,col,src){
 }
 // 弾の命中効果（ダメージ＋毒/凍結/減速）を敵に適用
 function applyBolt(s,en,dmg){
+  // 徹甲（防御＝シールド無視）：armorPierce割合のダメージはシールドを貫通してHPへ
+  if(s.armorPierce && en.shield>0){ const pen=dmg*s.armorPierce; en.hp-=pen; floatNum(en.x,en.y,pen,"#fff"); dmg-=pen; }
   hurtEnemy(en,dmg,s.col,s.owner);
+  // 被ダメ上昇スタック（マークスマン）：攻撃するほど被ダメ上昇（最大vulnMax）
+  if(s.vulnStack){ en.vulnT=Math.max(en.vulnT||0,s.vulnDur||4); en.vulnF=Math.min(s.vulnMax||1.5,(en.vulnF||1)+s.vulnStack); }
   if(s.poison){ en.poisonDmg=s.poison; en.poisonT=Math.max(en.poisonT||0,s.poisonDur); }
   if(s.freeze){
     en.freezeT=Math.max(en.freezeT||0,s.freeze);
@@ -3391,12 +3412,16 @@ function draw(){
       continue;
     }
     if(s.bullet){
-      // 弾：丸い弾頭＋短い曳光
-      const a=Math.atan2(s.target.y-s.y,s.target.x-s.x);
-      ctx.strokeStyle=hexA(s.col,0.5);ctx.lineWidth=3;ctx.lineCap="round";
-      ctx.beginPath();ctx.moveTo(s.x,s.y);ctx.lineTo(s.x-Math.cos(a)*16,s.y-Math.sin(a)*16);ctx.stroke();ctx.lineCap="butt";
-      ctx.fillStyle=s.col;ctx.beginPath();ctx.arc(s.x,s.y,4.5,0,7);ctx.fill();
-      ctx.fillStyle="#fff";ctx.beginPath();ctx.arc(s.x,s.y,2,0,7);ctx.fill();
+      // 弾丸：カプセル状（丸キャップの太線）＋曳光
+      const a=Math.atan2(s.target.y-s.y,s.target.x-s.x), c=Math.cos(a), sn=Math.sin(a);
+      ctx.lineCap="round";
+      ctx.strokeStyle=hexA(s.col,0.4);ctx.lineWidth=3;
+      ctx.beginPath();ctx.moveTo(s.x-c*18,s.y-sn*18);ctx.lineTo(s.x,s.y);ctx.stroke();
+      ctx.strokeStyle=s.col;ctx.lineWidth=7;
+      ctx.beginPath();ctx.moveTo(s.x-c*5,s.y-sn*5);ctx.lineTo(s.x+c*4,s.y+sn*4);ctx.stroke();
+      ctx.strokeStyle="rgba(255,255,255,.85)";ctx.lineWidth=3;
+      ctx.beginPath();ctx.moveTo(s.x+c*1,s.y+sn*1);ctx.lineTo(s.x+c*4,s.y+sn*4);ctx.stroke();
+      ctx.lineCap="butt";
       continue;
     }
     if(s.arrow){
@@ -4229,7 +4254,7 @@ const SKILL_DESC={
   paladin:"目の前に5連突きを叩き込み、与えたダメージの50%を回復する。",
   duelist:"決闘相手に3連撃を叩き込み、自身にクリティカル率+50%を付与する。",
   revenger:"攻撃力200%×2回の報復（HPが低いほど倍率UP・残10%で400%）。使うほど必殺技の火力UP。",
-  marksman:"攻撃力2.4倍の徹甲弾で重装を貫く。",
+  marksman:"強力な徹甲弾を3連射。相手の防御（シールド）を50%無視する。",
   poisoner:"猛毒を散布し、毒のダメージと持続が大幅強化。",
   chaincaster:"連鎖数が6体に増え、群れを一掃する。",
   freezer:"凍結時間が延長＋周囲の敵も巻き込んで凍結。",
@@ -4271,7 +4296,8 @@ const ULT_DESC={
   paladin:"自身にシールドを張り、5連突き×4回（計20撃）を浴びせ、与ダメージの50%を回復し続ける。",
   duelist:"自身にクリティカル率+80%を付与し、決闘相手に攻撃力180%の一撃を3回叩き込む。",
   gunner:"ガトリングを展開し、攻撃力30%の弾を50連射。放射状の派手な銃火で敵を撃ち抜く。",
-  revenger:"前進しながら10連撃でノックバック。HPが低いほど、スキルを使ったぶんだけ火力が上がる。"
+  revenger:"前進しながら10連撃でノックバック。HPが低いほど、スキルを使ったぶんだけ火力が上がる。",
+  marksman:"即座にリロードし、防御を50%無視する徹甲弾を5連射する。"
 };
 
 /* ----- 育成 ----- */
