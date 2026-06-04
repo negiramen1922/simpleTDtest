@@ -1095,7 +1095,7 @@ const TYPES={
     skill:{name:"総攻撃指令",spMax:12,dur:5,ultGauge:30,ultName:"アンコール",ultChargeAlly:true}},
   trickster:{name:"ボマー",role:"TRICK",letter:"X",color:"#ffd24a",place:"hill",cost:17,
     hp:340,atk:95,interval:2.0,block:0,range:3.3,kind:"aoe",aoe:1.3,stun:0,targets:"both",
-    skill:{name:"大爆発",spMax:13,dur:5,atk:2.0,aoe:1.8,spd:1.5,stun:1.2,
+    skill:{name:"大爆発",spMax:13,dur:0.6,bombBurst:{n:4,gap:0.2,mul:2.0,aoe:1.8,stun:1.2},
            ultGauge:26,ultName:"爆裂連弾",ultBarrage:{n:8,mul:2.5,aoe:1.8,stun:1.5,gap:0.13}}},
   breaker:{name:"レイダー",role:"BREAK",letter:"$",color:"#ff8c42",place:"road",cost:13,
     hp:640,atk:100,interval:0.9,block:1,kind:"melee",bonusDP:5,targets:"ground",
@@ -1115,7 +1115,7 @@ const TYPES={
            ultName:"ランスチャージ",ultLanceCharge:{mul:5.0,knockback:0.6,r:0.7,spd:900,life:0.8}}},
   berserker:{name:"バーサーカー",role:"BERSERK",letter:"W",color:"#e8504e",place:"road",cost:14,
     hp:900,atk:190,interval:1.5,block:1,kind:"melee",rage:1.7,meleeHits:2,slashColor:"#ff2020",targets:"ground",
-    skill:{name:"血の渇き",spMax:11,dur:5,atk:1.5,spd:1.5,lifesteal:0.35,ultGauge:24,
+    skill:{name:"血の渇き",spMax:11,dur:0.7,frontSlash:{n:6,mul:1.5,r:1.6,gap:0.1,ls:0.4},ultGauge:24,
            ultName:"チャージアックス",ultChargeAxe:{n:10,charge:0.5,gap:0.06,mul:0.8,r:2,ls:0.3}}},
   sniper:{name:"スナイパー",role:"SNIPE",letter:"K",color:"#5ad1f4",place:"hill",cost:14,
     hp:300,atk:520,interval:2.3,block:0,range:5.0,kind:"range",targets:"both",bullet:true,
@@ -1130,7 +1130,7 @@ const TYPES={
            ultName:"全砲門斉射",ultGauge:26,ultBombard:{n:10,gap:0.18,mul:2.2,aoe:1.6}}},
   archer:{name:"アーチャー",role:"ANTI-AIR",letter:"Y",color:"#86e0a3",place:"hill",cost:13,
     hp:330,atk:155,interval:0.8,block:0,range:4.0,kind:"range",targets:"air",arrow:true,
-    skill:{name:"連射の雨",spMax:11,dur:5,atk:1.1,spd:1.3,volley:7,ultName:"烈風連射",ultGauge:22,ultRange:1.8}},
+    skill:{name:"連射の雨",spMax:11,dur:5,spd:1.3,volleyBurst:{n:12,gap:0.06,mul:1.0},ultName:"烈風連射",ultGauge:22,ultRange:1.8}},
   flak:{name:"フラック",role:"FLAK",letter:"F",color:"#7fc4ff",place:"hill",cost:16,
     hp:360,atk:120,interval:1.4,block:0,range:4.2,kind:"aoe",aoe:1.0,stun:0,targets:"air",
     skill:{name:"対空弾幕",spMax:13,dur:5,atk:1.6,aoe:1.6,spd:1.5,stun:0.4}},
@@ -2188,7 +2188,10 @@ function skillActivate(u,isUlt){
   // スキル：魔法を連続発射（メイジ）。命中ごとに確率で攻撃力スタック
   if(!isUlt && sk.magicCombo){ const f=sk.magicCombo; u.magicBurst={left:f.n,t:0,gap:f.gap,mul:f.mul,stackChance:sk.stackChance||0}; }
   // スキル：目の前に大斬撃×n（カノン 天蓋連牙）。連撃キューで時間差発生
-  if(sk.frontSlash){ const f=sk.frontSlash; u.combo={left:f.n,t:0,gap:f.gap,mul:f.mul*(isUlt?ULT_POW:1),r:f.r,thrust:f.thrust}; }
+  if(sk.frontSlash){ const f=sk.frontSlash; u.combo={left:f.n,t:0,gap:f.gap,mul:f.mul*(isUlt?ULT_POW:1),r:f.r,thrust:f.thrust,ls:f.ls}; }
+  // スキル：固定回数の爆弾投げ（ボマー）／矢の連射バースト（アーチャー）。発動後に止まる
+  if(!isUlt && sk.bombBurst){ const f=sk.bombBurst; u.bombQueue={left:f.n,t:0,gap:f.gap,mul:f.mul,aoe:f.aoe,stun:f.stun}; }
+  if(!isUlt && sk.volleyBurst){ const f=sk.volleyBurst; u.rangeBurst={left:f.n,t:0,gap:f.gap,mul:f.mul}; }
 }
 // 目の前への大斬撃/突き1回（連撃キューから呼ばれる）。周囲の敵に当たる。レイジ＆回復対応
 function frontSlashHit(u,mul,rTiles,thrust,lsOverride){
@@ -2252,6 +2255,15 @@ function fireMagicShot(u,mul,stackChance){
     u.atkStacks=Math.min(5,(u.atkStacks||0)+1); u.atkStackT=10;
     floatNum(u.x,u.y-12,u.atkStacks,"#c08bff","魔力+"); addFx({type:"heal",x:u.x,y:u.y,life:0.3});
   }
+}
+// 射程内の敵へ1発撃つ（アーチャー等のスキル連射バーストから呼ばれる）。射程内の上位敵へ分散
+function fireRangeBurst(u,mul){
+  const R=unitRange(u), pool=G.enemies.filter(e=>canHit(u,e)&&dist(u,e)<=R).sort((a,b)=>b.progress-a.progress).slice(0,6);
+  const tg=pool.length?pool[Math.floor(Math.random()*pool.length)]:pickEnemy(u);
+  if(!tg)return;
+  const s=shot(u,tg,statATK(u.cfg,u.type)*mul*(u.atkBuff||1),u.cfg.color,"bolt");
+  if(u.cfg.arrow)s.arrow=true; if(u.cfg.bullet)s.bullet=true;
+  G.shots.push(s); Sound.play(u.cfg.arrow?"arrow":"shoot");
 }
 // 強力な狙撃弾を1発撃つ（スナイパー必殺技の連射から呼ばれる）
 function fireSniperShot(u,mul){
@@ -2458,6 +2470,8 @@ function update(dt){
     if(u.bombQueue){ u.bombQueue.t-=dt; if(u.bombQueue.t<=0 && u.bombQueue.left>0){ throwBomb(u,u.bombQueue.mul,u.bombQueue.aoe,u.bombQueue.stun); u.bombQueue.left--; u.bombQueue.t=u.bombQueue.gap; if(u.bombQueue.left<=0)u.bombQueue=null; } }
     // 狙撃連射キュー（スナイパー必殺技）：強力な弾を連射
     if(u.shotBurst){ u.shotBurst.t-=dt; if(u.shotBurst.t<=0 && u.shotBurst.left>0){ fireSniperShot(u,u.shotBurst.mul); u.shotBurst.left--; u.shotBurst.t=u.shotBurst.gap; if(u.shotBurst.left<=0)u.shotBurst=null; } }
+    // 連射バーストキュー（アーチャー スキル）：固定本数だけ撃って止まる
+    if(u.rangeBurst){ u.rangeBurst.t-=dt; if(u.rangeBurst.t<=0 && u.rangeBurst.left>0){ fireRangeBurst(u,u.rangeBurst.mul); u.rangeBurst.left--; u.rangeBurst.t=u.rangeBurst.gap; if(u.rangeBurst.left<=0)u.rangeBurst=null; } }
     // 連続砲撃キュー（アーティラリー必殺技）：通路のランダムな敵を毎回抽出して砲撃
     if(u.bombard){ u.bombard.t-=dt; if(u.bombard.t<=0 && u.bombard.left>0){
       const cands=G.enemies.filter(e=>e.hp>0);
@@ -4015,16 +4029,16 @@ const SKILL_DESC={
   shooter:"攻撃力と連射速度を大きく強化する。",
   healer:"最もHPが低い味方3人を同時に回復する。",
   support:"周囲の味方と敵にバフ／デバフ（鈍足・被ダメ上昇・攻撃強化）を一括付与。",
-  trickster:"命中した敵をスタンさせる爆弾を投げる。",
+  trickster:"スタンする爆弾を4発まとめて投げ込む。",
   breaker:"前方3マスに5連撃を叩き込む。",
   guardian:"被ダメージを30%軽減し、与えたダメージの50%を回復する。",
   harvester:"攻撃力と攻撃速度を強化して連続で斬りつける。",
   lancer:"正面3マスに5回の突きを繰り出す。さらに自身を加速し通常攻撃を高速化する。",
-  berserker:"攻撃・速度UP＋与ダメの35%を自己回復。",
+  berserker:"前方に6連撃を叩き込み、与ダメージの40%を回復する。",
   sniper:"攻撃力2.6倍の超火力狙撃。",
   mage:"魔法を5連射し、命中ごとに30%で攻撃力+10%（最大5スタック・10秒）を獲得する。",
   artillery:"3連砲撃を3回ぶん（計9発）まとめて撃ち込む。",
-  archer:"通常攻撃が一度に7本の矢を放つ矢の雨になる。",
+  archer:"矢を一気に12本撃ち込む矢の雨（自身を少し加速）。",
   flak:"範囲・威力UP＋スタン付与の対空弾幕。",
   halberdier:"攻撃力・速度UP＋対空の薙ぎ範囲が拡大。",
   guardknight:"ダメージ50%カット＋周囲の味方へ継続的にシールドを付与。",
