@@ -817,9 +817,9 @@
         <li><span class="tr">■ アーティラリー</span>：高台に置く。<b>超長射程＋時間差の範囲砲撃</b>。命中位置に着弾マーカーが出て、群れを一掃する。地上のみ。</li>
         <li><span class="he">■ アーチャー</span>：高台に置く。<b>対空特化</b>の遠距離。飛行敵を撃ち落とす要だが、地上は攻撃できない。</li>
         <li><span class="sh">■ フラック</span>：高台に置く。<b>対空の範囲攻撃</b>。群がる飛行敵をまとめて撃墜。地上は攻撃できない。</li>
-        <li><span style="color:#d4a574">■ ハルバーディア</span>：通路に置く。2体ブロックしつつ<b>低空の飛行敵も薙ぎ払える</b>両対応の前衛。空の壁役。</li>
+        <li><span style="color:#d4a574">■ ドラゴンライダー</span>：通路に置く。2体ブロックしつつ<b>低空の飛行敵も薙ぎ払える</b>両対応の前衛。空の壁役。</li>
       </ul>
-      <b style="color:#67d8e8">✈ 飛行敵と攻撃対象</b>：敵には<b>地上を歩く敵</b>と<b>空を飛ぶ敵</b>（破線ルート）がいます。各キャラには攻撃できる対象（地上／空中／両方）が決まっており、<b>対空可能なキャラでないと飛行敵を倒せません</b>。対空できるのは、レンジャー・スナイパー・メイジ・ボマー・エンチャンター（両対応）、アーチャー・フラック（対空専門）、ハルバーディア（前衛で低空に対応）、そしてアーティラリー（スキル中のみ対空）です。また砲兵や飛行敵など<b>遠隔攻撃を持つ敵は高台のキャラも攻撃</b>してくるので、メディックでの維持が重要です。
+      <b style="color:#67d8e8">✈ 飛行敵と攻撃対象</b>：敵には<b>地上を歩く敵</b>と<b>空を飛ぶ敵</b>（破線ルート）がいます。各キャラには攻撃できる対象（地上／空中／両方）が決まっており、<b>対空可能なキャラでないと飛行敵を倒せません</b>。対空できるのは、レンジャー・スナイパー・メイジ・ボマー・エンチャンター（両対応）、アーチャー・フラック（対空専門）、ドラゴンライダー（前衛で低空に対応）、そしてアーティラリー（スキル中のみ対空）です。また砲兵や飛行敵など<b>遠隔攻撃を持つ敵は高台のキャラも攻撃</b>してくるので、メディックでの維持が重要です。
       <b style="color:var(--gold)">★ スキル（自動 / 手動 切替）</b>：配置後、各キャラのSP（足元のゲージ）が時間で溜まります。キャラをタップして選択すると、下のパネルで<b>自動／手動</b>を切り替えられます。<br>
       ・<b>自動</b>：SPが満タンの状態で攻撃（行動）する時に自動で発動します。<br>
       ・<b>手動</b>：SPが満タンになると★が点滅。そのキャラを<b>タップ</b>（または選択して「スキル発動」ボタン／Qキー）で任意のタイミングに発動できます。<br>
@@ -840,7 +840,7 @@
         <li><span class="tr">アーティラリー／絨毯爆撃</span>：1射ごとに3発の広範囲砲撃を投下。</li>
         <li><span class="he">アーチャー／連射の雨</span>：攻撃速度が大幅UP。飛行敵を高速で撃墜。</li>
         <li><span class="sh">フラック／対空弾幕</span>：範囲・威力UP＋スタン付与の対空弾幕。</li>
-        <li><span style="color:#d4a574">ハルバーディア／薙ぎ払い</span>：攻撃力・速度UP＋対空の薙ぎ範囲が拡大。</li>
+        <li><span style="color:#d4a574">ドラゴンライダー／薙ぎ払い</span>：攻撃力・速度UP＋対空の薙ぎ範囲が拡大。</li>
       </ul>
       ショートカット：<b>1〜9</b>＝キャラ選択 / <b>Enter</b>＝ウェーブ開始 / <b>Space</b>＝一時停止 / <b>Q</b>＝選択キャラのスキル発動 / <b>M</b>＝自動/手動切替 / <b>R</b>＝撤退 / <b>Esc</b>＝選択解除
     </div>
@@ -1135,7 +1135,7 @@ const TYPES={
     hp:360,atk:120,interval:1.4,block:0,range:4.2,kind:"aoe",aoe:1.0,stun:0,targets:"air",magic:true,firework:true,
     skill:{name:"対空弾幕",spMax:13,dur:0.8,flakBurst:{n:5,gap:0.18,mul:1.6,aoe:1.6,stun:0.3,knockback:0.5},
            ultName:"曳光乱舞",ultGauge:24,ultDur:8,ultVolley:3,ultSpd:1.6}},
-  halberdier:{name:"ハルバーディア",role:"HALBERD",letter:"V",color:"#d4a574",place:"road",cost:15,
+  dragonrider:{name:"ドラゴンライダー",role:"DRAGOON",letter:"竜",color:"#d4a574",place:"road",cost:15,
     hp:980,atk:150,interval:1.1,block:2,kind:"melee",targets:"both",airReach:1.6,
     skill:{name:"薙ぎ払い",spMax:12,dur:5,atk:1.7,spd:1.4,airReach:2.2}},
   guardknight:{name:"ガードナイト",role:"AEGIS",letter:"N",color:"#8fb8e0",place:"road",cost:15,
@@ -1202,7 +1202,7 @@ const TYPES={
     hp:480,block:0,range:3.3,kind:"support",slow:1,spdBuff:1.2,atkAura:1.3,targets:"both",
     skill:{name:"進軍号令",spMax:13,dur:5,slow:0.7,spd:1.6,atk:1.8}}
 };
-const ORDER=["tank","attacker","shooter","healer","support","trickster","breaker","guardian","lancer","berserker","sniper","mage","artillery","archer","flak","halberdier","guardknight","duelist","revenger","marksman","gunner","poisoner","chaincaster","freezer","shaman","summoner","commander","bard","alchemist","prospector","netcaster","harvester","warlord","archmage","valkyrie","highpriest","archon"];
+const ORDER=["tank","attacker","shooter","healer","support","trickster","breaker","guardian","lancer","berserker","sniper","mage","artillery","archer","flak","dragonrider","guardknight","duelist","revenger","marksman","gunner","poisoner","chaincaster","freezer","shaman","summoner","commander","bard","alchemist","prospector","netcaster","harvester","warlord","archmage","valkyrie","highpriest","archon"];
 // キャラアイコン画像（icons/<type>.png）。全キャラにアイコンを割り当て（読み込み失敗時はonerrorで文字にフォールバック）
 for(const t in TYPES){ TYPES[t].img="icons/"+t+".png?v=4"; }
 // アイコン用HTML（DOMカード共通）：画像があれば<img>、無ければ文字
@@ -1900,7 +1900,7 @@ const UNLOCK_COST={
   // 中堅：200〜300
   healer:200, support:200, trickster:250, breaker:250, guardian:300, lancer:250, berserker:300,
   // 上位：300〜450
-  mage:350, artillery:400, archer:300, flak:350, halberdier:350, guardknight:400, duelist:350,
+  mage:350, artillery:400, archer:300, flak:350, dragonrider:350, guardknight:400, duelist:350,
   revenger:400, marksman:400, poisoner:400, chaincaster:450, freezer:450, shaman:450,
   summoner:500, bard:450, alchemist:400, prospector:350, netcaster:400, harvester:350,
   gunner:300, commander:450,
@@ -2716,7 +2716,7 @@ function update(dt){
     const atkMult=u.atkBuff*(active&&sk&&sk.atk?sk.atk*ultp:1);
     const itv=(u.cfg.interval||1)/spdTotal;
     if(k==="melee"){
-      // ハルバーディア等：airReachを持つ近接は周囲の低空飛行敵も攻撃対象に
+      // ドラゴンライダー等：airReachを持つ近接は周囲の低空飛行敵も攻撃対象に
       let airTarget=null;
       if(u.cfg.airReach){
         const aR=(active&&sk&&sk.airReach?sk.airReach:u.cfg.airReach)*TILE;
@@ -2754,7 +2754,7 @@ function update(dt){
               .slice(0,pierce-1);
             hits=hits.concat(extra);
           }
-          // ハルバーディア：ブロック中の地上敵と低空の敵を同時に薙ぐ
+          // ドラゴンライダー：ブロック中の地上敵と低空の敵を同時に薙ぐ
           if(u.cfg.airReach && u.blocking.length && airTarget && !hits.includes(airTarget)) hits.push(airTarget);
         }
         const slCol=u.cfg.slashColor||u.cfg.color;
@@ -4000,7 +4000,7 @@ const ROLE_OF={
   tank:"tank", attacker:"attacker", shooter:"shooter", healer:"healer", support:"supporter",
   trickster:"trickster", breaker:"breaker", guardian:"tank", lancer:"attacker", berserker:"attacker",
   sniper:"shooter", mage:"shooter", artillery:"shooter", archer:"shooter", flak:"shooter",
-  halberdier:"tank", guardknight:"tank", duelist:"attacker", revenger:"attacker", marksman:"shooter",
+  dragonrider:"tank", guardknight:"tank", duelist:"attacker", revenger:"attacker", marksman:"shooter",
   poisoner:"shooter", chaincaster:"trickster", freezer:"trickster", shaman:"supporter",
   summoner:"trickster", bard:"supporter", alchemist:"breaker", prospector:"breaker",
   gunner:"shooter", commander:"supporter",
@@ -4027,7 +4027,7 @@ const CODEX_DESC={
   artillery:"超長射程＋時間差の範囲砲撃。群れを一掃する制圧火力。",
   archer:"対空特化の遠距離。飛行敵を撃ち落とす要。地上は撃てない。",
   flak:"対空の範囲攻撃。空に群がる飛行敵をまとめて撃ち落とす。地上は撃てない。",
-  halberdier:"地上をブロックしつつ低空の飛行敵も薙ぎ払える両対応の前衛。空の壁役。",
+  dragonrider:"地上をブロックしつつ低空の飛行敵も薙ぎ払える両対応の前衛。空の壁役。",
   guardknight:"高HPの壁役。倒れる時に周囲の味方へダメージシールドを残す守り特化。",
   duelist:"1体しかブロックしないが、ブロック対象への与ダメが激増するタイマン特化。",
   revenger:"殴られるほどSPが溜まり、HPが減るほど攻撃力UP。被弾上等の前衛。",
@@ -4066,7 +4066,7 @@ const SKILL_DESC={
   artillery:"3連砲撃を3回ぶん（計9発）まとめて撃ち込む。",
   archer:"矢を一気に12本撃ち込む矢の雨（自身を少し加速）。",
   flak:"対空の範囲攻撃を5連射し、敵をノックバックする。",
-  halberdier:"攻撃力・速度UP＋対空の薙ぎ範囲が拡大。",
+  dragonrider:"攻撃力・速度UP＋対空の薙ぎ範囲が拡大。",
   guardknight:"ダメージ50%カット＋周囲の味方へ継続的にシールドを付与。",
   duelist:"攻撃力・速度UP＋ブロック対象への与ダメ倍率がさらに増加。",
   revenger:"攻撃力・速度UP＋与ダメの40%を自己回復。",
