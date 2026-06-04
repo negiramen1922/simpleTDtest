@@ -901,11 +901,14 @@ const Sound=(()=>{
   // 効果音テーブル
   const SFX={
     place:   ()=>{ blip(420,0.08,"triangle",0.35); blip(630,0.10,"triangle",0.3,840); },
-    melee:   ()=>{ noise(0.07,0.18,2500); blip(180,0.05,"square",0.12,120); },
-    shoot:   ()=>{ blip(900,0.07,"square",0.16,420); },
-    sniper:  ()=>{ blip(1400,0.05,"sawtooth",0.22,300); noise(0.06,0.12,3000); },
-    arrow:   ()=>{ blip(1100,0.06,"triangle",0.16,1500); },
-    aoe:     ()=>{ blip(300,0.18,"sawtooth",0.2,90); noise(0.18,0.25,800); },
+    melee:   ()=>{ noise(0.09,0.22,4200); blip(2600,0.05,"sawtooth",0.10,520); },        // 斬撃：鋭いシャキン
+    thrust:  ()=>{ noise(0.05,0.16,3200); blip(620,0.07,"square",0.13,1700); },           // 突き：刺すヒュッ
+    shoot:   ()=>{ blip(1000,0.06,"square",0.16,300); noise(0.03,0.06,4000); },           // 射撃：ピュン
+    sniper:  ()=>{ blip(1400,0.05,"sawtooth",0.22,300); noise(0.06,0.12,3000); },          // 狙撃：パァン
+    arrow:   ()=>{ blip(320,0.05,"triangle",0.18,170); blip(1500,0.07,"triangle",0.12,2500); }, // 矢：弦の音＋ヒュン
+    aoe:     ()=>{ noise(0.22,0.30,700); blip(170,0.22,"sine",0.28,45); blip(90,0.18,"sawtooth",0.14,40); }, // 爆発：ドン
+    magic:   ()=>{ blip(1200,0.10,"sine",0.16,2100); blip(1800,0.13,"triangle",0.12,2700); blip(700,0.08,"sine",0.1,1400); }, // 魔法：キラッ
+    breath:  ()=>{ noise(0.38,0.30,1500); blip(150,0.32,"sawtooth",0.14,80); },            // ブレス：ゴォー
     shell:   ()=>{ noise(0.3,0.4,500); blip(120,0.3,"sine",0.25,50); },
     heal:    ()=>{ blip(660,0.12,"sine",0.22,990); blip(990,0.14,"sine",0.16,1320); },
     skill:   ()=>{ blip(523,0.1,"triangle",0.25,784); blip(784,0.12,"triangle",0.22,1046); blip(1046,0.16,"triangle",0.18); },
@@ -2190,7 +2193,7 @@ function skillActivate(u,isUlt){
   // 必殺技：魔法陣を展開して巨大範囲ビーム（メイジ）
   if(isUlt && sk.ultBeam){ const f=sk.ultBeam; const fa=forwardAngle(u,99*TILE);
     u.magicBeam={t:f.dur,dur:f.dur,dir:fa.found?fa.ang:0,width:f.width*TILE,len:f.len*TILE,dps:statATK(u.cfg,u.type)*f.dps*(u.atkBuff||1),tick:0};
-    addFx({type:"magicburst",x:u.x,y:u.y,r:TILE*1.6,col:u.cfg.color,life:0.6}); Sound.play("aoe"); return; }
+    addFx({type:"magicburst",x:u.x,y:u.y,r:TILE*1.6,col:u.cfg.color,life:0.6}); Sound.play("magic"); return; }
   // スキル：魔法を連続発射（メイジ）。命中ごとに確率で攻撃力スタック
   if(!isUlt && sk.magicCombo){ const f=sk.magicCombo; u.magicBurst={left:f.n,t:0,gap:f.gap,mul:f.mul,stackChance:sk.stackChance||0}; }
   // スキル：目の前に大斬撃×n（カノン 天蓋連牙）。連撃キューで時間差発生
@@ -2201,9 +2204,9 @@ function skillActivate(u,isUlt){
   // スキル：固定回数の範囲攻撃＋ノックバック（フラック）
   if(!isUlt && sk.flakBurst){ const f=sk.flakBurst; u.aoeBurst={left:f.n,t:0,gap:f.gap,mul:f.mul,aoe:f.aoe,stun:f.stun,knockback:f.knockback}; }
   // 必殺技：大ブレス（地上＋空中の両方を焼く広範囲ブレス）（ドラゴンライダー）
-  if(isUlt && sk.ultBreath){ startBreath(u,sk.ultBreath,true); Sound.play("aoe"); return; }
+  if(isUlt && sk.ultBreath){ startBreath(u,sk.ultBreath,true); Sound.play("breath"); return; }
   // スキル：竜のブレス（前方扇状・地上か空中の片方）（ドラゴンライダー）
-  if(!isUlt && sk.breath){ startBreath(u,sk.breath,false); Sound.play("aoe"); }
+  if(!isUlt && sk.breath){ startBreath(u,sk.breath,false); Sound.play("breath"); }
 }
 // 目の前への大斬撃/突き1回（連撃キューから呼ばれる）。周囲の敵に当たる。レイジ＆回復対応
 function frontSlashHit(u,mul,rTiles,thrust,lsOverride){
@@ -2217,7 +2220,7 @@ function frontSlashHit(u,mul,rTiles,thrust,lsOverride){
   const fa=forwardAngle(u,R+TILE), ang=fa.found?fa.ang:0;
   if(thrust) addFx({type:"thrust",x:u.x,y:u.y,ang,len:R,col:u.cfg.color,life:0.2,wide:true});
   else addFx({type:"swordslash",x:u.x,y:u.y,ang,r:R*0.95,col:u.cfg.color,life:0.32,wide:true});
-  Sound.play("melee");
+  Sound.play(thrust?"thrust":"melee");
 }
 // 斧を叩きつけて衝撃波（バーサーカー チャージアックス）。big=最初の本命の一撃
 function doAxeSlam(u,a,big){
@@ -2247,7 +2250,7 @@ function doLanceCharge(u,f){
   const dx=Math.cos(ang),dy=Math.sin(ang), dmg=statATK(u.cfg,u.type)*f.mul*(u.atkBuff||1);
   G.shots.push({fly:true,thrust:true,x:u.x,y:u.y,dirx:dx,diry:dy,spd:f.spd,life:f.life,dmg,col:u.cfg.color,owner:u,r:f.r*TILE,hit:new Set(),knockback:f.knockback});
   addFx({type:"thrust",x:u.x,y:u.y,ang,len:3*TILE,col:u.cfg.color,life:0.35,wide:true});
-  Sound.play("melee");
+  Sound.play("thrust");
 }
 // 一列に飛ぶ斬撃（貫通する飛翔斬撃をn枚、前方へ放つ）
 function doFlySlash(u,f){
@@ -2262,7 +2265,7 @@ function doFlySlash(u,f){
 function fireMagicShot(u,mul,stackChance){
   const tg=pickEnemy(u); if(!tg)return;
   const s=shot(u,tg,statATK(u.cfg,u.type)*mul*(u.atkBuff||1),u.cfg.color,"aoe");
-  s.aoeR=(u.cfg.aoe||1)*TILE; s.stun=0; s.magic=true; G.shots.push(s); Sound.play("aoe");
+  s.aoeR=(u.cfg.aoe||1)*TILE; s.stun=0; s.magic=true; G.shots.push(s); Sound.play("magic");
   if(stackChance>0 && Math.random()<stackChance){
     u.atkStacks=Math.min(5,(u.atkStacks||0)+1); u.atkStackT=10;
     floatNum(u.x,u.y-12,u.atkStacks,"#c08bff","魔力+"); addFx({type:"heal",x:u.x,y:u.y,life:0.3});
@@ -2802,7 +2805,7 @@ function update(dt){
           addFx({type:"hit",x:h.x,y:h.y,col:"#fff",life:0.14});
           hurtEnemy(h,dmg,u.cfg.color,u);
         }
-        Sound.play("melee");
+        Sound.play(u.cfg.thrust?"thrust":"melee");
         // バーサーカー：スキル中はライフスティール
         if(active&&sk&&sk.lifesteal){ u.hp=Math.min(u.maxHp,u.hp+dmg*sk.lifesteal); }
         // 多段ヒット（バーサーカー等 meleeHits）：同じ対象に時間差で追撃（左右交互）
@@ -2871,7 +2874,7 @@ function update(dt){
             if(u.cfg.magic)s.magic=true; if(u.cfg.firework)s.firework=true;
             G.shots.push(s);
           }
-          Sound.play("aoe");
+          Sound.play(u.cfg.magic?"magic":"aoe");
         }
       }
     } else if(k==="barrage"){
