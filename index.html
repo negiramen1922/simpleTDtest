@@ -1209,8 +1209,9 @@ const TYPES={
     skill:{name:"大投網",spMax:12,dur:5,atk:1.6,airBlockCap:3,airReach:2.0}},
   // 二丁拳銃の早撃ち。射程は短めだが手数が多く、地上・空中の両方を撃てる速射型
   gunner:{name:"ガンナー",role:"GUNNER",letter:"銃",color:"#d98c4a",place:"hill",cost:13,
-    hp:340,atk:90,interval:0.5,block:0,range:3.0,kind:"range",targets:"both",
-    skill:{name:"二丁乱射",spMax:11,dur:5,atk:1.6,spd:1.9}},
+    hp:340,atk:110,interval:0.5,block:0,range:3.0,kind:"range",targets:"both",bullet:true,perShot:2,magSize:6,reloadTime:1.5,
+    skill:{name:"二丁乱射",spMax:11,dur:0.9,gunReload:12,
+           ultName:"ガトリングストーム",ultGauge:26,ultGatling:{n:50,mul:0.3,gap:0.04}}},
   // 指揮官。常時、周囲の味方の攻撃力を底上げするオーラ役。スキルで全体を鼓舞しつつ敵を減速
   commander:{name:"コマンダー",role:"COMMANDER",letter:"令",color:"#5fd38a",place:"hill",cost:18,
     hp:480,block:0,range:3.3,kind:"support",slow:1,spdBuff:1.2,atkAura:1.3,targets:"both",
@@ -1220,7 +1221,7 @@ const ORDER=["tank","attacker","shooter","healer","support","trickster","breaker
 // キャラアイコン画像（icons/<type>.png）。全キャラにアイコンを割り当て（読み込み失敗時はonerrorで文字にフォールバック）
 for(const t in TYPES){ TYPES[t].img="icons/"+t+".png?v=4"; }
 // 調整（レビュー）済みキャラ。未調整キャラは編成・出撃で使用不可（順次解放していく）
-const TUNED_LIST=["tank","attacker","shooter","healer","support","trickster","breaker","harvester","guardian","lancer","berserker","sniper","mage","artillery","archer","flak","dragonrider","sentinel","paladin","duelist"];
+const TUNED_LIST=["tank","attacker","shooter","healer","support","trickster","breaker","harvester","guardian","lancer","berserker","sniper","mage","artillery","archer","flak","dragonrider","sentinel","paladin","duelist","gunner"];
 TUNED_LIST.forEach(t=>{ if(TYPES[t]) TYPES[t].tuned=true; });
 function isTuned(t){ return !!(TYPES[t]&&TYPES[t].tuned); }
 // アイコン用HTML（DOMカード共通）：画像があれば<img>、無ければ文字
@@ -2150,7 +2151,7 @@ function fireSkill(u){
   return true;
 }
 // スキルが発動時に固有の一撃を持つか（汎用ボーナスを抑制する判定に使用）
-function hasCustomActivate(sk){ return !!(sk && (sk.smash||sk.frontSlash||sk.ultFrontSlash||sk.ultFlySlash||sk.ultChargeAlly||sk.ultBarrage||sk.ultDotField||sk.ultLanceCharge||sk.ultChargeAxe||sk.ultBeam||sk.ultBombard||sk.ultBreath||sk.ultTaunt||sk.ultDuelCombo)); }
+function hasCustomActivate(sk){ return !!(sk && (sk.smash||sk.frontSlash||sk.ultFrontSlash||sk.ultFlySlash||sk.ultChargeAlly||sk.ultBarrage||sk.ultDotField||sk.ultLanceCharge||sk.ultChargeAxe||sk.ultBeam||sk.ultBombard||sk.ultBreath||sk.ultTaunt||sk.ultDuelCombo||sk.ultGatling)); }
 // エンチャンターのバフ対象：射程内で攻撃/回復する味方のうち、最もバフ残量が少ない味方
 function pickBuffAlly(u,R){
   let best=null,bv=Infinity;
@@ -2227,6 +2228,10 @@ function skillActivate(u,isUlt){
   if(sk.critBuff){ u.critT=isUlt?(sk.ultDur||sk.dur*ULT_DUR):sk.dur; u.critRate=isUlt?(sk.ultCritBuff||sk.critBuff):sk.critBuff; }
   if(!isUlt && sk.duelCombo){ const f=sk.duelCombo; u.duelQ={left:f.n,t:0,gap:f.gap||0.13,mul:f.mul}; }
   if(isUlt && sk.ultDuelCombo){ const f=sk.ultDuelCombo; u.duelQ={left:f.n,t:0,gap:f.gap||0.15,mul:f.mul}; }
+  // ガンナー：二丁乱射（通常攻撃を連続）＋撃ち切り後にリロード完了
+  if(!isUlt && sk.gunReload){ u.gunBurst={left:sk.gunReload,t:0,gap:0.06}; }
+  // ガンナー：ガトリング（まっすぐ当てつつ放射状の派手演出）
+  if(isUlt && sk.ultGatling){ const f=sk.ultGatling; u.gatling={left:f.n,t:0,gap:f.gap||0.04,mul:f.mul}; return; }
   if(sk.frontSlash){ const f=sk.frontSlash; u.combo={left:f.n,t:0,gap:f.gap,mul:f.mul*(isUlt?ULT_POW:1),r:f.r,thrust:f.thrust,ls:f.ls}; }
   // スキル：固定回数の爆弾投げ（ボマー）／矢の連射バースト（アーチャー）。発動後に止まる
   if(!isUlt && sk.bombBurst){ const f=sk.bombBurst; u.bombQueue={left:f.n,t:0,gap:f.gap,mul:f.mul,aoe:f.aoe,stun:f.stun}; }
@@ -2335,6 +2340,21 @@ function duelStrike(u,mul){
   addFx({type:"swordslash",x:u.x,y:u.y,ang,r:TILE*0.74,col:crit?"#ffd24a":u.cfg.color,life:0.22});
   if(crit) floatNum(tg.x,tg.y-10,Math.round(dmg),"#ffd24a","CRIT ");
   hurtEnemy(tg,dmg,crit?"#ffd24a":u.cfg.color,u); Sound.play("melee");
+}
+// ガンナー：通常攻撃1回ぶん（perShot発）を撃つ（二丁乱射スキルの連射から呼ばれる）
+function fireGunShot(u){
+  const tg=pickEnemy(u); if(!tg)return;
+  const per=u.cfg.perShot||1;
+  for(let i=0;i<per;i++){ const s=shot(u,tg,statATK(u.cfg,u.type)*(u.atkBuff||1),u.cfg.color,"bolt"); s.bullet=!!u.cfg.bullet; s.spd=900; s.x+=(Math.random()*8-4); G.shots.push(s); }
+  Sound.play("shoot");
+}
+// ガトリング1ティック：対象へまっすぐ弾を当てつつ、放射状に派手な火花をまき散らす
+function gatlingTick(u,mul){
+  const tg=pickEnemy(u);
+  if(tg){ const s=shot(u,tg,statATK(u.cfg,u.type)*mul*(u.atkBuff||1),u.cfg.color,"bolt"); s.bullet=true; s.spd=1200; G.shots.push(s); }
+  // 放射状の演出（当たり判定なし）：ランダム方向へ火花
+  for(let i=0;i<2;i++){ const a=Math.random()*7, sp=180+Math.random()*160; addFx({type:"frag",x:u.x,y:u.y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,col:Math.random()<0.5?"#ffd24a":"#fff",life:0.16+Math.random()*0.1,r:2}); }
+  Sound.play("shoot");
 }
 function startBreath(u,f,both){
   const fa=forwardAngle(u,99*TILE), ang=fa.found?fa.ang:0, range=f.range*TILE, spread=f.spread||0.55;
@@ -2578,6 +2598,10 @@ function update(dt){
     // 竜のブレス（ドラゴンライダー）：扇内に連続ヒット＋炎の粒子
     // 決闘連撃キュー（デュエリスト）：決闘相手に固定回数の連撃
     if(u.duelQ){ u.duelQ.t-=dt; if(u.duelQ.t<=0 && u.duelQ.left>0){ duelStrike(u,u.duelQ.mul); u.duelQ.left--; u.duelQ.t=u.duelQ.gap; if(u.duelQ.left<=0)u.duelQ=null; } }
+    // ガンナー：二丁乱射の連射キュー。撃ち切ったらリロード完了（マガジン満タン）
+    if(u.gunBurst){ u.gunBurst.t-=dt; if(u.gunBurst.t<=0 && u.gunBurst.left>0){ fireGunShot(u); u.gunBurst.left--; u.gunBurst.t=u.gunBurst.gap; if(u.gunBurst.left<=0){ u.gunBurst=null; u.mag=0; u.reloadT=0; floatNum(u.x,u.y-14,0,"#7fe0ff","RELOAD!"); } } }
+    // ガンナー：ガトリング連射キュー
+    if(u.gatling){ u.gatling.t-=dt; if(u.gatling.t<=0 && u.gatling.left>0){ gatlingTick(u,u.gatling.mul); u.gatling.left--; u.gatling.t=u.gatling.gap; if(u.gatling.left<=0){ u.gatling=null; u.mag=0; u.reloadT=0; } } }
     if(u.breath){ const br=u.breath; br.t-=dt; br.tickT-=dt;
       if(br.tickT<=0 && br.left>0){ breathTick(u); br.left--; br.tickT=br.gap;
         const a=br.ang+(Math.random()-0.5)*br.spread*2, d=br.range*(0.3+Math.random()*0.7);
@@ -2624,7 +2648,7 @@ function update(dt){
   }
   // 隊長が射程外になった敵のバフは毎フレーム減衰（captainSpdを一旦リセットして上で再付与）
   for(const e of G.enemies){ if(!G.enemies.some(c=>c.e.auraR && c!==e && dist(c,e)<=c.e.auraR*TILE)) e.captainSpd=1; }
-  for(const u of G.units){u.spdBuff=1;u.atkBuff=1;u.shield=u.shield||0; if(u.encBuffT>0)u.encBuffT-=dt; if(u.atkStackT>0){u.atkStackT-=dt; if(u.atkStackT<=0)u.atkStacks=0;} if(u.critT>0)u.critT-=dt;}
+  for(const u of G.units){u.spdBuff=1;u.atkBuff=1;u.shield=u.shield||0; if(u.encBuffT>0)u.encBuffT-=dt; if(u.atkStackT>0){u.atkStackT-=dt; if(u.atkStackT<=0)u.atkStacks=0;} if(u.critT>0)u.critT-=dt; if(u.reloadT>0)u.reloadT-=dt;}
   // エンチャンターのビームバフ（時限）
   for(const u of G.units){ if(u.encBuffT>0){ u.spdBuff=Math.max(u.spdBuff,u.encSpd||1); u.atkBuff=Math.max(u.atkBuff,u.encAtk||1); } }
   // メイジの攻撃力スタック（魔力）：1スタックごとに攻撃力+10%
@@ -2876,7 +2900,7 @@ function update(dt){
           for(let i=1;i<nHits;i++) u.strikes.push({t:i*0.16,dmg,hits:hits.slice(),thrust:u.cfg.thrust,ls:(active&&sk&&sk.lifesteal)?sk.lifesteal:0,flip:(u._sw=!u._sw),col:slCol}); }
       }
     } else if(k==="range"){
-      if(u.cd<=0){
+      if(u.cd<=0 && !(u.cfg.magSize && u.reloadT>0)){
         const tg=pickEnemy(u);
         if(tg){u.cd=itv;
           const s=shot(u,tg,u.atk*atkMult,u.cfg.color,"bolt");
@@ -2887,11 +2911,15 @@ function update(dt){
           // フリーザー：凍結を付与
           if(u.cfg.freeze){ s.freeze=(active&&sk.freeze?sk.freeze:u.cfg.freeze); s.aoeFreeze=active&&sk.aoeFreeze?sk.aoeFreeze*TILE:0; }
           G.shots.push(s);
+          // ガンナー：1回の攻撃でperShot発（2連撃）
+          if(u.cfg.perShot>1){ for(let i=1;i<u.cfg.perShot;i++){ const s2=shot(u,tg,u.atk*atkMult,u.cfg.color,"bolt"); s2.bullet=!!u.cfg.bullet; s2.x+=(Math.random()*8-4); s2.y+=(Math.random()*8-4); G.shots.push(s2); } }
           // アーチャー：スキル中は通常攻撃を一度にvolley発（射程内の敵へ分散、足りなければ最前へ）
           if(active&&sk&&sk.volley&&sk.volley>1){
             const R=unitRange(u), pool=G.enemies.filter(e=>e!==tg&&canHit(u,e)&&dist(u,e)<=R).sort((a,b)=>b.progress-a.progress);
             for(let i=0;i<sk.volley-1;i++){ const t2=pool.length?pool[i%pool.length]:tg; const s2=shot(u,t2,u.atk*atkMult,u.cfg.color,"bolt"); if(u.cfg.arrow)s2.arrow=true; G.shots.push(s2); }
           }
+          // ガンナー：マガジン消費→撃ち切るとリロード
+          if(u.cfg.magSize){ u.mag=(u.mag||0)+1; if(u.mag>=u.cfg.magSize){ u.mag=0; u.reloadT=u.cfg.reloadTime||1.5; floatNum(u.x,u.y-14,0,"#ffd24a","RELOAD"); } }
           Sound.play(u.type==="sniper"||u.type==="marksman"?"sniper":u.type==="archer"?"arrow":u.type==="freezer"?"shoot":"shoot");
         }
       }
@@ -4196,7 +4224,7 @@ const SKILL_DESC={
   highpriest:"回復量・速度UPの広範囲回復領域を展開する。",
   archon:"減速・全体攻撃強化・速度UPを極限まで高める軍神の号令。",
   netcaster:"投網範囲を広げ捕捉数を3体に増やし、攻撃力もUP。空の大群を一網打尽。",
-  gunner:"二丁拳銃を乱射。攻撃力UP＋攻撃速度が一気に跳ね上がる。",
+  gunner:"二丁拳銃を12連射し、即座にリロードを完了してマガジンを満タンにする。",
   commander:"周囲の味方の攻撃力・速度を大幅強化しつつ、射程内の敵を減速させる進軍の号令。"
 };
 // 必殺技（ULT）の効果説明。未指定は _default（スキルの強化版＋炸裂）
@@ -4221,7 +4249,8 @@ const ULT_DESC={
   dragonrider:"地上＋空中の両方を焼き払う広範囲の大ブレスを放つ。",
   sentinel:"周囲の敵を自分へ引き寄せて一括反撃。発動中は被ダメ-60%＋反撃強化＋攻撃でノックバック。",
   paladin:"自身にシールドを張り、5連突き×4回（計20撃）を浴びせ、与ダメージの50%を回復し続ける。",
-  duelist:"自身にクリティカル率+80%を付与し、決闘相手に攻撃力180%の一撃を3回叩き込む。"
+  duelist:"自身にクリティカル率+80%を付与し、決闘相手に攻撃力180%の一撃を3回叩き込む。",
+  gunner:"ガトリングを展開し、攻撃力30%の弾を50連射。放射状の派手な銃火で敵を撃ち抜く。"
 };
 
 /* ----- 育成 ----- */
