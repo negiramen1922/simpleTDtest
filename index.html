@@ -1126,7 +1126,7 @@ const TYPES={
            ultName:"極大魔導光",ultGauge:26,ultBeam:{dur:1.3,width:1.8,len:8,dps:8}}},
   artillery:{name:"アーティラリー",role:"ARTILLERY",letter:"R",color:"#f4a259",place:"hill",cost:17,
     hp:320,atk:90,interval:2.6,block:0,range:6.0,kind:"barrage",aoe:1.3,delay:1.0,targets:"ground",
-    skill:{name:"絨毯爆撃",spMax:15,dur:5,atk:1.5,aoe:1.7,spd:1.6,shots:3,antiAir:true,
+    skill:{name:"絨毯爆撃",spMax:15,dur:0.6,barrageBurst:{n:9,gap:0.16,mul:1.6,aoe:1.7},
            ultName:"全砲門斉射",ultGauge:26,ultBombard:{n:10,gap:0.18,mul:2.2,aoe:1.6}}},
   archer:{name:"アーチャー",role:"ANTI-AIR",letter:"Y",color:"#86e0a3",place:"hill",cost:13,
     hp:330,atk:155,interval:0.8,block:0,range:4.0,kind:"range",targets:"air",arrow:true,
@@ -2179,6 +2179,8 @@ function skillActivate(u,isUlt){
   if(isUlt && sk.ultBurst){ const f=sk.ultBurst; u.shotBurst={left:f.n,t:0,gap:f.gap,mul:f.mul}; }
   // 必殺技：通路のランダムな敵へ連続砲撃（アーティラリー）。対象は毎回抽出
   if(isUlt && sk.ultBombard){ const f=sk.ultBombard; u.bombard={left:f.n,t:0,gap:f.gap,mul:f.mul,aoe:f.aoe}; return; }
+  // スキル：固定回数だけ砲撃を撃ち込む（アーティラリー 絨毯爆撃＝3連×3）。持続せず一括
+  if(!isUlt && sk.barrageBurst){ const f=sk.barrageBurst; u.bombard={left:f.n,t:0,gap:f.gap,mul:f.mul,aoe:f.aoe}; }
   // 必殺技：魔法陣を展開して巨大範囲ビーム（メイジ）
   if(isUlt && sk.ultBeam){ const f=sk.ultBeam; const fa=forwardAngle(u,99*TILE);
     u.magicBeam={t:f.dur,dur:f.dur,dir:fa.found?fa.ang:0,width:f.width*TILE,len:f.len*TILE,dps:statATK(u.cfg,u.type)*f.dps*(u.atkBuff||1),tick:0};
@@ -2271,7 +2273,7 @@ function throwBomb(u,mul,aoeTiles,stun){
   Sound.play("aoe");
 }
 // ===== 必殺技（ULT）：スキルの強化版を手動発動。リバースのBLADEよりやや溜まりづらい =====
-const ULT_GAUGE=24, ULT_POW=1.5, ULT_DUR=1.3;
+const ULT_GAUGE=24, ULT_POW=1.5, ULT_DUR=1.7;
 // 必殺技の必要ポイント（キャラ毎。skill.ultGauge指定が無ければ既定ULT_GAUGE）
 function ultMax(cfg){ return (cfg&&cfg.skill&&cfg.skill.ultGauge)||ULT_GAUGE; }
 function ultReady(u){ return !!u.cfg.skill && !u.ultActive && (u.ug||0)>=ultMax(u.cfg); }
@@ -4021,7 +4023,7 @@ const SKILL_DESC={
   berserker:"攻撃・速度UP＋与ダメの35%を自己回復。",
   sniper:"攻撃力2.6倍の超火力狙撃。",
   mage:"魔法を5連射し、命中ごとに30%で攻撃力+10%（最大5スタック・10秒）を獲得する。",
-  artillery:"1射ごとに3発の広範囲砲撃を投下。",
+  artillery:"3連砲撃を3回ぶん（計9発）まとめて撃ち込む。",
   archer:"通常攻撃が一度に7本の矢を放つ矢の雨になる。",
   flak:"範囲・威力UP＋スタン付与の対空弾幕。",
   halberdier:"攻撃力・速度UP＋対空の薙ぎ範囲が拡大。",
