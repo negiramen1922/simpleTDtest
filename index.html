@@ -1114,8 +1114,9 @@ const TYPES={
     skill:{name:"螺旋突撃",spMax:12,dur:5,spd:1.6,frontSlash:{n:5,mul:1.0,r:3,gap:0.1,thrust:true},ultGauge:22,
            ultName:"ランスチャージ",ultLanceCharge:{mul:5.0,knockback:0.6,r:0.7,spd:900,life:0.8}}},
   berserker:{name:"バーサーカー",role:"BERSERK",letter:"W",color:"#e8504e",place:"road",cost:14,
-    hp:900,atk:170,interval:0.8,block:1,kind:"melee",rage:1.7,targets:"ground",
-    skill:{name:"血の渇き",spMax:11,dur:7,atk:1.5,spd:1.5,lifesteal:0.35}},
+    hp:900,atk:190,interval:1.5,block:1,kind:"melee",rage:1.7,meleeHits:2,targets:"ground",
+    skill:{name:"血の渇き",spMax:11,dur:7,atk:1.5,spd:1.5,lifesteal:0.35,ultGauge:24,
+           ultName:"チャージアックス",ultChargeAxe:{n:10,charge:0.5,gap:0.06,mul:0.8,r:2,ls:0.3}}},
   sniper:{name:"スナイパー",role:"SNIPE",letter:"K",color:"#5ad1f4",place:"hill",cost:14,
     hp:300,atk:520,interval:2.3,block:0,range:5.0,kind:"range",targets:"both",
     skill:{name:"必殺の一撃",spMax:13,dur:7,atk:2.6,spd:1.5}},
@@ -2110,7 +2111,7 @@ function fireSkill(u){
   return true;
 }
 // スキルが発動時に固有の一撃を持つか（汎用ボーナスを抑制する判定に使用）
-function hasCustomActivate(sk){ return !!(sk && (sk.smash||sk.frontSlash||sk.ultFrontSlash||sk.ultFlySlash||sk.ultChargeAlly||sk.ultBarrage||sk.ultDotField||sk.ultLanceCharge)); }
+function hasCustomActivate(sk){ return !!(sk && (sk.smash||sk.frontSlash||sk.ultFrontSlash||sk.ultFlySlash||sk.ultChargeAlly||sk.ultBarrage||sk.ultDotField||sk.ultLanceCharge||sk.ultChargeAxe)); }
 // エンチャンターのバフ対象：射程内で攻撃/回復する味方のうち、最もバフ残量が少ない味方
 function pickBuffAlly(u,R){
   let best=null,bv=Infinity;
@@ -2166,13 +2167,17 @@ function skillActivate(u,isUlt){
   if(isUlt && sk.ultFrontSlash){ const f=sk.ultFrontSlash; u.combo={left:f.n,t:0,gap:f.gap,mul:f.mul,r:f.r,thrust:f.thrust}; return; }
   // 必殺技：正面に突撃して直線上の敵全てを貫く（ランサー ランスチャージ）
   if(isUlt && sk.ultLanceCharge){ doLanceCharge(u,sk.ultLanceCharge); return; }
+  // 必殺技：チャージアックス（バーサーカー）。ためてから正面に多段の振り下ろし＋与ダメ回復
+  if(isUlt && sk.ultChargeAxe){ const f=sk.ultChargeAxe; u.combo={left:f.n,t:(f.charge||0.5),gap:f.gap,mul:f.mul,r:f.r,ls:f.ls}; return; }
   // スキル：目の前に大斬撃×n（カノン 天蓋連牙）。連撃キューで時間差発生
   if(sk.frontSlash){ const f=sk.frontSlash; u.combo={left:f.n,t:0,gap:f.gap,mul:f.mul*(isUlt?ULT_POW:1),r:f.r,thrust:f.thrust}; }
 }
-// 目の前への大斬撃/突き1回（連撃キューから呼ばれる）。周囲の敵に当たる。lifesteal対応
-function frontSlashHit(u,mul,rTiles,thrust){
-  const R=rTiles*TILE, dmg=statATK(u.cfg,u.type)*mul*(u.atkBuff||1);
-  const sk=u.cfg.skill, ls=(u.skillActive&&sk&&sk.lifesteal)?sk.lifesteal:0;
+// 目の前への大斬撃/突き1回（連撃キューから呼ばれる）。周囲の敵に当たる。レイジ＆回復対応
+function frontSlashHit(u,mul,rTiles,thrust,lsOverride){
+  let rageMult=1; if(u.cfg.rage){ rageMult=1+(u.cfg.rage-1)*(1-u.hp/u.maxHp); }
+  const R=rTiles*TILE, dmg=statATK(u.cfg,u.type)*mul*(u.atkBuff||1)*rageMult;
+  const sk=u.cfg.skill;
+  const ls=(lsOverride!=null)?lsOverride:((u.skillActive&&sk&&sk.lifesteal)?sk.lifesteal:0);
   let total=0;
   for(const en of G.enemies){ if(en.hp>0 && canHit(u,en) && dist(en,u)<=R){ hurtEnemy(en,dmg,u.cfg.color,u); total+=dmg; } }
   if(ls>0 && total>0){ u.hp=Math.min(u.maxHp,u.hp+total*ls); addFx({type:"heal",x:u.x,y:u.y,life:0.4}); }
@@ -2367,7 +2372,20 @@ function update(dt){
     }
     if(!u.isToken) u.ug=Math.min(ultMax(u.cfg),(u.ug||0)+dt); // 必殺技ゲージ（updateはwave時のみ走るため戦闘中だけ充填）
     // 連撃キュー（天蓋連牙など、目の前への大斬撃を時間差で繰り出す）
-    if(u.combo){ u.combo.t-=dt; if(u.combo.t<=0 && u.combo.left>0){ frontSlashHit(u,u.combo.mul,u.combo.r,u.combo.thrust); u.combo.left--; u.combo.t=u.combo.gap; if(u.combo.left<=0)u.combo=null; } }
+    if(u.combo){ u.combo.t-=dt; if(u.combo.t<=0 && u.combo.left>0){ frontSlashHit(u,u.combo.mul,u.combo.r,u.combo.thrust,u.combo.ls); u.combo.left--; u.combo.t=u.combo.gap; if(u.combo.left<=0)u.combo=null; } }
+    // 多段ヒット追撃（バーサーカーの2回斬り等）：時間差で同じ対象を追撃
+    if(u.strikes&&u.strikes.length){
+      for(const st of u.strikes){ st.t-=dt;
+        if(st.t<=0&&!st.done){ st.done=true;
+          for(const h of st.hits){ if(h.hp>0&&G.enemies.includes(h)){ const ang=Math.atan2(h.y-u.y,h.x-u.x);
+            if(st.thrust) addFx({type:"thrust",x:u.x,y:u.y,ang,len:(u.cfg.reach||1)*TILE,col:u.cfg.color,life:0.18});
+            else addFx({type:"swordslash",x:u.x,y:u.y,ang,r:TILE*0.74,col:u.cfg.color,life:0.22});
+            addFx({type:"hit",x:h.x,y:h.y,col:"#fff",life:0.14}); hurtEnemy(h,st.dmg,u.cfg.color,u); } }
+          if(st.ls>0) u.hp=Math.min(u.maxHp,u.hp+st.dmg*st.ls);
+          Sound.play("melee");
+        } }
+      u.strikes=u.strikes.filter(s=>!s.done);
+    }
     // 爆弾連射キュー（爆裂連弾：高火力スタン爆弾を連射）
     if(u.bombQueue){ u.bombQueue.t-=dt; if(u.bombQueue.t<=0 && u.bombQueue.left>0){ throwBomb(u,u.bombQueue.mul,u.bombQueue.aoe,u.bombQueue.stun); u.bombQueue.left--; u.bombQueue.t=u.bombQueue.gap; if(u.bombQueue.left<=0)u.bombQueue=null; } }
     // 持続ダメージ領域（ハーヴェスター デッドハーヴェスト）：必殺技中、周囲の敵に継続ダメージ
@@ -2628,6 +2646,10 @@ function update(dt){
         Sound.play("melee");
         // バーサーカー：スキル中はライフスティール
         if(active&&sk&&sk.lifesteal){ u.hp=Math.min(u.maxHp,u.hp+dmg*sk.lifesteal); }
+        // 多段ヒット（バーサーカー等 meleeHits）：同じ対象に時間差で追撃
+        const nHits=u.cfg.meleeHits||1;
+        if(nHits>1){ u.strikes=u.strikes||[];
+          for(let i=1;i<nHits;i++) u.strikes.push({t:i*0.13,dmg,hits:hits.slice(),thrust:u.cfg.thrust,ls:(active&&sk&&sk.lifesteal)?sk.lifesteal:0}); }
       }
     } else if(k==="range"){
       if(u.cd<=0){
@@ -3842,7 +3864,8 @@ const ULT_DESC={
   breaker:"前方3マスに7連撃。発動中は撃破時のDP生産が3倍に加速する。",
   harvester:"周囲を範囲攻撃し、発動中ずっと周囲へ持続ダメージを与え続ける。",
   guardian:"周囲の敵に5連撃。被ダメージを70%軽減し、与えたダメージの50%を回復する。",
-  lancer:"槍を構えて正面に突撃し、直線上の敵すべてを貫いてダメージ＋ノックバックする。"
+  lancer:"槍を構えて正面に突撃し、直線上の敵すべてを貫いてダメージ＋ノックバックする。",
+  berserker:"0.5秒ためてから正面2マスに斧を振り下ろし、10ヒットの範囲ダメージ。与ダメージの30%を回復する。"
 };
 
 /* ----- 育成 ----- */
