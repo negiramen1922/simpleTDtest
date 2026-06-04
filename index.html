@@ -2137,7 +2137,9 @@ function skillActivate(u,isUlt){
       hurtEnemy(en,dmg,u.cfg.color,u);
       if(sk.knockback) knockback(en, sk.knockback*(isUlt?1.6:1));
     }}
-    addFx({type:"swordslash",x:u.x,y:u.y,ang:-Math.PI/2,r:R*0.55,col:u.cfg.color,life:0.32,wide:true});
+    // シールドバッシュ：シールドが前方へ飛んでいく演出
+    const fa=forwardAngle(u,R+TILE), ang=fa.found?fa.ang:0;
+    addFx({type:"flyshield",x:u.x,y:u.y,ang,len:R,sz:isUlt?22:18,col:u.cfg.color,life:0.42});
     addFx({type:"ring",x:u.x,y:u.y,r:R,col:u.cfg.color,life:0.4});
     Sound.play("melee");
   }
@@ -3385,6 +3387,20 @@ function drawFx(f){
     ctx.strokeStyle=hexA("#fff",1-p);ctx.lineWidth=f.wide?5:3.5;
     ctx.beginPath();ctx.arc(f.x,f.y,R,led-0.3,led+0.3);ctx.stroke();
     ctx.lineCap="butt";
+  }else if(f.type==="flyshield"){
+    // シールドが前方へ飛んでいく（盾＋曳光）
+    const d=(f.len||TILE)*Math.min(1,p*1.25);
+    const cx=f.x+Math.cos(f.ang)*d, cy=f.y+Math.sin(f.ang)*d;
+    const R=f.sz||16, al=Math.max(0,1-p);
+    // 曳光
+    ctx.strokeStyle=hexA(f.col,0.22*al);ctx.lineWidth=R*1.3;ctx.lineCap="round";
+    const bx=f.x+Math.cos(f.ang)*Math.max(0,d-R*1.6), by=f.y+Math.sin(f.ang)*Math.max(0,d-R*1.6);
+    ctx.beginPath();ctx.moveTo(bx,by);ctx.lineTo(cx,cy);ctx.stroke();ctx.lineCap="butt";
+    // 盾本体（丸盾：色＋白縁＋内輪＋中央ボス）
+    ctx.fillStyle=hexA(f.col,0.92*al);ctx.beginPath();ctx.arc(cx,cy,R,0,7);ctx.fill();
+    ctx.strokeStyle=hexA("#e6efff",al);ctx.lineWidth=2.5;ctx.beginPath();ctx.arc(cx,cy,R,0,7);ctx.stroke();
+    ctx.strokeStyle=hexA("#ffffff",0.55*al);ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(cx,cy,R*0.6,0,7);ctx.stroke();
+    ctx.fillStyle=hexA("#ffffff",0.85*al);ctx.beginPath();ctx.arc(cx,cy,R*0.26,0,7);ctx.fill();
   }else if(f.type==="thrust"){
     // 突き：穂先が前方へ鋭く伸びる
     const len=f.len||TILE, reach=len*(0.45+p*0.55);
