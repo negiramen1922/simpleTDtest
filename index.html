@@ -1148,7 +1148,8 @@ const TYPES={
            ultName:"大ブレス",ultGauge:26,ultBreath:{n:40,mul:0.7,range:6,dur:1.6,spread:0.95}}},
   sentinel:{name:"センチネル",role:"SENTINEL",letter:"哨",color:"#8fb8e0",place:"road",cost:15,
     hp:1500,atk:120,interval:1.5,block:3,kind:"melee",targets:"ground",thrust:true,
-    skill:{name:"反撃の構え",spMax:10,dur:7,dr:0.3,counter:0.3}},
+    skill:{name:"反撃の構え",spMax:10,dur:7,dr:0.3,counter:0.3,
+           ultName:"挑発カウンター",ultGauge:24,ultDur:7,ultDr:0.6,ultCounter:0.6,ultKnockback:0.6,ultTaunt:{r:3,pull:2,mul:1.5}}},
   duelist:{name:"デュエリスト",role:"DUEL",letter:"D",color:"#ff7a45",place:"road",cost:14,
     hp:760,atk:170,interval:0.85,block:1,kind:"melee",targets:"ground",duelMul:2.4,
     skill:{name:"決闘",spMax:10,dur:5,atk:1.6,spd:1.4,duelMul:3.4}},
@@ -2099,12 +2100,15 @@ function knockback(en,tiles){
 // 味方へのダメージ適用（カット→シールド→HPの順）
 function applyToUnit(u,dmg,attacker){
   dmg*=(1-unitDR(u));
-  // 反撃（センチネル）：反撃状態中に攻撃されると攻撃元へ攻撃力の一定割合を返す
+  // 反撃（センチネル）：反撃状態中に攻撃されると攻撃元へ攻撃力の一定割合を返す（必殺技中は倍率UP＋ノックバック）
   const sk=u.cfg.skill;
-  if(attacker && attacker.hp>0 && u.skillActive && sk && sk.counter){
-    const back=statATK(u.cfg,u.type)*sk.counter;
-    hurtEnemy(attacker,back,"#ffd24a",u);
-    addFx({type:"thrust",x:u.x,y:u.y,ang:Math.atan2(attacker.y-u.y,attacker.x-u.x),len:TILE,col:"#ffd24a",life:0.18,wide:true});
+  if(attacker && attacker.hp>0 && u.skillActive && sk && (sk.counter||sk.ultCounter)){
+    const rate=(u.ultActive&&sk.ultCounter)?sk.ultCounter:sk.counter;
+    if(rate){ const back=statATK(u.cfg,u.type)*rate;
+      hurtEnemy(attacker,back,"#ffd24a",u);
+      if(u.ultActive&&sk.ultKnockback) knockback(attacker,sk.ultKnockback);
+      addFx({type:"thrust",x:u.x,y:u.y,ang:Math.atan2(attacker.y-u.y,attacker.x-u.x),len:TILE,col:"#ffd24a",life:0.18,wide:true});
+    }
   }
   if(u.shield>0){ const a=Math.min(u.shield,dmg); u.shield-=a; dmg-=a;
     addFx({type:"hit",x:u.x,y:u.y,col:"#8fb8e0",life:0.22}); }
@@ -2141,7 +2145,7 @@ function fireSkill(u){
   return true;
 }
 // スキルが発動時に固有の一撃を持つか（汎用ボーナスを抑制する判定に使用）
-function hasCustomActivate(sk){ return !!(sk && (sk.smash||sk.frontSlash||sk.ultFrontSlash||sk.ultFlySlash||sk.ultChargeAlly||sk.ultBarrage||sk.ultDotField||sk.ultLanceCharge||sk.ultChargeAxe||sk.ultBeam||sk.ultBombard||sk.ultBreath)); }
+function hasCustomActivate(sk){ return !!(sk && (sk.smash||sk.frontSlash||sk.ultFrontSlash||sk.ultFlySlash||sk.ultChargeAlly||sk.ultBarrage||sk.ultDotField||sk.ultLanceCharge||sk.ultChargeAxe||sk.ultBeam||sk.ultBombard||sk.ultBreath||sk.ultTaunt)); }
 // エンチャンターのバフ対象：射程内で攻撃/回復する味方のうち、最もバフ残量が少ない味方
 function pickBuffAlly(u,R){
   let best=null,bv=Infinity;
@@ -2220,6 +2224,18 @@ function skillActivate(u,isUlt){
   if(!isUlt && sk.volleyBurst){ const f=sk.volleyBurst; u.rangeBurst={left:f.n,t:0,gap:f.gap,mul:f.mul}; }
   // スキル：固定回数の範囲攻撃＋ノックバック（フラック）
   if(!isUlt && sk.flakBurst){ const f=sk.flakBurst; u.aoeBurst={left:f.n,t:0,gap:f.gap,mul:f.mul,aoe:f.aoe,stun:f.stun,knockback:f.knockback}; }
+  // 必殺技：挑発カウンター（センチネル）。周囲の敵を引き寄せ＋一括で反撃斬り。発動後は反撃強化＆攻撃ノックバック
+  if(isUlt && sk.ultTaunt){ const f=sk.ultTaunt, R=f.r*TILE, dmg=statATK(u.cfg,u.type)*(f.mul||1.5)*(u.atkBuff||1);
+    for(const en of G.enemies){ if(en.hp<=0||!canHit(u,en)||dist(u,en)>R)continue;
+      const ang=Math.atan2(u.y-en.y,u.x-en.x), d=dist(u,en), pull=Math.min(Math.max(0,d-TILE*0.6),(f.pull||2)*TILE);
+      en.x+=Math.cos(ang)*pull; en.y+=Math.sin(ang)*pull; en.stun=Math.max(en.stun||0,0.6);
+      hurtEnemy(en,dmg,"#ffd24a",u);
+      addFx({type:"beam",x1:en.x-Math.cos(ang)*pull,y1:en.y-Math.sin(ang)*pull,x2:u.x,y2:u.y,col:"#ffd24a",life:0.25});
+    }
+    addFx({type:"ring",x:u.x,y:u.y,r:R,col:"#ffd24a",life:0.5});
+    addFx({type:"swordslash",x:u.x,y:u.y,ang:0,r:R*0.6,col:"#ffd24a",life:0.32,wide:true});
+    Sound.play("melee"); return;
+  }
   // 必殺技：大ブレス（地上＋空中の両方を焼く広範囲ブレス）（ドラゴンライダー）
   if(isUlt && sk.ultBreath){ startBreath(u,sk.ultBreath,true); Sound.play("breath"); return; }
   // スキル：竜のブレス（前方扇状・地上か空中の片方）（ドラゴンライダー）
@@ -2821,6 +2837,7 @@ function update(dt){
           else addFx({type:"swordslash",x:u.x,y:u.y,ang,r:TILE*0.74,col:slCol,life:0.22,flip:flip0});
           addFx({type:"hit",x:h.x,y:h.y,col:"#fff",life:0.14});
           hurtEnemy(h,dmg,u.cfg.color,u);
+          if(u.ultActive&&sk&&sk.ultKnockback) knockback(h,sk.ultKnockback); // 必殺技中：攻撃でノックバック
         }
         Sound.play(u.cfg.thrust?"thrust":"melee");
         // バーサーカー：スキル中はライフスティール
@@ -4171,7 +4188,8 @@ const ULT_DESC={
   artillery:"通路のランダムな敵へ砲撃を10連射（対象は毎回抽出）。広範囲を制圧する。",
   archer:"攻撃速度と射程が大きく伸び、矢の雨で空を制圧する。",
   flak:"通常攻撃が3連射になり、自身に加速を付与する。",
-  dragonrider:"地上＋空中の両方を焼き払う広範囲の大ブレスを放つ。"
+  dragonrider:"地上＋空中の両方を焼き払う広範囲の大ブレスを放つ。",
+  sentinel:"周囲の敵を自分へ引き寄せて一括反撃。発動中は被ダメ-60%＋反撃強化＋攻撃でノックバック。"
 };
 
 /* ----- 育成 ----- */
