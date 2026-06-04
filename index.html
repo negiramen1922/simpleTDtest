@@ -1132,8 +1132,9 @@ const TYPES={
     hp:330,atk:155,interval:0.8,block:0,range:4.0,kind:"range",targets:"air",arrow:true,
     skill:{name:"連射の雨",spMax:11,dur:5,spd:1.3,volleyBurst:{n:12,gap:0.06,mul:1.0},ultName:"烈風連射",ultGauge:22,ultRange:1.8}},
   flak:{name:"フラック",role:"FLAK",letter:"F",color:"#7fc4ff",place:"hill",cost:16,
-    hp:360,atk:120,interval:1.4,block:0,range:4.2,kind:"aoe",aoe:1.0,stun:0,targets:"air",
-    skill:{name:"対空弾幕",spMax:13,dur:5,atk:1.6,aoe:1.6,spd:1.5,stun:0.4}},
+    hp:360,atk:120,interval:1.4,block:0,range:4.2,kind:"aoe",aoe:1.0,stun:0,targets:"air",magic:true,firework:true,
+    skill:{name:"対空弾幕",spMax:13,dur:0.8,flakBurst:{n:5,gap:0.18,mul:1.6,aoe:1.6,stun:0.3,knockback:0.5},
+           ultName:"曳光乱舞",ultGauge:24,ultDur:8,ultVolley:3,ultSpd:1.6}},
   halberdier:{name:"ハルバーディア",role:"HALBERD",letter:"V",color:"#d4a574",place:"road",cost:15,
     hp:980,atk:150,interval:1.1,block:2,kind:"melee",targets:"both",airReach:1.6,
     skill:{name:"薙ぎ払い",spMax:12,dur:5,atk:1.7,spd:1.4,airReach:2.2}},
@@ -2192,6 +2193,8 @@ function skillActivate(u,isUlt){
   // スキル：固定回数の爆弾投げ（ボマー）／矢の連射バースト（アーチャー）。発動後に止まる
   if(!isUlt && sk.bombBurst){ const f=sk.bombBurst; u.bombQueue={left:f.n,t:0,gap:f.gap,mul:f.mul,aoe:f.aoe,stun:f.stun}; }
   if(!isUlt && sk.volleyBurst){ const f=sk.volleyBurst; u.rangeBurst={left:f.n,t:0,gap:f.gap,mul:f.mul}; }
+  // スキル：固定回数の範囲攻撃＋ノックバック（フラック）
+  if(!isUlt && sk.flakBurst){ const f=sk.flakBurst; u.aoeBurst={left:f.n,t:0,gap:f.gap,mul:f.mul,aoe:f.aoe,stun:f.stun,knockback:f.knockback}; }
 }
 // 目の前への大斬撃/突き1回（連撃キューから呼ばれる）。周囲の敵に当たる。レイジ＆回復対応
 function frontSlashHit(u,mul,rTiles,thrust,lsOverride){
@@ -2265,6 +2268,16 @@ function fireRangeBurst(u,mul){
   if(u.cfg.arrow)s.arrow=true; if(u.cfg.bullet)s.bullet=true;
   G.shots.push(s); Sound.play(u.cfg.arrow?"arrow":"shoot");
 }
+// 範囲攻撃を1発撃つ（フラック スキルの連射バーストから呼ばれる）。着弾でノックバック可
+function fireAoeShot(u,mul,aoe,stun,knockback){
+  const R=unitRange(u), pool=G.enemies.filter(e=>canHit(u,e)&&dist(u,e)<=R).sort((a,b)=>b.progress-a.progress).slice(0,6);
+  const tg=pool.length?pool[Math.floor(Math.random()*pool.length)]:pickEnemy(u);
+  if(!tg)return;
+  const s=shot(u,tg,statATK(u.cfg,u.type)*mul*(u.atkBuff||1),u.cfg.color,"aoe");
+  s.aoeR=(aoe||u.cfg.aoe)*TILE; s.stun=stun||0; s.knockback=knockback||0;
+  if(u.cfg.magic)s.magic=true; if(u.cfg.firework)s.firework=true;
+  G.shots.push(s); Sound.play("aoe");
+}
 // 強力な狙撃弾を1発撃つ（スナイパー必殺技の連射から呼ばれる）
 function fireSniperShot(u,mul){
   const tg=pickEnemy(u); if(!tg)return;
@@ -2292,7 +2305,7 @@ function ultReady(u){ return !!u.cfg.skill && !u.ultActive && (u.ug||0)>=ultMax(
 function fireUlt(u){
   if(!ultReady(u))return false;
   const sk=u.cfg.skill;
-  u.skillActive=true; u.ultActive=true; u.skillTimer=sk.dur*ULT_DUR; u.sp=sk.spMax; u.ug=0;
+  u.skillActive=true; u.ultActive=true; u.skillTimer=(sk.ultDur||sk.dur*ULT_DUR); u.sp=sk.spMax; u.ug=0;
   // キャラ固有の発動時効果（前方スマッシュ等）
   skillActivate(u,true);
   // シールド付与（ヴァンガード等）：シールドがある間はHPの代わりに削れる
@@ -2472,6 +2485,8 @@ function update(dt){
     if(u.shotBurst){ u.shotBurst.t-=dt; if(u.shotBurst.t<=0 && u.shotBurst.left>0){ fireSniperShot(u,u.shotBurst.mul); u.shotBurst.left--; u.shotBurst.t=u.shotBurst.gap; if(u.shotBurst.left<=0)u.shotBurst=null; } }
     // 連射バーストキュー（アーチャー スキル）：固定本数だけ撃って止まる
     if(u.rangeBurst){ u.rangeBurst.t-=dt; if(u.rangeBurst.t<=0 && u.rangeBurst.left>0){ fireRangeBurst(u,u.rangeBurst.mul); u.rangeBurst.left--; u.rangeBurst.t=u.rangeBurst.gap; if(u.rangeBurst.left<=0)u.rangeBurst=null; } }
+    // 範囲連射バーストキュー（フラック スキル）：固定回数の範囲攻撃＋ノックバック
+    if(u.aoeBurst){ u.aoeBurst.t-=dt; if(u.aoeBurst.t<=0 && u.aoeBurst.left>0){ fireAoeShot(u,u.aoeBurst.mul,u.aoeBurst.aoe,u.aoeBurst.stun,u.aoeBurst.knockback); u.aoeBurst.left--; u.aoeBurst.t=u.aoeBurst.gap; if(u.aoeBurst.left<=0)u.aoeBurst=null; } }
     // 連続砲撃キュー（アーティラリー必殺技）：通路のランダムな敵を毎回抽出して砲撃
     if(u.bombard){ u.bombard.t-=dt; if(u.bombard.t<=0 && u.bombard.left>0){
       const cands=G.enemies.filter(e=>e.hp>0);
@@ -2697,7 +2712,7 @@ function update(dt){
 
     const sk=u.cfg.skill, active=u.skillActive;
     const ultp=u.ultActive?ULT_POW:1;
-    const spdTotal=u.spdBuff*(u.artSpd||1)*(active&&sk&&sk.spd?sk.spd*ultp:1);
+    const spdTotal=u.spdBuff*(u.artSpd||1)*(active&&sk&&sk.spd?sk.spd*ultp:1)*((u.ultActive&&sk&&sk.ultSpd)?sk.ultSpd:1);
     const atkMult=u.atkBuff*(active&&sk&&sk.atk?sk.atk*ultp:1);
     const itv=(u.cfg.interval||1)/spdTotal;
     if(k==="melee"){
@@ -2809,11 +2824,18 @@ function update(dt){
       if(u.cd<=0){
         const tg=pickEnemy(u);
         if(tg){u.cd=itv;
-          const s=shot(u,tg,u.atk*atkMult,u.cfg.color,"aoe");
-          s.aoeR=(active&&sk.aoe?sk.aoe:u.cfg.aoe)*TILE;
-          s.stun=(active&&sk.stun?sk.stun:u.cfg.stun);
-          if(u.cfg.magic)s.magic=true; // メイジ：魔法弾＋魔法陣の着弾
-          G.shots.push(s); Sound.play("aoe");
+          // フラック必殺技：通常攻撃が3連射に
+          const n=(u.ultActive&&sk&&sk.ultVolley)?sk.ultVolley:1;
+          const R=unitRange(u), pool=G.enemies.filter(e=>canHit(u,e)&&dist(u,e)<=R).sort((a,b)=>b.progress-a.progress);
+          for(let i=0;i<n;i++){
+            const t2=(i===0)?tg:(pool[i%Math.max(1,pool.length)]||tg);
+            const s=shot(u,t2,u.atk*atkMult,u.cfg.color,"aoe");
+            s.aoeR=(active&&sk.aoe?sk.aoe:u.cfg.aoe)*TILE;
+            s.stun=(active&&sk.stun?sk.stun:u.cfg.stun);
+            if(u.cfg.magic)s.magic=true; if(u.cfg.firework)s.firework=true;
+            G.shots.push(s);
+          }
+          Sound.play("aoe");
         }
       }
     } else if(k==="barrage"){
@@ -2918,10 +2940,14 @@ function update(dt){
       } else if(s.kind==="aoe"){
         const R=s.aoeR;
         for(const en of G.enemies){
-          if(canHit(s.owner,en) && dist(en,s.target)<=R){en.stun=Math.max(en.stun,s.stun); hurtEnemy(en,s.dmg,s.col,s.owner);}
+          if(canHit(s.owner,en) && dist(en,s.target)<=R){en.stun=Math.max(en.stun,s.stun); hurtEnemy(en,s.dmg,s.col,s.owner); if(s.knockback)knockback(en,s.knockback);}
         }
         if(s.magic) addFx({type:"magicburst",x:s.target.x,y:s.target.y,r:R,col:s.col,life:0.5});
         else addFx({type:"ring",x:s.target.x,y:s.target.y,r:R,col:s.col,life:0.4});
+        if(s.firework){ // 花火の火花
+          const cols=["#ff5b6e","#ffd24a","#7fc4ff","#a0e070","#ff9ad1"];
+          for(let i=0;i<10;i++){ const a=Math.random()*7, sp=70+Math.random()*120; addFx({type:"frag",x:s.target.x,y:s.target.y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,col:cols[i%cols.length],life:0.5+Math.random()*0.3,r:2.5}); }
+        }
       } else if(s.kind==="chain"){
         // 連鎖：命中した敵から近い敵へ次々と飛ぶ（威力減衰）
         let cur=s.target, dmg=s.dmg, hit=new Set([cur]);
@@ -4039,7 +4065,7 @@ const SKILL_DESC={
   mage:"魔法を5連射し、命中ごとに30%で攻撃力+10%（最大5スタック・10秒）を獲得する。",
   artillery:"3連砲撃を3回ぶん（計9発）まとめて撃ち込む。",
   archer:"矢を一気に12本撃ち込む矢の雨（自身を少し加速）。",
-  flak:"範囲・威力UP＋スタン付与の対空弾幕。",
+  flak:"対空の範囲攻撃を5連射し、敵をノックバックする。",
   halberdier:"攻撃力・速度UP＋対空の薙ぎ範囲が拡大。",
   guardknight:"ダメージ50%カット＋周囲の味方へ継続的にシールドを付与。",
   duelist:"攻撃力・速度UP＋ブロック対象への与ダメ倍率がさらに増加。",
@@ -4079,7 +4105,8 @@ const ULT_DESC={
   sniper:"攻撃力・連射速度を強化しつつ、強力な狙撃弾を5連射する。",
   mage:"魔法陣を展開し、前方の広範囲を貫く巨大な魔導ビームを撃つ。",
   artillery:"通路のランダムな敵へ砲撃を10連射（対象は毎回抽出）。広範囲を制圧する。",
-  archer:"攻撃速度と射程が大きく伸び、矢の雨で空を制圧する。"
+  archer:"攻撃速度と射程が大きく伸び、矢の雨で空を制圧する。",
+  flak:"通常攻撃が3連射になり、自身に加速を付与する。"
 };
 
 /* ----- 育成 ----- */
