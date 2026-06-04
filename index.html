@@ -1159,8 +1159,9 @@ const TYPES={
     skill:{name:"決闘",spMax:10,dur:5,duelCombo:{n:3,mul:1.0,gap:0.13},critBuff:0.5,
            ultName:"絶命剣舞",ultGauge:24,ultDur:6,ultCritBuff:0.8,ultDuelCombo:{n:3,mul:1.8,gap:0.15}}},
   revenger:{name:"リベンジャー",role:"REVENGE",letter:"Z",color:"#c0506e",place:"road",cost:14,
-    hp:1050,atk:120,interval:1.0,block:1,kind:"melee",targets:"ground",rage:2.0,spOnHit:0.7,
-    skill:{name:"報復",spMax:12,dur:5,atk:1.7,spd:1.5,lifesteal:0.4}},
+    hp:1050,atk:120,interval:1.0,block:1,kind:"melee",targets:"ground",rage:2.0,spOnHit:0.7,meleeHits:2,
+    skill:{name:"報復",spMax:11,dur:0.5,revenge:true,
+           ultName:"復讐の進撃",ultGauge:24,ultDur:1.5,revUlt:true}},
   marksman:{name:"マークスマン",role:"MARKSMAN",letter:"J",color:"#5ad6c0",place:"hill",cost:15,
     hp:310,atk:420,interval:2.0,block:0,range:5.2,kind:"range",targets:"both",aimMax:true,
     skill:{name:"徹甲弾",spMax:13,dur:5,atk:2.4,spd:1.4}},
@@ -1221,7 +1222,7 @@ const ORDER=["tank","attacker","shooter","healer","support","trickster","breaker
 // キャラアイコン画像（icons/<type>.png）。全キャラにアイコンを割り当て（読み込み失敗時はonerrorで文字にフォールバック）
 for(const t in TYPES){ TYPES[t].img="icons/"+t+".png?v=4"; }
 // 調整（レビュー）済みキャラ。未調整キャラは編成・出撃で使用不可（順次解放していく）
-const TUNED_LIST=["tank","attacker","shooter","healer","support","trickster","breaker","harvester","guardian","lancer","berserker","sniper","mage","artillery","archer","flak","dragonrider","sentinel","paladin","duelist","gunner"];
+const TUNED_LIST=["tank","attacker","shooter","healer","support","trickster","breaker","harvester","guardian","lancer","berserker","sniper","mage","artillery","archer","flak","dragonrider","sentinel","paladin","duelist","gunner","revenger"];
 TUNED_LIST.forEach(t=>{ if(TYPES[t]) TYPES[t].tuned=true; });
 function isTuned(t){ return !!(TYPES[t]&&TYPES[t].tuned); }
 // アイコン用HTML（DOMカード共通）：画像があれば<img>、無ければ文字
@@ -2151,7 +2152,7 @@ function fireSkill(u){
   return true;
 }
 // スキルが発動時に固有の一撃を持つか（汎用ボーナスを抑制する判定に使用）
-function hasCustomActivate(sk){ return !!(sk && (sk.smash||sk.frontSlash||sk.ultFrontSlash||sk.ultFlySlash||sk.ultChargeAlly||sk.ultBarrage||sk.ultDotField||sk.ultLanceCharge||sk.ultChargeAxe||sk.ultBeam||sk.ultBombard||sk.ultBreath||sk.ultTaunt||sk.ultDuelCombo||sk.ultGatling)); }
+function hasCustomActivate(sk){ return !!(sk && (sk.smash||sk.frontSlash||sk.ultFrontSlash||sk.ultFlySlash||sk.ultChargeAlly||sk.ultBarrage||sk.ultDotField||sk.ultLanceCharge||sk.ultChargeAxe||sk.ultBeam||sk.ultBombard||sk.ultBreath||sk.ultTaunt||sk.ultDuelCombo||sk.ultGatling||sk.revUlt)); }
 // エンチャンターのバフ対象：射程内で攻撃/回復する味方のうち、最もバフ残量が少ない味方
 function pickBuffAlly(u,R){
   let best=null,bv=Infinity;
@@ -2230,6 +2231,10 @@ function skillActivate(u,isUlt){
   if(isUlt && sk.ultDuelCombo){ const f=sk.ultDuelCombo; u.duelQ={left:f.n,t:0,gap:f.gap||0.15,mul:f.mul}; }
   // ガンナー：二丁乱射（通常攻撃を連続）＋撃ち切り後にリロード完了
   if(!isUlt && sk.gunReload){ u.gunBurst={left:sk.gunReload,t:0,gap:0.06}; }
+  // リベンジャー：報復スキル（HP依存2連撃）＋ウルト強化スタック
+  if(!isUlt && sk.revenge){ u.revSkillQ={left:2,t:0,gap:0.14}; u.revStacks=Math.min(5,(u.revStacks||0)+1); u.revStackT=12; floatNum(u.x,u.y-14,u.revStacks,"#ff5b7a","復讐+"); }
+  // リベンジャー必殺技：前進しながら10連撃ノックバック（スタックで火力UP）
+  if(isUlt && sk.revUlt){ const boost=1+0.3*(u.revStacks||0); u.revStacks=0; u.revUltQ={left:10,t:0,gap:0.1,boost,adv:0}; return; }
   // ガンナー：ガトリング（まっすぐ当てつつ放射状の派手演出）
   if(isUlt && sk.ultGatling){ const f=sk.ultGatling; u.gatling={left:f.n,t:0,gap:f.gap||0.04,mul:f.mul}; return; }
   if(sk.frontSlash){ const f=sk.frontSlash; u.combo={left:f.n,t:0,gap:f.gap,mul:f.mul*(isUlt?ULT_POW:1),r:f.r,thrust:f.thrust,ls:f.ls}; }
@@ -2329,6 +2334,17 @@ function fireRangeBurst(u,mul){
 }
 // 竜のブレス開始：前方の扇状にブレスを展開（地上/空中の多い方を選ぶ。both=両方）
 // 決闘連撃（デュエリスト）：決闘相手（ブロック中の敵／無ければ最寄り）に1撃。決闘倍率＆クリティカル適用
+// 残りHPが低いほど倍率UP（base＝満タン時、max＝残りHP10%以下）
+function hpScaleMul(u,base,max){ const t=Math.min(1,Math.max(0,(1-u.hp/u.maxHp)/0.9)); return base+(max-base)*t; }
+// 報復攻撃1撃（リベンジャー）：前方の敵にHP依存ダメージ。adv＝判定中心の前進距離、kb＝ノックバック
+function revHit(u,base,max,boost,kb,adv){
+  const R=1.9*TILE, fa=forwardAngle(u,R+TILE), ang=fa.found?fa.ang:0;
+  const cx=u.x+Math.cos(ang)*(adv||0), cy=u.y+Math.sin(ang)*(adv||0);
+  const dmg=statATK(u.cfg,u.type)*hpScaleMul(u,base,max)*(boost||1)*(u.atkBuff||1);
+  for(const e of G.enemies){ if(e.hp>0&&canHit(u,e)&&dist({x:cx,y:cy},e)<=R){ hurtEnemy(e,dmg,"#ff5b7a",u); if(kb)knockback(e,0.4); } }
+  addFx({type:"swordslash",x:cx,y:cy,ang,r:TILE*0.8,col:"#ff5b7a",life:0.24,wide:true});
+  Sound.play("melee");
+}
 function duelStrike(u,mul){
   let tg=(u.blocking&&u.blocking[0]&&u.blocking[0].hp>0)?u.blocking[0]:null;
   if(!tg){ let bd=2*TILE; for(const e of G.enemies){ if(e.hp>0&&canHit(u,e)){const d=dist(u,e); if(d<bd){bd=d;tg=e;}} } }
@@ -2600,6 +2616,10 @@ function update(dt){
     if(u.duelQ){ u.duelQ.t-=dt; if(u.duelQ.t<=0 && u.duelQ.left>0){ duelStrike(u,u.duelQ.mul); u.duelQ.left--; u.duelQ.t=u.duelQ.gap; if(u.duelQ.left<=0)u.duelQ=null; } }
     // ガンナー：二丁乱射の連射キュー。撃ち切ったらリロード完了（マガジン満タン）
     if(u.gunBurst){ u.gunBurst.t-=dt; if(u.gunBurst.t<=0 && u.gunBurst.left>0){ fireGunShot(u); u.gunBurst.left--; u.gunBurst.t=u.gunBurst.gap; if(u.gunBurst.left<=0){ u.gunBurst=null; u.mag=0; u.reloadT=0; floatNum(u.x,u.y-14,0,"#7fe0ff","RELOAD!"); } } }
+    // リベンジャー：報復スキルの2連撃
+    if(u.revSkillQ){ u.revSkillQ.t-=dt; if(u.revSkillQ.t<=0&&u.revSkillQ.left>0){ revHit(u,2.0,4.0,1,false,0); u.revSkillQ.left--; u.revSkillQ.t=u.revSkillQ.gap; if(u.revSkillQ.left<=0)u.revSkillQ=null; } }
+    // リベンジャー：必殺技の前進10連撃
+    if(u.revUltQ){ const q=u.revUltQ; q.t-=dt; if(q.t<=0&&q.left>0){ revHit(u,2.0,5.0,q.boost,true,q.adv); q.adv+=TILE*0.35; q.left--; q.t=q.gap; if(q.left<=0)u.revUltQ=null; } }
     // ガンナー：ガトリング連射キュー
     if(u.gatling){ u.gatling.t-=dt; if(u.gatling.t<=0 && u.gatling.left>0){ gatlingTick(u,u.gatling.mul); u.gatling.left--; u.gatling.t=u.gatling.gap; if(u.gatling.left<=0){ u.gatling=null; u.mag=0; u.reloadT=0; } } }
     if(u.breath){ const br=u.breath; br.t-=dt; br.tickT-=dt;
@@ -2648,7 +2668,7 @@ function update(dt){
   }
   // 隊長が射程外になった敵のバフは毎フレーム減衰（captainSpdを一旦リセットして上で再付与）
   for(const e of G.enemies){ if(!G.enemies.some(c=>c.e.auraR && c!==e && dist(c,e)<=c.e.auraR*TILE)) e.captainSpd=1; }
-  for(const u of G.units){u.spdBuff=1;u.atkBuff=1;u.shield=u.shield||0; if(u.encBuffT>0)u.encBuffT-=dt; if(u.atkStackT>0){u.atkStackT-=dt; if(u.atkStackT<=0)u.atkStacks=0;} if(u.critT>0)u.critT-=dt; if(u.reloadT>0)u.reloadT-=dt;}
+  for(const u of G.units){u.spdBuff=1;u.atkBuff=1;u.shield=u.shield||0; if(u.encBuffT>0)u.encBuffT-=dt; if(u.atkStackT>0){u.atkStackT-=dt; if(u.atkStackT<=0)u.atkStacks=0;} if(u.critT>0)u.critT-=dt; if(u.reloadT>0)u.reloadT-=dt; if(u.revStackT>0){u.revStackT-=dt; if(u.revStackT<=0)u.revStacks=0;}}
   // エンチャンターのビームバフ（時限）
   for(const u of G.units){ if(u.encBuffT>0){ u.spdBuff=Math.max(u.spdBuff,u.encSpd||1); u.atkBuff=Math.max(u.atkBuff,u.encAtk||1); } }
   // メイジの攻撃力スタック（魔力）：1スタックごとに攻撃力+10%
@@ -4208,7 +4228,7 @@ const SKILL_DESC={
   sentinel:"7秒間 反撃状態に。被ダメ-30%＋攻撃された時に攻撃力30%を相手へ返す。",
   paladin:"目の前に5連突きを叩き込み、与えたダメージの50%を回復する。",
   duelist:"決闘相手に3連撃を叩き込み、自身にクリティカル率+50%を付与する。",
-  revenger:"攻撃力・速度UP＋与ダメの40%を自己回復。",
+  revenger:"攻撃力200%×2回の報復（HPが低いほど倍率UP・残10%で400%）。使うほど必殺技の火力UP。",
   marksman:"攻撃力2.4倍の徹甲弾で重装を貫く。",
   poisoner:"猛毒を散布し、毒のダメージと持続が大幅強化。",
   chaincaster:"連鎖数が6体に増え、群れを一掃する。",
@@ -4250,7 +4270,8 @@ const ULT_DESC={
   sentinel:"周囲の敵を自分へ引き寄せて一括反撃。発動中は被ダメ-60%＋反撃強化＋攻撃でノックバック。",
   paladin:"自身にシールドを張り、5連突き×4回（計20撃）を浴びせ、与ダメージの50%を回復し続ける。",
   duelist:"自身にクリティカル率+80%を付与し、決闘相手に攻撃力180%の一撃を3回叩き込む。",
-  gunner:"ガトリングを展開し、攻撃力30%の弾を50連射。放射状の派手な銃火で敵を撃ち抜く。"
+  gunner:"ガトリングを展開し、攻撃力30%の弾を50連射。放射状の派手な銃火で敵を撃ち抜く。",
+  revenger:"前進しながら10連撃でノックバック。HPが低いほど、スキルを使ったぶんだけ火力が上がる。"
 };
 
 /* ----- 育成 ----- */
