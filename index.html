@@ -1156,7 +1156,8 @@ const TYPES={
            ultName:"聖撃乱舞",ultGauge:26,ultShield:800,ultFrontSlash:{n:20,mul:1.2,r:1.9,gap:0.08,ls:0.5}}},
   duelist:{name:"デュエリスト",role:"DUEL",letter:"D",color:"#ff7a45",place:"road",cost:14,
     hp:760,atk:170,interval:0.85,block:1,kind:"melee",targets:"ground",duelMul:2.4,
-    skill:{name:"決闘",spMax:10,dur:5,atk:1.6,spd:1.4,duelMul:3.4}},
+    skill:{name:"決闘",spMax:10,dur:5,duelCombo:{n:3,mul:1.0,gap:0.13},critBuff:0.5,
+           ultName:"絶命剣舞",ultGauge:24,ultDur:6,ultCritBuff:0.8,ultDuelCombo:{n:3,mul:1.8,gap:0.15}}},
   revenger:{name:"リベンジャー",role:"REVENGE",letter:"Z",color:"#c0506e",place:"road",cost:14,
     hp:1050,atk:120,interval:1.0,block:1,kind:"melee",targets:"ground",rage:2.0,spOnHit:0.7,
     skill:{name:"報復",spMax:12,dur:5,atk:1.7,spd:1.5,lifesteal:0.4}},
@@ -1219,7 +1220,7 @@ const ORDER=["tank","attacker","shooter","healer","support","trickster","breaker
 // キャラアイコン画像（icons/<type>.png）。全キャラにアイコンを割り当て（読み込み失敗時はonerrorで文字にフォールバック）
 for(const t in TYPES){ TYPES[t].img="icons/"+t+".png?v=4"; }
 // 調整（レビュー）済みキャラ。未調整キャラは編成・出撃で使用不可（順次解放していく）
-const TUNED_LIST=["tank","attacker","shooter","healer","support","trickster","breaker","harvester","guardian","lancer","berserker","sniper","mage","artillery","archer","flak","dragonrider","sentinel","paladin"];
+const TUNED_LIST=["tank","attacker","shooter","healer","support","trickster","breaker","harvester","guardian","lancer","berserker","sniper","mage","artillery","archer","flak","dragonrider","sentinel","paladin","duelist"];
 TUNED_LIST.forEach(t=>{ if(TYPES[t]) TYPES[t].tuned=true; });
 function isTuned(t){ return !!(TYPES[t]&&TYPES[t].tuned); }
 // アイコン用HTML（DOMカード共通）：画像があれば<img>、無ければ文字
@@ -2149,7 +2150,7 @@ function fireSkill(u){
   return true;
 }
 // スキルが発動時に固有の一撃を持つか（汎用ボーナスを抑制する判定に使用）
-function hasCustomActivate(sk){ return !!(sk && (sk.smash||sk.frontSlash||sk.ultFrontSlash||sk.ultFlySlash||sk.ultChargeAlly||sk.ultBarrage||sk.ultDotField||sk.ultLanceCharge||sk.ultChargeAxe||sk.ultBeam||sk.ultBombard||sk.ultBreath||sk.ultTaunt)); }
+function hasCustomActivate(sk){ return !!(sk && (sk.smash||sk.frontSlash||sk.ultFrontSlash||sk.ultFlySlash||sk.ultChargeAlly||sk.ultBarrage||sk.ultDotField||sk.ultLanceCharge||sk.ultChargeAxe||sk.ultBeam||sk.ultBombard||sk.ultBreath||sk.ultTaunt||sk.ultDuelCombo)); }
 // エンチャンターのバフ対象：射程内で攻撃/回復する味方のうち、最もバフ残量が少ない味方
 function pickBuffAlly(u,R){
   let best=null,bv=Infinity;
@@ -2222,6 +2223,10 @@ function skillActivate(u,isUlt){
   // スキル：魔法を連続発射（メイジ）。命中ごとに確率で攻撃力スタック
   if(!isUlt && sk.magicCombo){ const f=sk.magicCombo; u.magicBurst={left:f.n,t:0,gap:f.gap,mul:f.mul,stackChance:sk.stackChance||0}; }
   // スキル：目の前に大斬撃×n（カノン 天蓋連牙）。連撃キューで時間差発生
+  // クリティカル率バフ＋決闘連撃（デュエリスト）
+  if(sk.critBuff){ u.critT=isUlt?(sk.ultDur||sk.dur*ULT_DUR):sk.dur; u.critRate=isUlt?(sk.ultCritBuff||sk.critBuff):sk.critBuff; }
+  if(!isUlt && sk.duelCombo){ const f=sk.duelCombo; u.duelQ={left:f.n,t:0,gap:f.gap||0.13,mul:f.mul}; }
+  if(isUlt && sk.ultDuelCombo){ const f=sk.ultDuelCombo; u.duelQ={left:f.n,t:0,gap:f.gap||0.15,mul:f.mul}; }
   if(sk.frontSlash){ const f=sk.frontSlash; u.combo={left:f.n,t:0,gap:f.gap,mul:f.mul*(isUlt?ULT_POW:1),r:f.r,thrust:f.thrust,ls:f.ls}; }
   // スキル：固定回数の爆弾投げ（ボマー）／矢の連射バースト（アーチャー）。発動後に止まる
   if(!isUlt && sk.bombBurst){ const f=sk.bombBurst; u.bombQueue={left:f.n,t:0,gap:f.gap,mul:f.mul,aoe:f.aoe,stun:f.stun}; }
@@ -2318,6 +2323,19 @@ function fireRangeBurst(u,mul){
   G.shots.push(s); Sound.play(u.cfg.arrow?"arrow":"shoot");
 }
 // 竜のブレス開始：前方の扇状にブレスを展開（地上/空中の多い方を選ぶ。both=両方）
+// 決闘連撃（デュエリスト）：決闘相手（ブロック中の敵／無ければ最寄り）に1撃。決闘倍率＆クリティカル適用
+function duelStrike(u,mul){
+  let tg=(u.blocking&&u.blocking[0]&&u.blocking[0].hp>0)?u.blocking[0]:null;
+  if(!tg){ let bd=2*TILE; for(const e of G.enemies){ if(e.hp>0&&canHit(u,e)){const d=dist(u,e); if(d<bd){bd=d;tg=e;}} } }
+  if(!tg)return;
+  const duel=u.cfg.duelMul||1;
+  let dmg=statATK(u.cfg,u.type)*mul*(u.atkBuff||1)*duel, crit=false;
+  if(u.critT>0 && Math.random()<u.critRate){ dmg*=CRIT_MUL; crit=true; }
+  const ang=Math.atan2(tg.y-u.y,tg.x-u.x);
+  addFx({type:"swordslash",x:u.x,y:u.y,ang,r:TILE*0.74,col:crit?"#ffd24a":u.cfg.color,life:0.22});
+  if(crit) floatNum(tg.x,tg.y-10,Math.round(dmg),"#ffd24a","CRIT ");
+  hurtEnemy(tg,dmg,crit?"#ffd24a":u.cfg.color,u); Sound.play("melee");
+}
 function startBreath(u,f,both){
   const fa=forwardAngle(u,99*TILE), ang=fa.found?fa.ang:0, range=f.range*TILE, spread=f.spread||0.55;
   let air=null;
@@ -2368,6 +2386,7 @@ function throwBomb(u,mul,aoeTiles,stun){
 }
 // ===== 必殺技（ULT）：スキルの強化版を手動発動。リバースのBLADEよりやや溜まりづらい =====
 const ULT_GAUGE=24, ULT_POW=1.5, ULT_DUR=1.7;
+const CRIT_MUL=1.8;  // クリティカル時のダメージ倍率
 // 必殺技の必要ポイント（キャラ毎。skill.ultGauge指定が無ければ既定ULT_GAUGE）
 function ultMax(cfg){ return (cfg&&cfg.skill&&cfg.skill.ultGauge)||ULT_GAUGE; }
 function ultReady(u){ return !!u.cfg.skill && !u.ultActive && (u.ug||0)>=ultMax(u.cfg); }
@@ -2557,6 +2576,8 @@ function update(dt){
     // 範囲連射バーストキュー（フラック スキル）：固定回数の範囲攻撃＋ノックバック
     if(u.aoeBurst){ u.aoeBurst.t-=dt; if(u.aoeBurst.t<=0 && u.aoeBurst.left>0){ fireAoeShot(u,u.aoeBurst.mul,u.aoeBurst.aoe,u.aoeBurst.stun,u.aoeBurst.knockback); u.aoeBurst.left--; u.aoeBurst.t=u.aoeBurst.gap; if(u.aoeBurst.left<=0)u.aoeBurst=null; } }
     // 竜のブレス（ドラゴンライダー）：扇内に連続ヒット＋炎の粒子
+    // 決闘連撃キュー（デュエリスト）：決闘相手に固定回数の連撃
+    if(u.duelQ){ u.duelQ.t-=dt; if(u.duelQ.t<=0 && u.duelQ.left>0){ duelStrike(u,u.duelQ.mul); u.duelQ.left--; u.duelQ.t=u.duelQ.gap; if(u.duelQ.left<=0)u.duelQ=null; } }
     if(u.breath){ const br=u.breath; br.t-=dt; br.tickT-=dt;
       if(br.tickT<=0 && br.left>0){ breathTick(u); br.left--; br.tickT=br.gap;
         const a=br.ang+(Math.random()-0.5)*br.spread*2, d=br.range*(0.3+Math.random()*0.7);
@@ -2603,7 +2624,7 @@ function update(dt){
   }
   // 隊長が射程外になった敵のバフは毎フレーム減衰（captainSpdを一旦リセットして上で再付与）
   for(const e of G.enemies){ if(!G.enemies.some(c=>c.e.auraR && c!==e && dist(c,e)<=c.e.auraR*TILE)) e.captainSpd=1; }
-  for(const u of G.units){u.spdBuff=1;u.atkBuff=1;u.shield=u.shield||0; if(u.encBuffT>0)u.encBuffT-=dt; if(u.atkStackT>0){u.atkStackT-=dt; if(u.atkStackT<=0)u.atkStacks=0;}}
+  for(const u of G.units){u.spdBuff=1;u.atkBuff=1;u.shield=u.shield||0; if(u.encBuffT>0)u.encBuffT-=dt; if(u.atkStackT>0){u.atkStackT-=dt; if(u.atkStackT<=0)u.atkStacks=0;} if(u.critT>0)u.critT-=dt;}
   // エンチャンターのビームバフ（時限）
   for(const u of G.units){ if(u.encBuffT>0){ u.spdBuff=Math.max(u.spdBuff,u.encSpd||1); u.atkBuff=Math.max(u.atkBuff,u.encAtk||1); } }
   // メイジの攻撃力スタック（魔力）：1スタックごとに攻撃力+10%
@@ -2814,7 +2835,9 @@ function update(dt){
         // デュエリスト：ブロック対象への与ダメ激増
         let duelMul=1;
         if(u.cfg.duelMul){ duelMul=(active&&sk&&sk.duelMul)?sk.duelMul:u.cfg.duelMul; }
-        const dmg=u.atk*atkMult*rageMult*duelMul;
+        let dmg=u.atk*atkMult*rageMult*duelMul;
+        let isCrit=false;
+        if(u.critT>0 && Math.random()<u.critRate){ dmg*=CRIT_MUL; isCrit=true; }
         let hits;
         if(u.cfg.reach){
           hits=reachTargets;
@@ -2833,13 +2856,14 @@ function update(dt){
           // ドラゴンライダー：ブロック中の地上敵と低空の敵を同時に薙ぐ
           if(u.cfg.airReach && u.blocking.length && airTarget && !hits.includes(airTarget)) hits.push(airTarget);
         }
-        const slCol=u.cfg.slashColor||u.cfg.color;
+        const slCol=isCrit?"#ffd24a":(u.cfg.slashColor||u.cfg.color);
         const flip0=(u.cfg.meleeHits>1)?(u._sw=!u._sw):false;
         for(const h of hits){
           const ang=Math.atan2(h.y-u.y,h.x-u.x);
-          if(u.cfg.thrust) addFx({type:"thrust",x:u.x,y:u.y,ang,len:(u.cfg.reach||1)*TILE,col:slCol,life:0.18});
+          if(u.cfg.thrust) addFx({type:"thrust",x:u.x,y:u.y,ang,len:(u.cfg.reach||1)*TILE,col:slCol,life:0.18,wide:isCrit});
           else addFx({type:"swordslash",x:u.x,y:u.y,ang,r:TILE*0.74,col:slCol,life:0.22,flip:flip0});
           addFx({type:"hit",x:h.x,y:h.y,col:"#fff",life:0.14});
+          if(isCrit) floatNum(h.x,h.y-10,Math.round(dmg),"#ffd24a","CRIT ");
           hurtEnemy(h,dmg,u.cfg.color,u);
           if(u.ultActive&&sk&&sk.ultKnockback) knockback(h,sk.ultKnockback); // 必殺技中：攻撃でノックバック
         }
@@ -4155,7 +4179,7 @@ const SKILL_DESC={
   dragonrider:"前方3マスに竜のブレス（攻撃力50%×20ヒット）。地上か空中の片方だけに当たる。",
   sentinel:"7秒間 反撃状態に。被ダメ-30%＋攻撃された時に攻撃力30%を相手へ返す。",
   paladin:"目の前に5連突きを叩き込み、与えたダメージの50%を回復する。",
-  duelist:"攻撃力・速度UP＋ブロック対象への与ダメ倍率がさらに増加。",
+  duelist:"決闘相手に3連撃を叩き込み、自身にクリティカル率+50%を付与する。",
   revenger:"攻撃力・速度UP＋与ダメの40%を自己回復。",
   marksman:"攻撃力2.4倍の徹甲弾で重装を貫く。",
   poisoner:"猛毒を散布し、毒のダメージと持続が大幅強化。",
@@ -4196,7 +4220,8 @@ const ULT_DESC={
   flak:"通常攻撃が3連射になり、自身に加速を付与する。",
   dragonrider:"地上＋空中の両方を焼き払う広範囲の大ブレスを放つ。",
   sentinel:"周囲の敵を自分へ引き寄せて一括反撃。発動中は被ダメ-60%＋反撃強化＋攻撃でノックバック。",
-  paladin:"自身にシールドを張り、5連突き×4回（計20撃）を浴びせ、与ダメージの50%を回復し続ける。"
+  paladin:"自身にシールドを張り、5連突き×4回（計20撃）を浴びせ、与ダメージの50%を回復し続ける。",
+  duelist:"自身にクリティカル率+80%を付与し、決闘相手に攻撃力180%の一撃を3回叩き込む。"
 };
 
 /* ----- 育成 ----- */
