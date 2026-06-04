@@ -1136,8 +1136,9 @@ const TYPES={
     skill:{name:"対空弾幕",spMax:13,dur:0.8,flakBurst:{n:5,gap:0.18,mul:1.6,aoe:1.6,stun:0.3,knockback:0.5},
            ultName:"曳光乱舞",ultGauge:24,ultDur:8,ultVolley:3,ultSpd:1.6}},
   dragonrider:{name:"ドラゴンライダー",role:"DRAGOON",letter:"竜",color:"#d4a574",place:"road",cost:15,
-    hp:980,atk:150,interval:1.1,block:2,kind:"melee",targets:"both",airReach:1.6,
-    skill:{name:"薙ぎ払い",spMax:12,dur:5,atk:1.7,spd:1.4,airReach:2.2}},
+    hp:980,atk:150,interval:1.1,block:2,kind:"melee",targets:"both",airReach:1.6,thrust:true,
+    skill:{name:"竜のブレス",spMax:12,dur:1.0,breath:{n:20,mul:0.5,range:3,dur:1.0,spread:0.55},
+           ultName:"大ブレス",ultGauge:26,ultBreath:{n:40,mul:0.7,range:6,dur:1.6,spread:0.95}}},
   guardknight:{name:"ガードナイト",role:"AEGIS",letter:"N",color:"#8fb8e0",place:"road",cost:15,
     hp:1500,atk:80,interval:1.5,block:3,kind:"melee",targets:"ground",deathShield:400,
     skill:{name:"守護の盾",spMax:12,dur:5,dr:0.5,shieldAura:200}},
@@ -2116,7 +2117,7 @@ function fireSkill(u){
   return true;
 }
 // スキルが発動時に固有の一撃を持つか（汎用ボーナスを抑制する判定に使用）
-function hasCustomActivate(sk){ return !!(sk && (sk.smash||sk.frontSlash||sk.ultFrontSlash||sk.ultFlySlash||sk.ultChargeAlly||sk.ultBarrage||sk.ultDotField||sk.ultLanceCharge||sk.ultChargeAxe||sk.ultBeam||sk.ultBombard)); }
+function hasCustomActivate(sk){ return !!(sk && (sk.smash||sk.frontSlash||sk.ultFrontSlash||sk.ultFlySlash||sk.ultChargeAlly||sk.ultBarrage||sk.ultDotField||sk.ultLanceCharge||sk.ultChargeAxe||sk.ultBeam||sk.ultBombard||sk.ultBreath)); }
 // エンチャンターのバフ対象：射程内で攻撃/回復する味方のうち、最もバフ残量が少ない味方
 function pickBuffAlly(u,R){
   let best=null,bv=Infinity;
@@ -2195,6 +2196,10 @@ function skillActivate(u,isUlt){
   if(!isUlt && sk.volleyBurst){ const f=sk.volleyBurst; u.rangeBurst={left:f.n,t:0,gap:f.gap,mul:f.mul}; }
   // スキル：固定回数の範囲攻撃＋ノックバック（フラック）
   if(!isUlt && sk.flakBurst){ const f=sk.flakBurst; u.aoeBurst={left:f.n,t:0,gap:f.gap,mul:f.mul,aoe:f.aoe,stun:f.stun,knockback:f.knockback}; }
+  // 必殺技：大ブレス（地上＋空中の両方を焼く広範囲ブレス）（ドラゴンライダー）
+  if(isUlt && sk.ultBreath){ startBreath(u,sk.ultBreath,true); Sound.play("aoe"); return; }
+  // スキル：竜のブレス（前方扇状・地上か空中の片方）（ドラゴンライダー）
+  if(!isUlt && sk.breath){ startBreath(u,sk.breath,false); Sound.play("aoe"); }
 }
 // 目の前への大斬撃/突き1回（連撃キューから呼ばれる）。周囲の敵に当たる。レイジ＆回復対応
 function frontSlashHit(u,mul,rTiles,thrust,lsOverride){
@@ -2267,6 +2272,26 @@ function fireRangeBurst(u,mul){
   const s=shot(u,tg,statATK(u.cfg,u.type)*mul*(u.atkBuff||1),u.cfg.color,"bolt");
   if(u.cfg.arrow)s.arrow=true; if(u.cfg.bullet)s.bullet=true;
   G.shots.push(s); Sound.play(u.cfg.arrow?"arrow":"shoot");
+}
+// 竜のブレス開始：前方の扇状にブレスを展開（地上/空中の多い方を選ぶ。both=両方）
+function startBreath(u,f,both){
+  const fa=forwardAngle(u,99*TILE), ang=fa.found?fa.ang:0, range=f.range*TILE, spread=f.spread||0.55;
+  let air=null;
+  if(!both){ let g=0,a=0;
+    for(const e of G.enemies){ if(e.hp<=0)continue; const rx=e.x-u.x,ry=e.y-u.y,d=Math.hypot(rx,ry); if(d>range)continue;
+      let dd=Math.atan2(ry,rx)-ang; while(dd>Math.PI)dd-=6.283; while(dd<-Math.PI)dd+=6.283; if(Math.abs(dd)>spread)continue; if(e.fly)a++;else g++; }
+    air = a>g;
+  }
+  u.breath={t:f.dur,gap:f.dur/f.n,tickT:0,left:f.n,ang,range,spread,mul:f.mul,air,col:both?"#ff5b3a":"#ff8c3a"};
+}
+// ブレスの1ティック：扇内の対象（片側 or 両方）にダメージ
+function breathTick(u){
+  const br=u.breath, dmg=statATK(u.cfg,u.type)*br.mul*(u.atkBuff||1);
+  for(const e of G.enemies){ if(e.hp<=0)continue; if(br.air!==null && e.fly!==br.air)continue;
+    const rx=e.x-u.x,ry=e.y-u.y,d=Math.hypot(rx,ry); if(d>br.range)continue;
+    let dd=Math.atan2(ry,rx)-br.ang; while(dd>Math.PI)dd-=6.283; while(dd<-Math.PI)dd+=6.283; if(Math.abs(dd)>br.spread)continue;
+    hurtEnemy(e,dmg,br.col,u);
+  }
 }
 // 範囲攻撃を1発撃つ（フラック スキルの連射バーストから呼ばれる）。着弾でノックバック可
 function fireAoeShot(u,mul,aoe,stun,knockback){
@@ -2487,6 +2512,13 @@ function update(dt){
     if(u.rangeBurst){ u.rangeBurst.t-=dt; if(u.rangeBurst.t<=0 && u.rangeBurst.left>0){ fireRangeBurst(u,u.rangeBurst.mul); u.rangeBurst.left--; u.rangeBurst.t=u.rangeBurst.gap; if(u.rangeBurst.left<=0)u.rangeBurst=null; } }
     // 範囲連射バーストキュー（フラック スキル）：固定回数の範囲攻撃＋ノックバック
     if(u.aoeBurst){ u.aoeBurst.t-=dt; if(u.aoeBurst.t<=0 && u.aoeBurst.left>0){ fireAoeShot(u,u.aoeBurst.mul,u.aoeBurst.aoe,u.aoeBurst.stun,u.aoeBurst.knockback); u.aoeBurst.left--; u.aoeBurst.t=u.aoeBurst.gap; if(u.aoeBurst.left<=0)u.aoeBurst=null; } }
+    // 竜のブレス（ドラゴンライダー）：扇内に連続ヒット＋炎の粒子
+    if(u.breath){ const br=u.breath; br.t-=dt; br.tickT-=dt;
+      if(br.tickT<=0 && br.left>0){ breathTick(u); br.left--; br.tickT=br.gap;
+        const a=br.ang+(Math.random()-0.5)*br.spread*2, d=br.range*(0.3+Math.random()*0.7);
+        addFx({type:"frag",x:u.x+Math.cos(a)*d,y:u.y+Math.sin(a)*d,vx:Math.cos(a)*90,vy:Math.sin(a)*90,col:Math.random()<0.5?"#ffd24a":br.col,life:0.3,r:3}); }
+      if(br.t<=0||br.left<=0)u.breath=null;
+    }
     // 連続砲撃キュー（アーティラリー必殺技）：通路のランダムな敵を毎回抽出して砲撃
     if(u.bombard){ u.bombard.t-=dt; if(u.bombard.t<=0 && u.bombard.left>0){
       const cands=G.enemies.filter(e=>e.hp>0);
@@ -3320,6 +3352,14 @@ function drawUnit(u){
     ctx.strokeStyle=hexA("#fff",0.6);ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(x,y,rr*0.6,0,7);ctx.stroke();
     for(let i=0;i<8;i++){const a=G.t*4+i/8*7;ctx.strokeStyle=hexA(col,0.8);ctx.beginPath();ctx.moveTo(x+Math.cos(a)*rr*0.6,y+Math.sin(a)*rr*0.6);ctx.lineTo(x+Math.cos(a)*rr,y+Math.sin(a)*rr);ctx.stroke();}
   }
+  // 竜のブレス：前方の炎の扇
+  if(u.breath){ const br=u.breath, pulse=0.7+0.3*Math.sin(G.t*40);
+    ctx.save();ctx.translate(x,y);ctx.rotate(br.ang);
+    const g=ctx.createLinearGradient(0,0,br.range,0); g.addColorStop(0,hexA(br.col,0.65*pulse)); g.addColorStop(0.6,hexA(br.col,0.4*pulse)); g.addColorStop(1,hexA(br.col,0));
+    ctx.fillStyle=g; ctx.beginPath();ctx.moveTo(0,0);ctx.arc(0,0,br.range,-br.spread,br.spread);ctx.closePath();ctx.fill();
+    ctx.fillStyle=hexA("#ffe79a",0.5*pulse); ctx.beginPath();ctx.moveTo(0,0);ctx.arc(0,0,br.range*0.7,-br.spread*0.55,br.spread*0.55);ctx.closePath();ctx.fill();
+    ctx.restore();
+  }
   // 必殺技中グロー（マゼンタ）／スキル発動中グロー
   if(u.ultActive){
     const pulse=0.5+0.5*Math.sin(G.t*14);
@@ -4066,7 +4106,7 @@ const SKILL_DESC={
   artillery:"3連砲撃を3回ぶん（計9発）まとめて撃ち込む。",
   archer:"矢を一気に12本撃ち込む矢の雨（自身を少し加速）。",
   flak:"対空の範囲攻撃を5連射し、敵をノックバックする。",
-  dragonrider:"攻撃力・速度UP＋対空の薙ぎ範囲が拡大。",
+  dragonrider:"前方3マスに竜のブレス（攻撃力50%×20ヒット）。地上か空中の片方だけに当たる。",
   guardknight:"ダメージ50%カット＋周囲の味方へ継続的にシールドを付与。",
   duelist:"攻撃力・速度UP＋ブロック対象への与ダメ倍率がさらに増加。",
   revenger:"攻撃力・速度UP＋与ダメの40%を自己回復。",
@@ -4106,7 +4146,8 @@ const ULT_DESC={
   mage:"魔法陣を展開し、前方の広範囲を貫く巨大な魔導ビームを撃つ。",
   artillery:"通路のランダムな敵へ砲撃を10連射（対象は毎回抽出）。広範囲を制圧する。",
   archer:"攻撃速度と射程が大きく伸び、矢の雨で空を制圧する。",
-  flak:"通常攻撃が3連射になり、自身に加速を付与する。"
+  flak:"通常攻撃が3連射になり、自身に加速を付与する。",
+  dragonrider:"地上＋空中の両方を焼き払う広範囲の大ブレスを放つ。"
 };
 
 /* ----- 育成 ----- */
