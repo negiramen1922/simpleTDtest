@@ -1911,6 +1911,8 @@ function loadEconomy(){
   try{ medals=parseInt(localStorage.getItem(MEDAL_KEY)); if(isNaN(medals))medals=0; }catch(e){ medals=0; }
   try{ owned=JSON.parse(localStorage.getItem(OWNED_KEY))||null; }catch(e){ owned=null; }
   if(!owned){ owned={}; for(const t of STARTER) owned[t]=true; saveEconomy(); }
+  // テスト用：URLに ?dev または ?unlockall を付けると全キャラ解放＋メダル付与（保存はしない）
+  if(/[?&](dev|unlockall)(=|&|$)/.test(location.search)){ for(const t in TYPES) owned[t]=true; medals=Math.max(medals,99999); }
 }
 function saveEconomy(){
   try{ localStorage.setItem(MEDAL_KEY,String(medals)); localStorage.setItem(OWNED_KEY,JSON.stringify(owned)); }catch(e){}
