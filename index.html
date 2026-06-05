@@ -1338,13 +1338,25 @@ const ENEMY={
   gunship:{name:"古龍", hp:1600, spd:0.55, atk:180, interval:1.5, life:3, r:22, col:"#7b9cff", fly:true, ranged:3.4},
   // 空雷：素早く硬めの小型飛行。群れで押し寄せる空のラッシュ役
   stinger:{name:"キラーワスプ", hp:300, spd:1.9, atk:50, interval:0.8, life:1, r:11, col:"#ffd24a", fly:true, ranged:2.2},
-  boss  :{name:"デーモンロード", hp:7000,spd:0.5,  atk:420, interval:1.3, life:5, r:24, col:"#ff5b6e", ranged:3.0},
+  boss  :{name:"魔王デーモンロード", hp:15000,spd:0.5, atk:420, interval:1.3, life:8, r:26, col:"#ff5b6e", ranged:3.0,
+          summon:{cd:6, type:"runner", n:4, r:1.6}, slam:{cd:5, r:2.4, dmg:160, stun:1.0}, rageSpd:0.4, rageAtk:0.5},
   // 自爆型：撃破されると周囲の味方へ爆発ダメージ＋短スタン。固まった布陣だと痛い
   exploder:{name:"ボムリザード", hp:430, spd:1.15, atk:45, interval:1.0, life:1, r:14, col:"#ff7a3c", deathBoom:{r:1.6, dmg:120, stun:1.1}},
   // 重装甲：被ダメージを固定軽減（チップ無効）。瞬間火力でないと抜けない
   armored :{name:"アイアンゴーレム", hp:920, spd:0.6, atk:150, interval:1.3, life:2, r:18, col:"#9fb3c8", armor:45},
   // 加速・狂化：HPが減るほど移動が加速する。半分で一気に削らないとすり抜けられる
-  enrager :{name:"レイジボア", hp:560, spd:0.9, atk:95, interval:1.0, life:1, r:15, col:"#e0554e", rageSpd:1.4}
+  enrager :{name:"レイジボア", hp:560, spd:0.9, atk:95, interval:1.0, life:1, r:15, col:"#e0554e", rageSpd:1.4},
+  // ===== 章ボス（各章の最後のステージに登場）=====
+  // 1章：範囲叩きつけ（周囲の味方を一括ダメージ＋スタン）
+  bossOgre:{name:"鬼王オーガ", hp:2400, spd:0.55, atk:140, interval:1.4, life:4, r:22, col:"#b5703e", slam:{cd:4.5, r:2.0, dmg:90, stun:0.9}},
+  // 2章：雑魚召喚（スライムを呼び続ける）＋遠隔
+  bossNecro:{name:"屍霊王ネクロス", hp:4200, spd:0.55, atk:130, interval:1.4, life:5, r:22, col:"#a06bd0", ranged:3.0, summon:{cd:5, type:"swarm", n:3, r:1.4}},
+  // 3章：重装甲＋叩きつけ（瞬間火力で装甲を抜かないと削れない）
+  bossIron:{name:"鉄甲巨兵タロス", hp:7800, spd:0.42, atk:240, interval:1.5, life:6, r:24, col:"#8fa6bd", armor:60, slam:{cd:4, r:2.2, dmg:130, stun:1.0}},
+  // 4章：低HPで狂化（加速＋火力UP）＋遠隔
+  bossInferno:{name:"獄炎獣ベヒモス", hp:8500, spd:0.55, atk:270, interval:1.2, life:6, r:23, col:"#ff6a2c", ranged:3.2, rageSpd:0.6, rageAtk:0.6},
+  // 5章：自己回復＋雑魚召喚（継続火力で回復を上回り、増殖を抑える）
+  bossBrood:{name:"再生母体ヒュドラ", hp:10500, spd:0.5, atk:230, interval:1.4, life:6, r:24, col:"#5fc98a", selfHeal:160, summon:{cd:5, type:"splitling", n:3, r:1.4}}
 };
 // 敵アイコン画像（icons/enemies/<type>.png）。canvasで図形の代わりに描画、未読込は図形にフォールバック
 const ENE_IMG={};
@@ -1391,13 +1403,13 @@ const STAGES=[
       [{t:"runner",n:10,gap:0.5,start:0.4},{t:"swarm",n:8,gap:0.4,start:4}],
       [{t:"grunt",n:8,gap:0.6,start:0.4},{t:"brute",n:1,gap:1,start:4},{t:"runner",n:8,gap:0.5,start:7}]
     ]},
-  {id:"1-6",name:"高台の試し撃ち",desc:"高台が多い一本道で、射撃キャラを並べて迎え撃つ練習戦。砲兵が少し混じる。",
+  {id:"1-6",name:"【BOSS】鬼王オーガ",desc:"1章の主・鬼王オーガが襲来。周囲を一括で叩きつけてくる（足元の赤い予兆に注意）。前衛で受け、高火力で削れ。",
     diff:2,life:18,map:"avenue",
     waves:[
       [{t:"grunt",n:8,gap:0.7,start:0.4}],
       [{t:"runner",n:10,gap:0.5,start:0.4}],
       [{t:"grunt",n:6,gap:0.7,start:0.4},{t:"gunner",n:2,gap:1.5,start:4},{t:"flyer",n:4,gap:0.9,start:7}],
-      [{t:"runner",n:8,gap:0.5,start:0.4},{t:"gunner",n:3,gap:1.3,start:3},{t:"brute",n:1,gap:1,start:7}]
+      [{t:"runner",n:8,gap:0.5,start:0.4},{t:"gunner",n:3,gap:1.3,start:3},{t:"bossOgre",n:1,gap:1,start:7}]
     ]},
   {id:"2-1",name:"狙撃回廊",desc:"一本道の両脇に高台がずらり。射撃キャラで撃ち抜く射撃戦マップ。",
     diff:2,life:18,map:"avenue",
@@ -1448,13 +1460,13 @@ const STAGES=[
       [{t:"gunner",n:5,gap:1.1,start:0.4},{t:"brute",n:2,gap:2,start:4}],
       [{t:"gunner",n:5,gap:1.0,start:0.4},{t:"flyer",n:6,gap:0.7,start:3},{t:"brute",n:2,gap:2,start:7}]
     ]},
-  {id:"2-7",name:"高地強襲",desc:"高台が少ないマップに飛行と重装が押し寄せる。限られた高台に対空をどう置くかが問われる。",
+  {id:"2-7",name:"【BOSS】屍霊王ネクロス",desc:"ネクロスはスライムを召喚し続ける。本体を遠距離火力で早めに削り、増殖を抑えろ。",
     diff:3,life:16,map:"gauntlet",
     waves:[
       [{t:"flyer",n:6,gap:0.7,start:0.4},{t:"grunt",n:6,gap:0.8,start:3}],
       [{t:"brute",n:2,gap:2.2,start:0.4},{t:"flyer",n:6,gap:0.7,start:3}],
       [{t:"flyer",n:8,gap:0.6,start:0.4},{t:"raptor",n:2,gap:2,start:4},{t:"brute",n:2,gap:2,start:7}],
-      [{t:"brute",n:3,gap:1.8,start:0.4},{t:"flyer",n:8,gap:0.5,start:3},{t:"gunner",n:3,gap:1.2,start:7}]
+      [{t:"brute",n:3,gap:1.8,start:0.4},{t:"flyer",n:8,gap:0.5,start:3},{t:"gunner",n:3,gap:1.2,start:7},{t:"bossNecro",n:1,gap:1,start:11}]
     ]},
   {id:"3-1",name:"兵糧攻め",desc:"高台が極端に少なく、DP収入も渋い関門。前衛中心の編成で凌げ。",
     diff:4,life:14,map:"gauntlet",mods:{dpRate:0.7,costScale:1.0},
@@ -1506,13 +1518,13 @@ const STAGES=[
       [{t:"raptor",n:4,gap:1.6,start:0.4},{t:"flyer",n:8,gap:0.5,start:3}],
       [{t:"flyer",n:10,gap:0.4,start:0.4},{t:"raptor",n:4,gap:1.5,start:4},{t:"gunner",n:3,gap:1.2,start:8}]
     ]},
-  {id:"3-7",name:"封鎖の二股",desc:"二股の経路でDP収入が減少。両ルートを限られたコストで支える、配置効率の試練。",
+  {id:"3-7",name:"【BOSS】鉄甲巨兵タロス",desc:"重装甲のタロスはチップダメージが効かない。瞬間火力で装甲を抜け。範囲叩きつけにも注意。",
     diff:4,life:15,map:"fork",mods:{dpRate:0.7},
     waves:[
       [{t:"grunt",n:8,gap:0.7,start:0.4},{t:"runner",n:8,gap:0.5,start:4}],
       [{t:"brute",n:3,gap:2,start:0.4},{t:"swarm",n:14,gap:0.35,start:3}],
       [{t:"runner",n:12,gap:0.4,start:0.4},{t:"flyer",n:6,gap:0.7,start:4},{t:"brute",n:2,gap:2,start:8}],
-      [{t:"brute",n:4,gap:1.7,start:0.4},{t:"gunner",n:4,gap:1.1,start:3},{t:"raptor",n:3,gap:1.6,start:8}]
+      [{t:"brute",n:4,gap:1.7,start:0.4},{t:"gunner",n:4,gap:1.1,start:3},{t:"raptor",n:3,gap:1.6,start:8},{t:"bossIron",n:1,gap:1,start:11}]
     ]},
   {id:"4-1",name:"分岐の濃霧",desc:"二股の経路に濃霧が立ちこめ、射程が低下。両ルートの管理と近接火力が試される高難度戦。",
     diff:5,life:14,map:"fork",mods:{fog:0.65},
@@ -1532,14 +1544,14 @@ const STAGES=[
       [{t:"brute",n:5,gap:1.7,start:0.4},{t:"gunner",n:4,gap:1.1,start:3},{t:"raptor",n:3,gap:1.8,start:7}],
       [{t:"brute",n:6,gap:1.5,start:0.4},{t:"swarm",n:18,gap:0.28,start:3},{t:"flyer",n:8,gap:0.5,start:8}]
     ]},
-  {id:"4-3",name:"双頭の竜王",desc:"あらゆる敵に加え、2体のBOSSが時間差で襲来する最終決戦。全戦力を注ぎ込め。",
+  {id:"4-3",name:"竜の咆哮",desc:"重装・飛竜・砲撃艦が連戦で押し寄せる総力戦。穴のない布陣で受け止めろ。",
     diff:5,life:18,map:"serpent",
     waves:[
       [{t:"grunt",n:8,gap:0.6,start:0.4},{t:"runner",n:8,gap:0.5,start:4}],
       [{t:"flyer",n:8,gap:0.5,start:0.4},{t:"raptor",n:3,gap:1.6,start:4},{t:"gunner",n:3,gap:1.2,start:7}],
       [{t:"brute",n:4,gap:1.8,start:0.4},{t:"swarm",n:16,gap:0.3,start:3},{t:"raptor",n:4,gap:1.5,start:7}],
-      [{t:"brute",n:5,gap:1.6,start:0.4},{t:"boss",n:1,gap:1,start:5},{t:"runner",n:10,gap:0.4,start:8}],
-      [{t:"flyer",n:10,gap:0.4,start:0.4},{t:"brute",n:4,gap:1.8,start:3},{t:"boss",n:1,gap:1,start:7},{t:"raptor",n:4,gap:1.4,start:10},{t:"boss",n:1,gap:1,start:16},{t:"gunship",n:1,gap:1,start:12},{t:"stinger",n:8,gap:0.4,start:5}]
+      [{t:"brute",n:6,gap:1.4,start:0.4},{t:"raptor",n:3,gap:1.5,start:5},{t:"runner",n:10,gap:0.4,start:8}],
+      [{t:"flyer",n:10,gap:0.4,start:0.4},{t:"brute",n:6,gap:1.5,start:3},{t:"raptor",n:4,gap:1.4,start:10},{t:"gunship",n:2,gap:3,start:12},{t:"stinger",n:8,gap:0.4,start:5}]
     ]},
   {id:"4-4",name:"霧中の狙撃戦",desc:"一本道に濃霧が立ちこめ射程が低下し、再出撃にも時間がかかる。撤退を最小限に、息の長い布陣で耐えろ。",
     diff:5,life:15,map:"avenue",mods:{fog:0.7,redeploy:1.4},
@@ -1547,7 +1559,7 @@ const STAGES=[
       [{t:"grunt",n:8,gap:0.7,start:0.4},{t:"gunner",n:3,gap:1.3,start:4}],
       [{t:"brute",n:3,gap:2,start:0.4},{t:"flyer",n:6,gap:0.7,start:3},{t:"raptor",n:2,gap:2,start:7}],
       [{t:"runner",n:12,gap:0.4,start:0.4},{t:"gunner",n:4,gap:1.1,start:4},{t:"brute",n:2,gap:2,start:8}],
-      [{t:"brute",n:4,gap:1.7,start:0.4},{t:"flyer",n:8,gap:0.6,start:3},{t:"boss",n:1,gap:1,start:9},{t:"raptor",n:3,gap:1.6,start:13}]
+      [{t:"brute",n:5,gap:1.5,start:0.4},{t:"flyer",n:8,gap:0.6,start:3},{t:"raptor",n:4,gap:1.5,start:9},{t:"gunner",n:3,gap:1.2,start:13}]
     ]},
   {id:"4-5",name:"消耗の渦",desc:"渦巻く長い経路を重装と群体が延々と進み、再出撃にも時間がかかる。足止めと継続火力で耐え抜け。",
     diff:5,life:15,map:"spiral",mods:{redeploy:1.4},
@@ -1563,15 +1575,15 @@ const STAGES=[
       [{t:"grunt",n:8,gap:0.7,start:0.4},{t:"brute",n:2,gap:2,start:4}],
       [{t:"brute",n:3,gap:2,start:0.4},{t:"flyer",n:6,gap:0.7,start:3}],
       [{t:"swarm",n:16,gap:0.3,start:0.4},{t:"gunner",n:3,gap:1.2,start:5}],
-      [{t:"brute",n:5,gap:1.6,start:0.4},{t:"raptor",n:4,gap:1.5,start:3},{t:"boss",n:1,gap:1,start:9}]
+      [{t:"brute",n:6,gap:1.4,start:0.4},{t:"raptor",n:4,gap:1.5,start:3},{t:"gunship",n:1,gap:1,start:9}]
     ]},
-  {id:"4-7",name:"二正面の濃霧",desc:"二股＋濃霧＋DP減の複合難所。視界も資源も限られる中、両ルートを捌き切れ。",
+  {id:"4-7",name:"【BOSS】獄炎獣ベヒモス",desc:"ベヒモスはHPが減るほど狂化（加速＋火力UP）。一気に削り切れないと終盤に手がつけられなくなる。",
     diff:5,life:14,map:"fork",mods:{fog:0.72,dpRate:0.8},
     waves:[
       [{t:"grunt",n:8,gap:0.6,start:0.4},{t:"runner",n:8,gap:0.5,start:3}],
       [{t:"brute",n:3,gap:1.9,start:0.4},{t:"swarm",n:14,gap:0.35,start:3},{t:"flyer",n:5,gap:0.8,start:7}],
       [{t:"runner",n:12,gap:0.4,start:0.4},{t:"gunner",n:4,gap:1.1,start:4},{t:"raptor",n:3,gap:1.6,start:8}],
-      [{t:"brute",n:5,gap:1.6,start:0.4},{t:"flyer",n:8,gap:0.6,start:3},{t:"boss",n:1,gap:1,start:9},{t:"gunner",n:4,gap:1.0,start:13}]
+      [{t:"brute",n:5,gap:1.6,start:0.4},{t:"flyer",n:8,gap:0.6,start:3},{t:"gunner",n:4,gap:1.0,start:7},{t:"bossInferno",n:1,gap:1,start:12}]
     ]},
   {id:"5-1",name:"治癒部隊の進軍",desc:"自己回復する治癒兵が登場。継続火力（毒）や瞬間火力で回復を上回って削り切れ。",
     diff:3,life:18,map:"serpent",
@@ -1595,7 +1607,7 @@ const STAGES=[
       [{t:"captain",n:1,gap:1,start:0.4},{t:"grunt",n:8,gap:0.7,start:2}],
       [{t:"captain",n:2,gap:3,start:0.4},{t:"runner",n:10,gap:0.5,start:3}],
       [{t:"captain",n:2,gap:3,start:0.4},{t:"swarm",n:16,gap:0.3,start:3},{t:"brute",n:2,gap:2,start:7}],
-      [{t:"captain",n:2,gap:4,start:0.4},{t:"flyer",n:8,gap:0.6,start:3},{t:"shielder",n:3,gap:1.6,start:7},{t:"boss",n:1,gap:1,start:12}]
+      [{t:"captain",n:2,gap:4,start:0.4},{t:"flyer",n:8,gap:0.6,start:3},{t:"shielder",n:4,gap:1.4,start:7},{t:"brute",n:3,gap:1.6,start:12}]
     ]},
   {id:"5-4",name:"分裂する脅威",desc:"倒すと2体に分かれる分裂体の群れ。数で押し潰される前に、範囲攻撃で一掃せよ。",
     diff:4,life:16,map:"spiral",
@@ -1603,7 +1615,7 @@ const STAGES=[
       [{t:"splitter",n:3,gap:1.6,start:0.4},{t:"swarm",n:10,gap:0.4,start:3}],
       [{t:"splitter",n:5,gap:1.3,start:0.4},{t:"runner",n:8,gap:0.5,start:4}],
       [{t:"splitter",n:5,gap:1.2,start:0.4},{t:"mender",n:3,gap:1.6,start:4},{t:"flyer",n:6,gap:0.7,start:7}],
-      [{t:"splitter",n:6,gap:1.1,start:0.4},{t:"shielder",n:3,gap:1.6,start:4},{t:"boss",n:1,gap:1,start:10}]
+      [{t:"splitter",n:7,gap:1.0,start:0.4},{t:"shielder",n:3,gap:1.6,start:4},{t:"brute",n:3,gap:1.6,start:10}]
     ]},
   {id:"5-5",name:"霧の分裂体",desc:"濃霧で射程が落ちる渦巻き経路に、分裂体と治癒兵が混在。霧で削り切れず分裂が連鎖する難所。範囲＋継続火力で対処せよ。",
     diff:4,life:16,map:"spiral",mods:{fog:0.72},
@@ -1611,7 +1623,7 @@ const STAGES=[
       [{t:"splitter",n:3,gap:1.6,start:0.4},{t:"swarm",n:10,gap:0.4,start:3}],
       [{t:"splitter",n:4,gap:1.4,start:0.4},{t:"mender",n:3,gap:1.6,start:4}],
       [{t:"splitter",n:5,gap:1.2,start:0.4},{t:"mender",n:3,gap:1.5,start:3},{t:"brute",n:2,gap:2,start:7}],
-      [{t:"splitter",n:6,gap:1.1,start:0.4},{t:"mender",n:4,gap:1.4,start:3},{t:"flyer",n:6,gap:0.7,start:7},{t:"boss",n:1,gap:1,start:12}]
+      [{t:"splitter",n:7,gap:1.0,start:0.4},{t:"mender",n:4,gap:1.4,start:3},{t:"flyer",n:6,gap:0.7,start:7},{t:"brute",n:3,gap:1.6,start:12}]
     ]},
   {id:"5-6",name:"盾と治癒の壁",desc:"シールドを張る盾兵と自己回復する治癒兵が同時に来る、極めて硬い防衛線。瞬間火力と継続火力の両立が必須。",
     diff:4,life:16,map:"avenue",
@@ -1619,15 +1631,15 @@ const STAGES=[
       [{t:"shielder",n:3,gap:1.6,start:0.4},{t:"mender",n:2,gap:1.8,start:3}],
       [{t:"shielder",n:4,gap:1.4,start:0.4},{t:"mender",n:3,gap:1.6,start:4}],
       [{t:"shielder",n:4,gap:1.3,start:0.4},{t:"mender",n:3,gap:1.5,start:3},{t:"gunner",n:3,gap:1.2,start:7}],
-      [{t:"shielder",n:5,gap:1.2,start:0.4},{t:"mender",n:4,gap:1.4,start:3},{t:"brute",n:3,gap:1.8,start:7},{t:"boss",n:1,gap:1,start:12}]
+      [{t:"shielder",n:6,gap:1.1,start:0.4},{t:"mender",n:4,gap:1.4,start:3},{t:"brute",n:4,gap:1.6,start:7},{t:"raptor",n:3,gap:1.5,start:12}]
     ]},
-  {id:"5-7",name:"指揮された分裂",desc:"隊長に強化された分裂体の群れ。隊長を討たねば分裂体が手に負えなくなる。優先順位の判断が命運を分ける。",
+  {id:"5-7",name:"【BOSS】再生母体ヒュドラ",desc:"ヒュドラは自己回復しながら分裂体を召喚する。継続火力（毒）で回復を上回り、増殖を抑えて削れ。",
     diff:5,life:15,map:"fork",
     waves:[
       [{t:"captain",n:1,gap:1,start:0.4},{t:"splitter",n:3,gap:1.4,start:3}],
       [{t:"captain",n:2,gap:3,start:0.4},{t:"splitter",n:4,gap:1.2,start:3}],
       [{t:"captain",n:2,gap:3,start:0.4},{t:"splitter",n:5,gap:1.1,start:3},{t:"swarm",n:12,gap:0.4,start:8}],
-      [{t:"captain",n:2,gap:4,start:0.4},{t:"splitter",n:6,gap:1.0,start:3},{t:"mender",n:3,gap:1.6,start:8},{t:"boss",n:1,gap:1,start:13}]
+      [{t:"captain",n:2,gap:4,start:0.4},{t:"splitter",n:6,gap:1.0,start:3},{t:"mender",n:3,gap:1.6,start:8},{t:"bossBrood",n:1,gap:1,start:13}]
     ]},
   {id:"6-1",name:"制空要塞",desc:"大型砲撃艦が地上を一方的に爆撃する。対空火力と空中ブロック（投網兵）で空を制圧せよ。",
     diff:4,life:16,map:"gauntlet",
@@ -1643,15 +1655,15 @@ const STAGES=[
       [{t:"mender",n:3,gap:1.6,start:0.4},{t:"shielder",n:3,gap:1.6,start:3},{t:"grunt",n:8,gap:0.7,start:5}],
       [{t:"captain",n:1,gap:1,start:0.4},{t:"splitter",n:4,gap:1.3,start:2},{t:"runner",n:10,gap:0.5,start:6}],
       [{t:"gunship",n:1,gap:1,start:0.4},{t:"stinger",n:10,gap:0.35,start:3},{t:"brute",n:3,gap:1.8,start:7}],
-      [{t:"shielder",n:4,gap:1.4,start:0.4},{t:"mender",n:4,gap:1.4,start:3},{t:"captain",n:2,gap:3,start:6},{t:"boss",n:1,gap:1,start:12}]
+      [{t:"shielder",n:4,gap:1.4,start:0.4},{t:"mender",n:4,gap:1.4,start:3},{t:"captain",n:2,gap:3,start:6},{t:"gunship",n:1,gap:1,start:12}]
     ]},
-  {id:"6-3",name:"覇王の城門",desc:"全敵種＋2体のBOSSと砲撃艦が同時に押し寄せる最高難度の決戦。最強の布陣でなければ突破は不可能。",
+  {id:"6-3",name:"鋼鉄の城門",desc:"全敵種と砲撃艦が同時に押し寄せる最高難度の関門。最強の布陣で受け止めろ。",
     diff:5,life:14,map:"spiral",
     waves:[
       [{t:"captain",n:2,gap:3,start:0.4},{t:"shielder",n:4,gap:1.4,start:3},{t:"runner",n:10,gap:0.5,start:7}],
       [{t:"gunship",n:1,gap:1,start:0.4},{t:"stinger",n:12,gap:0.3,start:2},{t:"raptor",n:5,gap:1.2,start:7}],
       [{t:"splitter",n:6,gap:1,start:0.4},{t:"mender",n:5,gap:1.2,start:4},{t:"brute",n:4,gap:1.6,start:8}],
-      [{t:"boss",n:1,gap:1,start:3},{t:"gunship",n:2,gap:5,start:6},{t:"shielder",n:5,gap:1.2,start:8},{t:"boss",n:1,gap:1,start:16},{t:"captain",n:2,gap:3,start:12}]
+      [{t:"gunship",n:2,gap:4,start:3},{t:"shielder",n:5,gap:1.2,start:6},{t:"captain",n:2,gap:3,start:9},{t:"brute",n:4,gap:1.5,start:12}]
     ]},
   {id:"6-4",name:"二正面の終焉",desc:"二股の両ルートに全敵種が同時侵攻し、DP収入も渋い極限の総力戦。両面を捌き切る編成と配置が問われる最終試練。",
     diff:5,life:14,map:"fork",mods:{dpRate:0.8},
@@ -1659,7 +1671,7 @@ const STAGES=[
       [{t:"shielder",n:3,gap:1.5,start:0.4},{t:"runner",n:8,gap:0.5,start:3},{t:"captain",n:1,gap:1,start:6}],
       [{t:"splitter",n:5,gap:1.2,start:0.4},{t:"stinger",n:8,gap:0.4,start:3},{t:"mender",n:3,gap:1.6,start:7}],
       [{t:"gunship",n:1,gap:1,start:0.4},{t:"brute",n:4,gap:1.6,start:3},{t:"raptor",n:4,gap:1.4,start:7},{t:"shielder",n:3,gap:1.5,start:10}],
-      [{t:"captain",n:2,gap:3,start:0.4},{t:"splitter",n:5,gap:1.1,start:3},{t:"boss",n:1,gap:1,start:7},{t:"gunship",n:1,gap:1,start:11},{t:"mender",n:4,gap:1.4,start:9},{t:"boss",n:1,gap:1,start:16}]
+      [{t:"captain",n:2,gap:3,start:0.4},{t:"splitter",n:6,gap:1.0,start:3},{t:"gunship",n:2,gap:4,start:7},{t:"mender",n:4,gap:1.4,start:9},{t:"brute",n:4,gap:1.5,start:13}]
     ]},
   {id:"6-5",name:"渦巻く包囲",desc:"渦巻く長い経路に全新型の敵が押し寄せ、再出撃も遅い消耗戦。粘り強い布陣と的確なスキル運用が要る。",
     diff:5,life:15,map:"spiral",mods:{redeploy:1.3},
@@ -1667,15 +1679,15 @@ const STAGES=[
       [{t:"shielder",n:3,gap:1.5,start:0.4},{t:"splitter",n:3,gap:1.4,start:3},{t:"swarm",n:12,gap:0.4,start:7}],
       [{t:"captain",n:1,gap:1,start:0.4},{t:"mender",n:4,gap:1.5,start:3},{t:"stinger",n:8,gap:0.4,start:7}],
       [{t:"gunship",n:1,gap:1,start:0.4},{t:"brute",n:4,gap:1.6,start:3},{t:"raptor",n:4,gap:1.4,start:7}],
-      [{t:"captain",n:2,gap:3,start:0.4},{t:"shielder",n:4,gap:1.3,start:3},{t:"splitter",n:5,gap:1.1,start:7},{t:"boss",n:1,gap:1,start:13}]
+      [{t:"captain",n:2,gap:3,start:0.4},{t:"shielder",n:4,gap:1.3,start:3},{t:"splitter",n:6,gap:1.0,start:7},{t:"gunship",n:1,gap:1,start:13}]
     ]},
-  {id:"6-6",name:"霧に沈む決戦",desc:"一本道に濃霧が満ち、全敵種と2体のBOSS・砲撃艦が視界の悪い中で殺到する超高難度戦。",
+  {id:"6-6",name:"【BOSS】魔王デーモンロード",desc:"召喚・範囲叩きつけ・狂化を併せ持つ魔王との最終決戦。濃霧の中、全戦力を注ぎ込め。",
     diff:5,life:14,map:"avenue",mods:{fog:0.72},
     waves:[
       [{t:"shielder",n:4,gap:1.4,start:0.4},{t:"captain",n:1,gap:1,start:3},{t:"runner",n:10,gap:0.5,start:7}],
       [{t:"gunship",n:1,gap:1,start:0.4},{t:"stinger",n:10,gap:0.35,start:3},{t:"mender",n:4,gap:1.5,start:8}],
       [{t:"splitter",n:6,gap:1.0,start:0.4},{t:"brute",n:4,gap:1.6,start:4},{t:"raptor",n:4,gap:1.4,start:8}],
-      [{t:"boss",n:1,gap:1,start:3},{t:"gunship",n:2,gap:5,start:6},{t:"shielder",n:5,gap:1.2,start:8},{t:"captain",n:2,gap:3,start:11},{t:"boss",n:1,gap:1,start:17}]
+      [{t:"gunship",n:2,gap:5,start:4},{t:"shielder",n:5,gap:1.2,start:7},{t:"captain",n:2,gap:3,start:10},{t:"boss",n:1,gap:1,start:15}]
     ]},
   {id:"∞",name:"エンドレス",desc:"ウェーブが延々と続く無限モード。敵は徐々に強くなる。何ウェーブ耐えられるか挑戦！記録は保存されます。",
     diff:5,life:20,map:"serpent",endless:true,
@@ -2630,7 +2642,10 @@ function genEndlessWave(idx){
   // ボスラッシュ：毎ウェーブがボス＋護衛。数ウェーブごとにボス数増加
   if(G.bossrush){
     const t=Math.floor(idx/2);
-    specs.push({t:0.5,n:1+Math.floor(idx/3),gap:2.2,type:"boss"});
+    // 章ボス6体を巡回（弱いボスから順に、周回で魔王が増えていく）
+    const BOSS_CYCLE=["bossOgre","bossNecro","bossIron","bossInferno","bossBrood","boss"];
+    const bt=BOSS_CYCLE[idx%BOSS_CYCLE.length];
+    specs.push({t:0.5,n:1+Math.floor(idx/6),gap:2.5,type:bt});
     specs.push({t:2,n:1+Math.floor(idx/4),gap:2.5,type:"brute"});
     if(idx>=2) specs.push({t:1.5,n:2+t,gap:1.0,type:"shielder"});
     if(idx>=3) specs.push({t:3,n:1+Math.floor(idx/4),gap:2.5,type:"gunship"});
@@ -2654,7 +2669,9 @@ function genEndlessWave(idx){
   if(idx>=6) specs.push({t:7,n:2+tier,gap:0.7,type:"stinger"});   // 高速空中ラッシュ
   if(idx>=10) specs.push({t:9,n:1+Math.floor(tier/3),gap:3,type:"gunship"}); // 大型砲撃艦
   // 5の倍数ウェーブはボス
-  if(idx>0 && idx%5===4) specs.push({t:10,n:1,gap:1,type:"boss"});
+  if(idx>0 && idx%5===4){ // 5ウェーブごとにボス。進行に応じて弱いボスから強いボスへ
+    const eb=["bossOgre","bossIron","bossInferno","bossBrood","boss"][Math.min(4,Math.floor(idx/5))];
+    specs.push({t:10,n:1,gap:1,type:eb}); }
   return specs;
 }
 function startWave(){
@@ -2909,6 +2926,33 @@ function update(dt){
     if(en.weakenT>0){ en.weakenT-=dt; if(en.weakenT<=0)en.weakenF=1; }
   }
 
+  // --- 章ボスの特殊行動（雑魚召喚 / 範囲叩きつけ）---
+  for(const en of G.enemies){
+    if(en.hp<=0 || en.freezeT>0 || en.stun>0) continue; // 凍結・スタン中は行動しない
+    // 雑魚召喚
+    if(en.e.summon){ const f=en.e.summon;
+      if(en._sumT==null) en._sumT=f.cd;
+      en._sumT-=dt;
+      if(en._sumT<=0){ en._sumT=f.cd;
+        for(let i=0;i<(f.n||2);i++){ const a=Math.random()*7, d=(f.r||1.2)*TILE*Math.random();
+          spawnEnemy(f.type,{way:en.way,wp:en.wp,x:en.x+Math.cos(a)*d,y:en.y+Math.sin(a)*d,progress:en.progress}); }
+        addFx({type:"ring",x:en.x,y:en.y,r:(f.r||1.2)*TILE,col:en.e.col,life:0.5});
+        addFx({type:"magicburst",x:en.x,y:en.y,r:(f.r||1.2)*TILE*0.8,col:en.e.col,life:0.5}); Sound.play("split");
+      }
+    }
+    // 範囲叩きつけ（_slamTが小さい間はdrawで予兆リングを表示）
+    if(en.e.slam){ const f=en.e.slam;
+      if(en._slamT==null) en._slamT=f.cd;
+      en._slamT-=dt;
+      if(en._slamT<=0){ en._slamT=f.cd;
+        const R=f.r*TILE;
+        addFx({type:"ring",x:en.x,y:en.y,r:R,col:"#ff5b6e",life:0.5});
+        addFx({type:"magicburst",x:en.x,y:en.y,r:R*0.7,col:"#ffae5b",life:0.45}); Sound.play("aoe");
+        for(const u of [...G.units]){ if(dist(en,u)<=R){ applyToUnit(u, f.dmg, null); if(f.stun) u.stunT=Math.max(u.stunT||0,f.stun); if(u.hp<=0) retreat(u); } }
+      }
+    }
+  }
+
 
   // --- ブロック割り当て ---
   for(const u of G.units)u.blocking=[];
@@ -2951,7 +2995,7 @@ function update(dt){
         if(en.cd<=0){
           en.cd=en.e.interval;
           const u=en.blockedBy;
-          let dmg=en.atk*(en.enAtkBuff||1)*(en.weakenT>0?en.weakenF:1);
+          let dmg=en.atk*(en.enAtkBuff||1)*(en.weakenT>0?en.weakenF:1)*enRageAtk(en);
           dmg=applyToUnit(u,dmg,en);
           if(u.hp<=0)retreat(u);
         }
@@ -2970,7 +3014,7 @@ function update(dt){
         for(const u of G.units){const d=dist(en,u); if(d<=R&&d<best){best=d;tgt=u;}}
         if(tgt){
           en.acd=en.e.interval;
-          G.shots.push({x:en.x,y:en.y,target:tgt,dmg:en.atk*(en.enAtkBuff||1)*(en.weakenT>0?en.weakenF:1),col:en.e.col,kind:"ebolt",spd:430,enemy:true});
+          G.shots.push({x:en.x,y:en.y,target:tgt,dmg:en.atk*(en.enAtkBuff||1)*(en.weakenT>0?en.weakenF:1)*enRageAtk(en),col:en.e.col,kind:"ebolt",spd:430,enemy:true});
         }
       }
     }
@@ -3472,6 +3516,8 @@ function pickHeal(u){ // 射程内で最もHP割合の低い負傷味方
 }
 function shot(u,tg,dmg,col,kind){return {x:u.x,y:u.y,target:tg,dmg,col,kind,spd:520,owner:u};}
 // 敵へのダメージ適用（シールドを先に削る）。色付きの数字も出す。src=与えた味方（与ダメ集計用）
+// 狂化ボス：HPが減るほど攻撃力が上がる倍率（rageAtkはボーナス割合）
+function enRageAtk(en){ return en.e.rageAtk ? 1+en.e.rageAtk*(1-Math.max(0,en.hp)/en.maxHp) : 1; }
 function hurtEnemy(en,dmg,col,src){
   if(en.vulnT>0) dmg*=en.vulnF; // 被ダメ上昇デバフ
   if(en.e.armor) dmg=Math.max(Math.round(dmg*0.05), dmg-en.e.armor); // 重装甲：固定軽減（最低5%は通る）
@@ -3846,6 +3892,12 @@ function drawEnemy(en){
   // 加速・狂化：HPが減ると赤いオーラが強まる
   if(en.e.rageSpd && en.hp < en.maxHp*0.6){ const p=0.5+0.5*Math.sin(G.t*12);
     ctx.fillStyle=hexA("#ff3b30",0.12+0.18*p); ctx.beginPath();ctx.arc(x,y,r+5,0,7);ctx.fill(); }
+  // 範囲叩きつけの予兆：発動直前に赤い警告リングが広がる
+  if(en.e.slam && en._slamT!=null && en._slamT<0.6){
+    const R=en.e.slam.r*TILE, prog=1-en._slamT/0.6;
+    ctx.strokeStyle=hexA("#ff5b6e",0.7); ctx.lineWidth=3; ctx.beginPath(); ctx.arc(en.x,en.y,R*prog,0,7); ctx.stroke();
+    ctx.fillStyle=hexA("#ff5b6e",0.10); ctx.beginPath(); ctx.arc(en.x,en.y,R,0,7); ctx.fill();
+  }
   // 飛行敵：翼（アイコン未読込時のみ。アイコンは翼を内包）
   if(en.fly && !hasIcon){
     const flap=Math.sin(G.t*12+en.x*0.2)*0.5;
