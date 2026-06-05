@@ -111,6 +111,49 @@
   .overlay p{color:var(--dim);margin-bottom:18px}
   .overlay button{font-family:'Chakra Petch'}
 
+  /* 横向き推奨ヒント */
+  #rotateHint{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;
+    background:rgba(6,10,21,.93);backdrop-filter:blur(3px);padding:24px;text-align:center}
+  #rotateHint.show{display:flex}
+  #rotateHint .rh-inner{max-width:340px;display:flex;flex-direction:column;align-items:center;gap:14px}
+  #rotateHint .rh-icon{font-size:64px;line-height:1;animation:rhrot 2s ease-in-out infinite;transform-origin:center}
+  @keyframes rhrot{0%,35%{transform:rotate(0)}55%,90%{transform:rotate(-90deg)}100%{transform:rotate(0)}}
+  #rotateHint .rh-title{font-family:'Chakra Petch';font-weight:700;font-size:20px;color:#fff;letter-spacing:.05em}
+  #rotateHint .rh-text{font-size:14px;color:var(--dim);line-height:1.65}
+  #rotateHint button{margin-top:4px;padding:10px 18px;border-radius:10px;border:1px solid var(--line2);
+    background:var(--panel);color:var(--txt);font-weight:700;font-size:13px;cursor:pointer}
+  #rotateHint button:active{background:var(--panel2)}
+
+  /* 横向き（低い画面＝スマホ横）：2カラム化。左に大きな盤面、右に操作＋キャラバーを縦に並べて横幅を活用 */
+  @media (orientation:landscape) and (max-height:600px){
+    body{padding:6px}
+    #battle{display:grid;gap:5px 10px;align-items:start;
+      grid-template-columns:1fr minmax(208px,300px);
+      grid-template-rows:auto auto auto auto 1fr;
+      grid-template-areas:
+        "header header"
+        "hud    hud"
+        "stage  controls"
+        "stage  unitpanel"
+        "stage  bar";}
+    #battle header{grid-area:header;margin:0}
+    #battle header h1{font-size:16px}
+    #battle .hud{grid-area:hud;margin:0;gap:6px}
+    #battle .hud .stat{padding:5px 9px;min-width:0}
+    #battle .hud .stat .v{font-size:16px}
+    #battle .stage{grid-area:stage;align-self:start;margin:0;
+      max-width:calc((100vh - 92px) * 1.857)}
+    #battle .controls{grid-area:controls;margin:0;gap:6px}
+    #battle .unitpanel{grid-area:unitpanel;margin:0}
+    #battle .bar{grid-area:bar;margin:0;grid-template-columns:repeat(3,1fr);gap:6px;
+      overflow-y:auto;align-content:start;min-height:0}
+    #battle details{display:none}
+    /* 右カラムが狭いので操作ボタンは詰める */
+    #battle .controls .grow{flex-basis:100%;height:0}
+    #battle .controls button{padding:7px 11px;font-size:12px}
+    #battle .controls .ucount{font-size:11px;width:100%}
+  }
+
   /* Controls */
   .controls{display:flex;gap:8px;margin:8px 0;flex-wrap:wrap;align-items:center}
   button{
@@ -851,6 +894,14 @@
   </details>
 </div>
 <div id="ultco"><div class="co" id="ultcoInner"><div class="who" id="ultcoWho"></div><div class="nm" id="ultcoName"></div></div></div>
+<div id="rotateHint">
+  <div class="rh-inner">
+    <div class="rh-icon">📱</div>
+    <div class="rh-title">横向きでのプレイがおすすめ</div>
+    <div class="rh-text">端末を横向きにすると、盤面が大きく表示されて遊びやすくなります。</div>
+    <button id="rotateHintDismiss">このまま縦向きで続ける</button>
+  </div>
+</div>
 
 <script>
 "use strict";
@@ -4167,7 +4218,22 @@ function refreshHomeStats(){
   if(md) md.textContent=medals;
   if(xp) xp.textContent=playerXP;
 }
-function gotoMenu(name){battleEl.style.display="none";menuEl.style.display="block";Sound.stopMusic();showScreen(name);}
+// 横向き推奨ヒント：バトル画面・縦向き・タッチ端末のときだけ表示。横に回すと自動で消える
+let rotateHintDismissed=false;
+function updateRotateHint(){
+  const el=document.getElementById("rotateHint"); if(!el)return;
+  const inBattle = battleEl && battleEl.style.display!=="none";
+  const portrait = window.matchMedia("(orientation: portrait)").matches;
+  const coarse = window.matchMedia("(pointer: coarse)").matches;
+  el.classList.toggle("show", inBattle && portrait && coarse && !rotateHintDismissed);
+}
+(function initRotateHint(){
+  const d=document.getElementById("rotateHintDismiss");
+  if(d) d.onclick=()=>{ rotateHintDismissed=true; updateRotateHint(); };
+  window.addEventListener("orientationchange",()=>setTimeout(updateRotateHint,120));
+  window.addEventListener("resize",updateRotateHint);
+})();
+function gotoMenu(name){battleEl.style.display="none";menuEl.style.display="block";Sound.stopMusic();showScreen(name);updateRotateHint();}
 function gotoBattle(stage){
   // 無限ダンジョン（エンドレス）はスタミナ消費なしで挑戦可能
   if(!stage.endless){
@@ -4187,11 +4253,12 @@ function gotoBattle(stage){
   currentStage=stage; WAVES=stage.waves;
   loadMap(stage.map||"serpent");
   if(squad.length===0)squad=usableList().slice(0,SQUAD_MAX); // 念のため（使用可能キャラから）
-  menuEl.style.display="none"; battleEl.style.display="block";
+  menuEl.style.display="none"; battleEl.style.display=""; // inlineを空にしてCSS(横向き2カラム等)を有効化
   document.getElementById("battleStage").textContent="STAGE "+stage.id+" — "+stage.name+(battleHard?"  ☠HARD":"");
   reset();
   Sound.ensureStarted(); Sound.setMusicIntensity(0.16); Sound.startMusic(112);
   window.scrollTo(0,0);
+  rotateHintDismissed=false; updateRotateHint(); // バトル開始時に一度だけ横向きを推奨
 }
 // メニュー内の data-go ボタン
 document.querySelectorAll("[data-go]").forEach(b=>{
