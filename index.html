@@ -1182,9 +1182,10 @@ const TYPES={
     hp:330,atk:60,interval:1.1,block:0,range:3.6,kind:"multi",targets:"both",multi:3,vuln:1.1,vulnDur:3,
     skill:{name:"呪詛の風",spMax:11,dur:5,multi:6,atk:1.3,
            ultName:"破滅の呪い",ultGauge:24,ultCurse:{slow:0.5,vuln:1.3,weaken:0.5,dur:6}}},
-  summoner:{name:"サモナー",role:"SUMMON",letter:"O",color:"#a0e070",place:"hill",cost:16,
-    hp:360,block:0,range:3.0,kind:"summon",targets:"none",summonHp:420,summonAtk:90,summonInterval:1.0,summonBlock:1,summonLife:14,summonCd:8,
-    skill:{name:"大召喚",spMax:13,dur:1,summonBurst:3}},
+  summoner:{name:"サモナー",role:"SUMMON",letter:"O",color:"#a0e070",place:"hill",cost:24,
+    hp:600,atk:48,interval:1.4,block:0,range:3.2,kind:"aoe",aoe:0.6,stun:0,targets:"both",magic:true,
+    skill:{name:"ゴーレム召喚",spMax:12,dur:0.5,summonGolem:{max:2,hpPct:0.3,atkPct:1.0,block:2,interval:1.3},
+           ultName:"エンシェントゴーレム",ultGauge:28,summonAncient:{hpPct:3.0,atkPct:2.0,block:3,interval:1.5}}},
   bard:{name:"バードシンガー",role:"BARD",letter:"♪",color:"#ff9ad1",place:"hill",cost:14,
     hp:360,block:0,range:3.2,kind:"bard",targets:"none",spBoost:1.8,
     skill:{name:"狂詩曲",spMax:12,dur:5,spBoost:3.2}},
@@ -1227,7 +1228,7 @@ const ORDER=["tank","attacker","shooter","healer","support","trickster","breaker
 // キャラアイコン画像（icons/<type>.png）。全キャラにアイコンを割り当て（読み込み失敗時はonerrorで文字にフォールバック）
 for(const t in TYPES){ TYPES[t].img="icons/"+t+".png?v=4"; }
 // 調整（レビュー）済みキャラ。未調整キャラは編成・出撃で使用不可（順次解放していく）
-const TUNED_LIST=["tank","attacker","shooter","healer","support","trickster","breaker","harvester","guardian","lancer","berserker","sniper","mage","artillery","archer","flak","dragonrider","sentinel","paladin","duelist","gunner","revenger","marksman","poisoner","chaincaster","freezer","shaman"];
+const TUNED_LIST=["tank","attacker","shooter","healer","support","trickster","breaker","harvester","guardian","lancer","berserker","sniper","mage","artillery","archer","flak","dragonrider","sentinel","paladin","duelist","gunner","revenger","marksman","poisoner","chaincaster","freezer","shaman","summoner"];
 TUNED_LIST.forEach(t=>{ if(TYPES[t]) TYPES[t].tuned=true; });
 function isTuned(t){ return !!(TYPES[t]&&TYPES[t].tuned); }
 // アイコン用HTML（DOMカード共通）：画像があれば<img>、無ければ文字
@@ -2148,6 +2149,30 @@ function spawnToken(summoner){
     sp:0,skillActive:false,skillTimer:0,skillMode:"auto",ttl:cfg.summonLife
   });
 }
+// サモナー：ゴーレム／エンシェントゴーレムを召喚。サモナーのHP/攻撃力に対する割合でステータスを決定
+function spawnGolem(summoner,opts){
+  // 空き通路セルを探し、サモナーに最も近い＝目の前のマスを優先
+  const cands=[];
+  for(const [c,r] of PATH){ if(!unitAtCell(c,r)){ const p=center(c,r); cands.push({c,r,p,d:dist(summoner,p)}); } }
+  if(!cands.length){ flash("召喚できる空きマスがありません"); return null; }
+  cands.sort((a,b)=>a.d-b.d);
+  const spot=cands[0];
+  const hp=Math.max(1,Math.round(summoner.maxHp*opts.hpPct));
+  const atk=Math.max(1,Math.round(summoner.atk*opts.atkPct));
+  const tok={
+    type:"_golem",isToken:true,golemTag:opts.tag,owner:summoner,
+    cfg:{name:opts.name,kind:"melee",block:opts.block,targets:"ground",
+      atk,interval:opts.interval||1.3,color:opts.color,hp,letter:opts.letter},
+    c:spot.c,r:spot.r,x:spot.p.x,y:spot.p.y,atk,heal:0,level:summoner.level||1,
+    hp,maxHp:hp,cd:0,blocking:[],spdBuff:1,atkBuff:1,
+    sp:0,skillActive:false,skillTimer:0,skillMode:"auto",ttl:Infinity,
+    _born:(G._golemSeq=(G._golemSeq||0)+1)
+  };
+  G.units.push(tok);
+  addFx({type:"ring",x:spot.p.x,y:spot.p.y,r:TILE*(opts.fxR||0.9),col:opts.color,life:0.5});
+  addFx({type:"magicburst",x:spot.p.x,y:spot.p.y,r:TILE*(opts.fxR||0.8),col:opts.color,life:0.5});
+  return tok;
+}
 // スキル発動
 function fireSkill(u){
   const sk=u.cfg.skill; if(!sk||u.skillActive||u.sp<sk.spMax)return false;
@@ -2157,7 +2182,7 @@ function fireSkill(u){
   return true;
 }
 // スキルが発動時に固有の一撃を持つか（汎用ボーナスを抑制する判定に使用）
-function hasCustomActivate(sk){ return !!(sk && (sk.smash||sk.frontSlash||sk.ultFrontSlash||sk.ultFlySlash||sk.ultChargeAlly||sk.ultBarrage||sk.ultDotField||sk.ultLanceCharge||sk.ultChargeAxe||sk.ultBeam||sk.ultBombard||sk.ultBreath||sk.ultTaunt||sk.ultDuelCombo||sk.ultGatling||sk.revUlt||sk.ultApBurst||sk.ultFog||sk.ultNova||sk.ultCurse)); }
+function hasCustomActivate(sk){ return !!(sk && (sk.smash||sk.frontSlash||sk.ultFrontSlash||sk.ultFlySlash||sk.ultChargeAlly||sk.ultBarrage||sk.ultDotField||sk.ultLanceCharge||sk.ultChargeAxe||sk.ultBeam||sk.ultBombard||sk.ultBreath||sk.ultTaunt||sk.ultDuelCombo||sk.ultGatling||sk.revUlt||sk.ultApBurst||sk.ultFog||sk.ultNova||sk.ultCurse||sk.summonGolem||sk.summonAncient)); }
 // エンチャンターのバフ対象：射程内で攻撃/回復する味方のうち、最もバフ残量が少ない味方
 function pickBuffAlly(u,R){
   let best=null,bv=Infinity;
@@ -2252,6 +2277,18 @@ function skillActivate(u,isUlt){
       e.weakenT=Math.max(e.weakenT||0,f.dur); e.weakenF=Math.min(e.weakenF||1,f.weaken);
       addFx({type:"hit",x:e.x,y:e.y,col:"#caa6ff",life:0.3}); }
     addFx({type:"ring",x:u.x,y:u.y,r:R,col:"#caa6ff",life:0.6}); addFx({type:"magicburst",x:u.x,y:u.y,r:R*0.5,col:"#caa6ff",life:0.6}); Sound.play("magic"); return; }
+  // サモナー：目の前の通路にゴーレムを召喚（最大n体／超過時は最古を入れ替え）
+  if(!isUlt && sk.summonGolem){ const f=sk.summonGolem;
+    const golems=G.units.filter(x=>x.isToken&&x.golemTag==="golem"&&x.owner===u);
+    if(golems.length>=(f.max||2)){ golems.sort((a,b)=>(a._born||0)-(b._born||0));
+      golems[0]._gone=true; addFx({type:"pop",x:golems[0].x,y:golems[0].y,col:"#8fae6a",life:0.3}); }
+    spawnGolem(u,{tag:"golem",name:"ゴーレム",hpPct:f.hpPct,atkPct:f.atkPct,block:f.block,interval:f.interval,color:"#8fae6a",letter:"岩"});
+    Sound.play("aoe"); return; }
+  // サモナー：必殺技でエンシェントゴーレムを召喚（超大型・3体ブロック）
+  if(isUlt && sk.summonAncient){ const f=sk.summonAncient;
+    const g=spawnGolem(u,{tag:"ancient",name:"エンシェントゴーレム",hpPct:f.hpPct,atkPct:f.atkPct,block:f.block,interval:f.interval,color:"#6f9a4a",letter:"古",fxR:1.7});
+    if(g){ addFx({type:"ring",x:g.x,y:g.y,r:TILE*2.0,col:"#cde6a0",life:0.7}); flash("エンシェントゴーレム 召喚！"); }
+    Sound.play("aoe"); return; }
   // ポイズナー：毒沼を通路に設置（スキル）／自身周囲に毒霧（必殺技）
   if(!isUlt && sk.poisonPool){ const f=sk.poisonPool, dmg=statATK(u.cfg,u.type)*f.pct, R=unitRange(u);
     const cells=PATH.map(([c,r])=>center(c,r)).filter(p=>dist(u,p)<=R).sort((a,b)=>dist(u,a)-dist(u,b));
@@ -4309,7 +4346,7 @@ const CODEX_DESC={
   chaincaster:"攻撃が敵から敵へ連鎖する。固まった群れにまとめてダメージ。",
   freezer:"命中した敵を凍結（長時間停止）させる足止め特化の遠距離。",
   shaman:"3体同時に攻撃し、当たった敵を減速させる範囲妨害役。",
-  summoner:"使い捨ての召喚兵（前衛トークン）を定期生成。実質ブロック枠を増やす。",
+  summoner:"ゴーレムを召喚して前線を支える召喚術師。自身も弱い魔法で攻撃する。",
   bard:"射程内の味方のSPチャージを加速。手動スキル運用と好相性。",
   alchemist:"撃破に関係なく、時間経過でDPを生産し続ける経済役。",
   prospector:"低HP・無攻撃だが、出撃した瞬間にまとまったDPを生む格安の資源要員。",
@@ -4349,7 +4386,7 @@ const SKILL_DESC={
   chaincaster:"1発で最大7体に連鎖する雷撃（連鎖ごとに-10%）。当たった敵を鈍化（移動・攻撃速度ダウン）。",
   freezer:"5本の氷を順番に放ち、当たった敵を鈍化させる範囲攻撃。",
   shaman:"同時に呪う数を6体に増やす（命中で被ダメ+10%）。",
-  summoner:"発動と同時に召喚兵を一気に3体追加召喚。",
+  summoner:"目の前の通路にゴーレムを召喚（最大2体）。HP30%／攻撃力100%で前線を固める。",
   bard:"SPチャージ加速が大幅に強化される。",
   alchemist:"DP生産が急増＋発動時にまとまったDPを即獲得。",
   prospector:"発動時にまとまったDPを即獲得する。",
@@ -4391,7 +4428,8 @@ const ULT_DESC={
   poisoner:"攻撃速度UP＋自身の周囲6マスに毒霧を展開。触れた敵を毒に侵す（毒は最大5スタック）。",
   chaincaster:"敵の方向へ極太の雷ビームを放ち多段ヒット。当たった敵を鈍化させる。",
   freezer:"フロストノヴァ。敵を中心に巨大な氷を降らせ、当たった敵を凍結させる。",
-  shaman:"射程内の全敵に呪いを付与。鈍化＋被ダメ上昇＋攻撃力低下でまとめて弱体化する。"
+  shaman:"射程内の全敵に呪いを付与。鈍化＋被ダメ上昇＋攻撃力低下でまとめて弱体化する。",
+  summoner:"エンシェントゴーレムを召喚。HP300%／攻撃力200%・3体ブロックの超大型で前線を制圧する。"
 };
 
 /* ----- 育成 ----- */
