@@ -1172,7 +1172,8 @@ const TYPES={
            ultName:"デッドリーミスト",ultGauge:24,ultDur:7,ultSpd:1.8,ultFog:{r:6,pct:0.1,dur:3,max:5,life:7}}},
   chaincaster:{name:"チェインキャスター",role:"CHAIN",letter:"C",color:"#7ad0ff",place:"hill",cost:16,
     hp:330,atk:130,interval:1.3,block:0,range:3.8,kind:"chain",targets:"both",chain:3,chainFalloff:0.7,
-    skill:{name:"連鎖雷撃",spMax:13,dur:5,atk:1.6,chain:6,spd:1.4}},
+    skill:{name:"チェインライトニング",spMax:11,dur:0.5,chainBolt:{mul:2.0,chain:7,falloff:0.9,slow:0.6,slowDur:3},
+           ultName:"ドラゴンライトニング",ultGauge:26,ultBeam:{dur:1.4,width:1.8,len:8,dps:7,slow:0.6,slowDur:3}}},
   freezer:{name:"フリーザー",role:"FREEZE",letter:"I",color:"#9fe0ff",place:"hill",cost:14,
     hp:320,atk:90,interval:1.5,block:0,range:3.4,kind:"range",targets:"both",freeze:1.4,
     skill:{name:"絶対零度",spMax:13,dur:5,freeze:2.6,atk:1.4,spd:1.4,aoeFreeze:1.2}},
@@ -1224,7 +1225,7 @@ const ORDER=["tank","attacker","shooter","healer","support","trickster","breaker
 // キャラアイコン画像（icons/<type>.png）。全キャラにアイコンを割り当て（読み込み失敗時はonerrorで文字にフォールバック）
 for(const t in TYPES){ TYPES[t].img="icons/"+t+".png?v=4"; }
 // 調整（レビュー）済みキャラ。未調整キャラは編成・出撃で使用不可（順次解放していく）
-const TUNED_LIST=["tank","attacker","shooter","healer","support","trickster","breaker","harvester","guardian","lancer","berserker","sniper","mage","artillery","archer","flak","dragonrider","sentinel","paladin","duelist","gunner","revenger","marksman","poisoner"];
+const TUNED_LIST=["tank","attacker","shooter","healer","support","trickster","breaker","harvester","guardian","lancer","berserker","sniper","mage","artillery","archer","flak","dragonrider","sentinel","paladin","duelist","gunner","revenger","marksman","poisoner","chaincaster"];
 TUNED_LIST.forEach(t=>{ if(TYPES[t]) TYPES[t].tuned=true; });
 function isTuned(t){ return !!(TYPES[t]&&TYPES[t].tuned); }
 // アイコン用HTML（DOMカード共通）：画像があれば<img>、無ければ文字
@@ -2222,8 +2223,11 @@ function skillActivate(u,isUlt){
   if(!isUlt && sk.barrageBurst){ const f=sk.barrageBurst; u.bombard={left:f.n,t:0,gap:f.gap,mul:f.mul,aoe:f.aoe}; }
   // 必殺技：魔法陣を展開して巨大範囲ビーム（メイジ）
   if(isUlt && sk.ultBeam){ const f=sk.ultBeam; const fa=forwardAngle(u,99*TILE);
-    u.magicBeam={t:f.dur,dur:f.dur,dir:fa.found?fa.ang:0,width:f.width*TILE,len:f.len*TILE,dps:statATK(u.cfg,u.type)*f.dps*(u.atkBuff||1),tick:0};
+    u.magicBeam={t:f.dur,dur:f.dur,dir:fa.found?fa.ang:0,width:f.width*TILE,len:f.len*TILE,dps:statATK(u.cfg,u.type)*f.dps*(u.atkBuff||1),slow:f.slow,slowDur:f.slowDur,tick:0};
     addFx({type:"magicburst",x:u.x,y:u.y,r:TILE*1.6,col:u.cfg.color,life:0.6}); Sound.play("magic"); return; }
+  // チェインキャスター：チェインライトニング（1発で最大n連鎖＋鈍化）
+  if(!isUlt && sk.chainBolt){ const f=sk.chainBolt, tg=pickEnemy(u);
+    if(tg){ const s=shot(u,tg,statATK(u.cfg,u.type)*f.mul*(u.atkBuff||1),u.cfg.color,"chain"); s.chain=f.chain; s.falloff=f.falloff; s.slowHit=f.slow; s.slowDur=f.slowDur; G.shots.push(s); Sound.play("sniper"); } }
   // スキル：魔法を連続発射（メイジ）。命中ごとに確率で攻撃力スタック
   if(!isUlt && sk.magicCombo){ const f=sk.magicCombo; u.magicBurst={left:f.n,t:0,gap:f.gap,mul:f.mul,stackChance:sk.stackChance||0}; }
   // スキル：目の前に大斬撃×n（カノン 天蓋連牙）。連撃キューで時間差発生
@@ -2667,7 +2671,7 @@ function update(dt){
       const dx=Math.cos(mb.dir),dy=Math.sin(mb.dir);
       for(const e of G.enemies){ if(e.hp<=0||!canHit(u,e))continue;
         const rx=e.x-u.x, ry=e.y-u.y, along=rx*dx+ry*dy, perp=Math.abs(rx*dy-ry*dx);
-        if(along>=-TILE*0.3 && along<=mb.len && perp<=mb.width/2){ hurtEnemy(e,mb.dps*dt,u.cfg.color,u); } }
+        if(along>=-TILE*0.3 && along<=mb.len && perp<=mb.width/2){ hurtEnemy(e,mb.dps*dt,u.cfg.color,u); if(mb.slow){ e.slowHitT=Math.max(e.slowHitT||0,mb.slowDur||3); e.slowHitF=Math.min(e.slowHitF||1,mb.slow); } } }
       if(mb.tick<=0){ mb.tick=0.06; const dd=Math.random()*mb.len, pp=(Math.random()-0.5)*mb.width; addFx({type:"frag",x:u.x+dx*dd-dy*pp,y:u.y+dy*dd+dx*pp,vx:dx*60,vy:dy*60,col:u.cfg.color,life:0.3,r:3}); }
       if(mb.t<=0)u.magicBeam=null;
     }
@@ -2803,7 +2807,7 @@ function update(dt){
     // ブロックされている地上敵：前衛を殴る（凍結中は殴らない）
     if(en.blockedBy){
       if(!frozen){
-        en.cd-=dt;
+        en.cd-=dt*(en.slow||1); // 鈍化中は攻撃も遅くなる
         if(en.cd<=0){
           en.cd=en.e.interval;
           const u=en.blockedBy;
@@ -2818,7 +2822,7 @@ function update(dt){
 
     // 遠隔攻撃を持つ敵：射程内の味方（高台含む）を攻撃しながら進む
     if(en.e.ranged){
-      en.acd-=dt;
+      en.acd-=dt*(en.slow||1); // 鈍化中は遠隔攻撃も遅くなる
       if(en.acd<=0){
         const R=en.e.ranged*TILE;
         // 射程内で最も近い味方を狙う
@@ -4287,7 +4291,7 @@ const SKILL_DESC={
   revenger:"攻撃力200%×2回の報復（HPが低いほど倍率UP・残10%で400%）。使うほど必殺技の火力UP。",
   marksman:"強力な徹甲弾を3連射。相手の防御（シールド）を50%無視する。",
   poisoner:"通路に毒沼を4つ設置。触れた敵を毒に侵す。",
-  chaincaster:"連鎖数が6体に増え、群れを一掃する。",
+  chaincaster:"1発で最大7体に連鎖する雷撃（連鎖ごとに-10%）。当たった敵を鈍化（移動・攻撃速度ダウン）。",
   freezer:"凍結時間が延長＋周囲の敵も巻き込んで凍結。",
   shaman:"同時攻撃数が5体に増え、減速も強化。",
   summoner:"発動と同時に召喚兵を一気に3体追加召喚。",
@@ -4329,7 +4333,8 @@ const ULT_DESC={
   gunner:"ガトリングを展開し、攻撃力30%の弾を50連射。放射状の派手な銃火で敵を撃ち抜く。",
   revenger:"前進しながら10連撃でノックバック。HPが低いほど、スキルを使ったぶんだけ火力が上がる。",
   marksman:"即座にリロードし、防御を50%無視する徹甲弾を5連射する。",
-  poisoner:"攻撃速度UP＋自身の周囲6マスに毒霧を展開。触れた敵を毒に侵す（毒は最大5スタック）。"
+  poisoner:"攻撃速度UP＋自身の周囲6マスに毒霧を展開。触れた敵を毒に侵す（毒は最大5スタック）。",
+  chaincaster:"敵の方向へ極太の雷ビームを放ち多段ヒット。当たった敵を鈍化させる。"
 };
 
 /* ----- 育成 ----- */
