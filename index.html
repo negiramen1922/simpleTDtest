@@ -1179,8 +1179,9 @@ const TYPES={
     skill:{name:"アイスシャード",spMax:11,dur:0.5,iceBurst:{n:5,gap:0.18},
            ultName:"フロストノヴァ",ultGauge:26,ultNova:{n:6,gap:0.18,mul:2.0,aoe:1.6,freeze:2.5}}},
   shaman:{name:"シャーマン",role:"SHAMAN",letter:"Q",color:"#caa6ff",place:"hill",cost:13,
-    hp:330,atk:60,interval:1.1,block:0,range:3.6,kind:"multi",targets:"both",multi:3,slowHit:0.55,slowDur:1.5,
-    skill:{name:"呪詛の風",spMax:12,dur:5,atk:1.5,multi:5,slowHit:0.4,spd:1.4}},
+    hp:330,atk:60,interval:1.1,block:0,range:3.6,kind:"multi",targets:"both",multi:3,vuln:1.1,vulnDur:3,
+    skill:{name:"呪詛の風",spMax:11,dur:5,multi:6,atk:1.3,
+           ultName:"破滅の呪い",ultGauge:24,ultCurse:{slow:0.5,vuln:1.3,weaken:0.5,dur:6}}},
   summoner:{name:"サモナー",role:"SUMMON",letter:"O",color:"#a0e070",place:"hill",cost:16,
     hp:360,block:0,range:3.0,kind:"summon",targets:"none",summonHp:420,summonAtk:90,summonInterval:1.0,summonBlock:1,summonLife:14,summonCd:8,
     skill:{name:"大召喚",spMax:13,dur:1,summonBurst:3}},
@@ -1226,7 +1227,7 @@ const ORDER=["tank","attacker","shooter","healer","support","trickster","breaker
 // キャラアイコン画像（icons/<type>.png）。全キャラにアイコンを割り当て（読み込み失敗時はonerrorで文字にフォールバック）
 for(const t in TYPES){ TYPES[t].img="icons/"+t+".png?v=4"; }
 // 調整（レビュー）済みキャラ。未調整キャラは編成・出撃で使用不可（順次解放していく）
-const TUNED_LIST=["tank","attacker","shooter","healer","support","trickster","breaker","harvester","guardian","lancer","berserker","sniper","mage","artillery","archer","flak","dragonrider","sentinel","paladin","duelist","gunner","revenger","marksman","poisoner","chaincaster","freezer"];
+const TUNED_LIST=["tank","attacker","shooter","healer","support","trickster","breaker","harvester","guardian","lancer","berserker","sniper","mage","artillery","archer","flak","dragonrider","sentinel","paladin","duelist","gunner","revenger","marksman","poisoner","chaincaster","freezer","shaman"];
 TUNED_LIST.forEach(t=>{ if(TYPES[t]) TYPES[t].tuned=true; });
 function isTuned(t){ return !!(TYPES[t]&&TYPES[t].tuned); }
 // アイコン用HTML（DOMカード共通）：画像があれば<img>、無ければ文字
@@ -2156,7 +2157,7 @@ function fireSkill(u){
   return true;
 }
 // スキルが発動時に固有の一撃を持つか（汎用ボーナスを抑制する判定に使用）
-function hasCustomActivate(sk){ return !!(sk && (sk.smash||sk.frontSlash||sk.ultFrontSlash||sk.ultFlySlash||sk.ultChargeAlly||sk.ultBarrage||sk.ultDotField||sk.ultLanceCharge||sk.ultChargeAxe||sk.ultBeam||sk.ultBombard||sk.ultBreath||sk.ultTaunt||sk.ultDuelCombo||sk.ultGatling||sk.revUlt||sk.ultApBurst||sk.ultFog||sk.ultNova)); }
+function hasCustomActivate(sk){ return !!(sk && (sk.smash||sk.frontSlash||sk.ultFrontSlash||sk.ultFlySlash||sk.ultChargeAlly||sk.ultBarrage||sk.ultDotField||sk.ultLanceCharge||sk.ultChargeAxe||sk.ultBeam||sk.ultBombard||sk.ultBreath||sk.ultTaunt||sk.ultDuelCombo||sk.ultGatling||sk.revUlt||sk.ultApBurst||sk.ultFog||sk.ultNova||sk.ultCurse)); }
 // エンチャンターのバフ対象：射程内で攻撃/回復する味方のうち、最もバフ残量が少ない味方
 function pickBuffAlly(u,R){
   let best=null,bv=Infinity;
@@ -2243,6 +2244,14 @@ function skillActivate(u,isUlt){
   if(!isUlt && sk.iceBurst){ const f=sk.iceBurst; u.iceQ={left:f.n,t:0,gap:f.gap||0.18}; }
   if(isUlt && sk.ultNova){ const f=sk.ultNova; u.bombard={left:f.n,t:0,gap:f.gap,mul:f.mul,aoe:f.aoe,freeze:f.freeze}; addFx({type:"magicburst",x:u.x,y:u.y,r:TILE*1.6,col:"#9fe0ff",life:0.6}); Sound.play("aoe"); return; }
   if(isUlt && sk.ultApBurst){ const f=sk.ultApBurst; u.mag=0; u.reloadT=0; u.apQ={left:f.n,t:0,gap:0.12,mul:f.mul}; return; }
+  // シャーマン：射程内の全敵に呪い（鈍化＋被ダメ上昇＋弱体）
+  if(isUlt && sk.ultCurse){ const f=sk.ultCurse, R=unitRange(u);
+    for(const e of G.enemies){ if(e.hp<=0||!canHit(u,e)||dist(u,e)>R)continue;
+      e.slowHitT=Math.max(e.slowHitT||0,f.dur); e.slowHitF=Math.min(e.slowHitF||1,f.slow);
+      e.vulnT=Math.max(e.vulnT||0,f.dur); e.vulnF=Math.max(e.vulnF||1,f.vuln);
+      e.weakenT=Math.max(e.weakenT||0,f.dur); e.weakenF=Math.min(e.weakenF||1,f.weaken);
+      addFx({type:"hit",x:e.x,y:e.y,col:"#caa6ff",life:0.3}); }
+    addFx({type:"ring",x:u.x,y:u.y,r:R,col:"#caa6ff",life:0.6}); addFx({type:"magicburst",x:u.x,y:u.y,r:R*0.5,col:"#caa6ff",life:0.6}); Sound.play("magic"); return; }
   // ポイズナー：毒沼を通路に設置（スキル）／自身周囲に毒霧（必殺技）
   if(!isUlt && sk.poisonPool){ const f=sk.poisonPool, dmg=statATK(u.cfg,u.type)*f.pct, R=unitRange(u);
     const cells=PATH.map(([c,r])=>center(c,r)).filter(p=>dist(u,p)<=R).sort((a,b)=>dist(u,a)-dist(u,b));
@@ -2775,6 +2784,7 @@ function update(dt){
     // シャーマンのヒット減速（時間経過で解除）
     if(en.slowHitT>0){ en.slowHitT-=dt; en.slow=Math.min(en.slow,en.slowHitF); if(en.slowHitT<=0)en.slowHitF=1; }
     if(en.vulnT>0){ en.vulnT-=dt; if(en.vulnT<=0)en.vulnF=1; }
+    if(en.weakenT>0){ en.weakenT-=dt; if(en.weakenT<=0)en.weakenF=1; }
   }
 
 
@@ -2819,7 +2829,7 @@ function update(dt){
         if(en.cd<=0){
           en.cd=en.e.interval;
           const u=en.blockedBy;
-          let dmg=en.atk*(en.enAtkBuff||1);
+          let dmg=en.atk*(en.enAtkBuff||1)*(en.weakenT>0?en.weakenF:1);
           dmg=applyToUnit(u,dmg,en);
           if(u.hp<=0)retreat(u);
         }
@@ -2838,7 +2848,7 @@ function update(dt){
         for(const u of G.units){const d=dist(en,u); if(d<=R&&d<best){best=d;tgt=u;}}
         if(tgt){
           en.acd=en.e.interval;
-          G.shots.push({x:en.x,y:en.y,target:tgt,dmg:en.atk*(en.enAtkBuff||1),col:en.e.col,kind:"ebolt",spd:430,enemy:true});
+          G.shots.push({x:en.x,y:en.y,target:tgt,dmg:en.atk*(en.enAtkBuff||1)*(en.weakenT>0?en.weakenF:1),col:en.e.col,kind:"ebolt",spd:430,enemy:true});
         }
       }
     }
@@ -2991,7 +3001,8 @@ function update(dt){
         if(targets.length){ u.cd=itv;
           for(const tg of targets){
             const s=shot(u,tg,u.atk*atkMult,u.cfg.color,"bolt");
-            s.slowHit=(active&&sk.slowHit?sk.slowHit:u.cfg.slowHit); s.slowDur=u.cfg.slowDur;
+            if(u.cfg.vuln){ s.vuln=u.cfg.vuln; s.vulnDur=u.cfg.vulnDur||3; }            // シャーマン：呪い＝被ダメ上昇
+            else { s.slowHit=(active&&sk.slowHit?sk.slowHit:u.cfg.slowHit); s.slowDur=u.cfg.slowDur; }
             G.shots.push(s);
           }
           Sound.play("shoot");
@@ -4337,7 +4348,7 @@ const SKILL_DESC={
   poisoner:"通路に毒沼を4つ設置。触れた敵を毒に侵す。",
   chaincaster:"1発で最大7体に連鎖する雷撃（連鎖ごとに-10%）。当たった敵を鈍化（移動・攻撃速度ダウン）。",
   freezer:"5本の氷を順番に放ち、当たった敵を鈍化させる範囲攻撃。",
-  shaman:"同時攻撃数が5体に増え、減速も強化。",
+  shaman:"同時に呪う数を6体に増やす（命中で被ダメ+10%）。",
   summoner:"発動と同時に召喚兵を一気に3体追加召喚。",
   bard:"SPチャージ加速が大幅に強化される。",
   alchemist:"DP生産が急増＋発動時にまとまったDPを即獲得。",
@@ -4379,7 +4390,8 @@ const ULT_DESC={
   marksman:"即座にリロードし、防御を50%無視する徹甲弾を5連射する。",
   poisoner:"攻撃速度UP＋自身の周囲6マスに毒霧を展開。触れた敵を毒に侵す（毒は最大5スタック）。",
   chaincaster:"敵の方向へ極太の雷ビームを放ち多段ヒット。当たった敵を鈍化させる。",
-  freezer:"フロストノヴァ。敵を中心に巨大な氷を降らせ、当たった敵を凍結させる。"
+  freezer:"フロストノヴァ。敵を中心に巨大な氷を降らせ、当たった敵を凍結させる。",
+  shaman:"射程内の全敵に呪いを付与。鈍化＋被ダメ上昇＋攻撃力低下でまとめて弱体化する。"
 };
 
 /* ----- 育成 ----- */
