@@ -126,32 +126,34 @@
 
   /* 横向き（低い画面＝スマホ横）：2カラム化。左に大きな盤面、右に操作＋キャラバーを縦に並べて横幅を活用 */
   @media (orientation:landscape) and (max-height:600px){
-    body{padding:6px}
-    #battle{display:grid;gap:5px 10px;align-items:start;
-      grid-template-columns:1fr minmax(208px,300px);
-      grid-template-rows:auto auto auto auto 1fr;
-      grid-template-areas:
-        "header header"
-        "hud    hud"
-        "stage  controls"
-        "stage  unitpanel"
-        "stage  bar";}
-    #battle header{grid-area:header;margin:0}
-    #battle header h1{font-size:16px}
-    #battle .hud{grid-area:hud;margin:0;gap:6px}
-    #battle .hud .stat{padding:5px 9px;min-width:0}
-    #battle .hud .stat .v{font-size:16px}
-    #battle .stage{grid-area:stage;align-self:start;margin:0;
-      max-width:calc((100vh - 92px) * 2.286)}
-    #battle .controls{grid-area:controls;margin:0;gap:6px}
-    #battle .unitpanel{grid-area:unitpanel;margin:0}
-    #battle .bar{grid-area:bar;margin:0;grid-template-columns:repeat(3,1fr);gap:6px;
-      overflow-y:auto;align-content:start;min-height:0}
+    body{padding:5px}
+    /* 縦積み：盤面（上・残り高さいっぱいにフィット）→ 操作 → 横スクロールのキャラリスト（下） */
+    #battle{display:flex;flex-direction:column;gap:4px;height:calc(100vh - 10px)}
+    #battle header{margin:0;flex:0 0 auto}
+    #battle header h1{font-size:15px}
+    #battle .hud{margin:0;gap:6px;flex:0 0 auto}
+    #battle .hud .stat{padding:4px 9px;min-width:0}
+    #battle .hud .stat .v{font-size:15px}
+    #battle .hud #sStatus{flex:1.4;min-width:110px}
+    /* 盤面は残りの高さいっぱいにフィット（canvasは高さ基準で幅自動） */
+    #battle .stage{flex:1 1 0;align-self:center;min-height:60px;margin:0;
+      display:flex;align-items:center;justify-content:center}
+    #battle .stage canvas{width:auto;height:100%;max-width:100%}
+    #battle .corner{display:none}
+    #battle .controls{margin:0;gap:6px;flex:0 0 auto;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden}
+    #battle .controls button{padding:7px 11px;font-size:12px;white-space:nowrap}
+    #battle .unitpanel{margin:0;flex:0 0 auto;flex-wrap:nowrap;overflow-x:auto}
+    /* キャラリストは盤面の下に横スクロールの一列で並べる（コンパクト：アイコン＋名前＋コスト） */
+    #battle .bar{display:flex;grid-template-columns:none;flex-wrap:nowrap;gap:6px;margin:0;flex:0 0 auto;
+      overflow-x:auto;overflow-y:hidden;padding-bottom:4px;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
+    #battle .bar .card{flex:0 0 76px;padding:5px 4px 4px}
+    #battle .bar .card .nm{font-size:10px}
+    #battle .bar .card .ro{display:none}
+    #battle .bar .card .skill{display:none}
+    #battle .bar .card .key{display:none}
+    #battle .bar .card .ico{width:26px;height:26px;font-size:13px;margin:1px auto 3px}
+    #battle .bar .card .cost{font-size:12px;margin-top:3px}
     #battle details{display:none}
-    /* 右カラムが狭いので操作ボタンは詰める */
-    #battle .controls .grow{flex-basis:100%;height:0}
-    #battle .controls button{padding:7px 11px;font-size:12px}
-    #battle .controls .ucount{font-size:11px;width:100%}
   }
 
   /* Controls */
