@@ -1167,8 +1167,9 @@ const TYPES={
     skill:{name:"徹甲弾",spMax:11,dur:0.6,apBurst:{n:3,mul:2.0},
            ultName:"クイックドロウ",ultGauge:24,ultApBurst:{n:5,mul:1.5}}},
   poisoner:{name:"ポイズナー",role:"POISON",letter:"P",color:"#9bd44a",place:"hill",cost:13,
-    hp:320,atk:55,interval:1.2,block:0,range:3.6,kind:"range",targets:"both",poison:70,poisonDur:4,
-    skill:{name:"猛毒散布",spMax:13,dur:5,poison:180,poisonDur:5,spd:1.4}},
+    hp:320,atk:100,interval:1.2,block:0,range:3.6,kind:"range",targets:"both",goo:true,hitMul:0.5,poisonPct:0.1,poisonDur:4,poisonMax:5,
+    skill:{name:"猛毒散布",spMax:11,dur:0.6,poisonPool:{n:4,r:1.2,pct:0.1,dur:3,max:5,life:8},
+           ultName:"デッドリーミスト",ultGauge:24,ultDur:7,ultSpd:1.8,ultFog:{r:6,pct:0.1,dur:3,max:5,life:7}}},
   chaincaster:{name:"チェインキャスター",role:"CHAIN",letter:"C",color:"#7ad0ff",place:"hill",cost:16,
     hp:330,atk:130,interval:1.3,block:0,range:3.8,kind:"chain",targets:"both",chain:3,chainFalloff:0.7,
     skill:{name:"連鎖雷撃",spMax:13,dur:5,atk:1.6,chain:6,spd:1.4}},
@@ -1223,7 +1224,7 @@ const ORDER=["tank","attacker","shooter","healer","support","trickster","breaker
 // キャラアイコン画像（icons/<type>.png）。全キャラにアイコンを割り当て（読み込み失敗時はonerrorで文字にフォールバック）
 for(const t in TYPES){ TYPES[t].img="icons/"+t+".png?v=4"; }
 // 調整（レビュー）済みキャラ。未調整キャラは編成・出撃で使用不可（順次解放していく）
-const TUNED_LIST=["tank","attacker","shooter","healer","support","trickster","breaker","harvester","guardian","lancer","berserker","sniper","mage","artillery","archer","flak","dragonrider","sentinel","paladin","duelist","gunner","revenger","marksman"];
+const TUNED_LIST=["tank","attacker","shooter","healer","support","trickster","breaker","harvester","guardian","lancer","berserker","sniper","mage","artillery","archer","flak","dragonrider","sentinel","paladin","duelist","gunner","revenger","marksman","poisoner"];
 TUNED_LIST.forEach(t=>{ if(TYPES[t]) TYPES[t].tuned=true; });
 function isTuned(t){ return !!(TYPES[t]&&TYPES[t].tuned); }
 // アイコン用HTML（DOMカード共通）：画像があれば<img>、無ければ文字
@@ -2034,7 +2035,7 @@ function deployedCount(){return G.units.reduce((n,u)=>n+(u.isToken?0:1),0);}
 function cellOfPx(x,y){return [Math.floor(x/TILE),Math.floor(y/TILE)];}
 let reduceMotion=false; // 設定：演出を軽減（破片など装飾エフェクトを省く）
 function addFx(o){ if(reduceMotion&&(o.type==="frag"||o.type==="ring"))return; o.life=o.life||0.4;o.age=0;G.fx.push(o);}
-function clearTransient(){G.fx=[];G.shots=[];} // ダメージ表記・弾・着弾などを一掃
+function clearTransient(){G.fx=[];G.shots=[];G.hazards=[];} // ダメージ表記・弾・着弾・地形効果などを一掃
 
 /* ============ 配置 ============ */
 function unitCost(t){return Math.round((TYPES[t].cost + COST_STEP*G.roster[t].times)*mod("costScale",1));}
@@ -2153,7 +2154,7 @@ function fireSkill(u){
   return true;
 }
 // スキルが発動時に固有の一撃を持つか（汎用ボーナスを抑制する判定に使用）
-function hasCustomActivate(sk){ return !!(sk && (sk.smash||sk.frontSlash||sk.ultFrontSlash||sk.ultFlySlash||sk.ultChargeAlly||sk.ultBarrage||sk.ultDotField||sk.ultLanceCharge||sk.ultChargeAxe||sk.ultBeam||sk.ultBombard||sk.ultBreath||sk.ultTaunt||sk.ultDuelCombo||sk.ultGatling||sk.revUlt||sk.ultApBurst)); }
+function hasCustomActivate(sk){ return !!(sk && (sk.smash||sk.frontSlash||sk.ultFrontSlash||sk.ultFlySlash||sk.ultChargeAlly||sk.ultBarrage||sk.ultDotField||sk.ultLanceCharge||sk.ultChargeAxe||sk.ultBeam||sk.ultBombard||sk.ultBreath||sk.ultTaunt||sk.ultDuelCombo||sk.ultGatling||sk.revUlt||sk.ultApBurst||sk.ultFog)); }
 // エンチャンターのバフ対象：射程内で攻撃/回復する味方のうち、最もバフ残量が少ない味方
 function pickBuffAlly(u,R){
   let best=null,bv=Infinity;
@@ -2235,6 +2236,13 @@ function skillActivate(u,isUlt){
   // マークスマン：徹甲弾バースト（スキル）／即時リロードして5連射（必殺技）。どちらも防御50%貫通
   if(!isUlt && sk.apBurst){ const f=sk.apBurst; u.apQ={left:f.n,t:0,gap:0.18,mul:f.mul}; }
   if(isUlt && sk.ultApBurst){ const f=sk.ultApBurst; u.mag=0; u.reloadT=0; u.apQ={left:f.n,t:0,gap:0.12,mul:f.mul}; return; }
+  // ポイズナー：毒沼を通路に設置（スキル）／自身周囲に毒霧（必殺技）
+  if(!isUlt && sk.poisonPool){ const f=sk.poisonPool, dmg=statATK(u.cfg,u.type)*f.pct, R=unitRange(u);
+    const cells=PATH.map(([c,r])=>center(c,r)).filter(p=>dist(u,p)<=R).sort((a,b)=>dist(u,a)-dist(u,b));
+    const step=Math.max(1,Math.floor(cells.length/f.n));
+    for(let i=0,k=0;i<cells.length&&k<f.n;i+=step,k++){ G.hazards.push({x:cells[i].x,y:cells[i].y,r:f.r*TILE,t:f.life,dmg,dur:f.dur,max:f.max,tick:0}); }
+    Sound.play("aoe"); }
+  if(isUlt && sk.ultFog){ const f=sk.ultFog; G.hazards.push({x:u.x,y:u.y,r:f.r*TILE,t:f.life,dmg:statATK(u.cfg,u.type)*f.pct,dur:f.dur,max:f.max,tick:0}); addFx({type:"ring",x:u.x,y:u.y,r:f.r*TILE,col:"#9bd44a",life:0.6}); Sound.play("aoe"); return; }
   // リベンジャー：報復スキル（HP依存2連撃）＋ウルト強化スタック
   if(!isUlt && sk.revenge){ u.revSkillQ={left:2,t:0,gap:0.14}; u.revStacks=Math.min(5,(u.revStacks||0)+1); u.revStackT=12; floatNum(u.x,u.y-14,u.revStacks,"#ff5b7a","復讐+"); }
   // リベンジャー必殺技：前進しながら10連撃ノックバック（スタックで火力UP）
@@ -2742,8 +2750,9 @@ function update(dt){
   for(const en of G.enemies){
     if(en.poisonT>0){
       en.poisonT-=dt;
-      en.hp-=en.poisonDmg*dt;
+      en.hp-=(en.poisonDmg||0)*(en.poisonStacks||1)*dt;
       if(Math.random()<dt*4) addFx({type:"hit",x:en.x+(Math.random()*8-4),y:en.y-en.e.r,col:"#9bd44a",life:0.2});
+      if(en.poisonT<=0)en.poisonStacks=0;
     }
     // 自己回復する敵（毒を受けている間は回復しない＝毒が有効）
     if(en.e.selfHeal && en.poisonT<=0 && en.hp<en.maxHp){
@@ -2938,13 +2947,13 @@ function update(dt){
       if(u.cd<=0 && !(u.cfg.magSize && u.reloadT>0)){
         const tg=pickEnemy(u);
         if(tg){u.cd=itv;
-          const s=shot(u,tg,u.atk*atkMult,u.cfg.color,"bolt");
-          if(u.cfg.bullet) s.bullet=true; // スナイパー等：丸い弾頭で飛ばす
+          const s=shot(u,tg,u.atk*atkMult*(u.cfg.hitMul||1),u.cfg.color,"bolt");
+          if(u.cfg.bullet) s.bullet=true; if(u.cfg.goo) s.goo=true; // スナイパー等：丸い弾頭で飛ばす
           if(u.cfg.arrow) s.arrow=true;   // アーチャー：矢の見た目
           // マークスマン：攻撃した敵に被ダメ上昇スタックを付与
           if(u.cfg.vulnStack){ s.vulnStack=u.cfg.vulnStack; s.vulnMax=u.cfg.vulnMax; s.vulnDur=u.cfg.vulnDur; }
           // ポイズナー：毒を付与
-          if(u.cfg.poison){ s.poison=(active&&sk.poison?sk.poison:u.cfg.poison); s.poisonDur=(active&&sk.poisonDur?sk.poisonDur:u.cfg.poisonDur); }
+          if(u.cfg.poison||u.cfg.poisonPct){ s.poison=u.cfg.poisonPct?statATK(u.cfg,u.type)*u.cfg.poisonPct:(active&&sk.poison?sk.poison:u.cfg.poison); s.poisonDur=u.cfg.poisonDur; s.poisonMax=u.cfg.poisonMax; }
           // フリーザー：凍結を付与
           if(u.cfg.freeze){ s.freeze=(active&&sk.freeze?sk.freeze:u.cfg.freeze); s.aoeFreeze=active&&sk.aoeFreeze?sk.aoeFreeze*TILE:0; }
           G.shots.push(s);
@@ -3175,6 +3184,7 @@ function update(dt){
     }
   }
   G.enemies=G.enemies.filter(e=>!e._dead);
+  updateHazards(dt);
   G.shots=G.shots.filter(s=>!s._dead);
   // 召喚トークンの寿命・死亡
   for(const u of G.units){
@@ -3295,7 +3305,7 @@ function applyBolt(s,en,dmg){
   hurtEnemy(en,dmg,s.col,s.owner);
   // 被ダメ上昇スタック（マークスマン）：攻撃するほど被ダメ上昇（最大vulnMax）
   if(s.vulnStack){ en.vulnT=Math.max(en.vulnT||0,s.vulnDur||4); en.vulnF=Math.min(s.vulnMax||1.5,(en.vulnF||1)+s.vulnStack); }
-  if(s.poison){ en.poisonDmg=s.poison; en.poisonT=Math.max(en.poisonT||0,s.poisonDur); }
+  if(s.poison){ applyPoison(en,s.poison,s.poisonDur,s.poisonMax); }
   if(s.freeze){
     en.freezeT=Math.max(en.freezeT||0,s.freeze);
     if(s.aoeFreeze){ for(const o of G.enemies){ if(o!==en && dist(o,en)<=s.aoeFreeze) o.freezeT=Math.max(o.freezeT||0,s.freeze*0.7); } }
@@ -3304,6 +3314,17 @@ function applyBolt(s,en,dmg){
   if(s.vuln){ en.vulnT=Math.max(en.vulnT||0,s.vulnDur||3); en.vulnF=Math.max(en.vulnF||1,s.vuln); }
 }
 function floatNum(x,y,v,col,pre){addFx({type:"num",x,y,v:Math.round(v),col,pre:pre||"",life:0.7,vy:-26});}
+// 毒を付与（最大maxスタック。毎秒dmg×スタックのダメージ）
+function applyPoison(en,dmg,dur,max){ en.poisonDmg=dmg; en.poisonStacks=Math.min(max||5,(en.poisonStacks||0)+1); en.poisonT=Math.max(en.poisonT||0,dur||4); }
+// 地形ハザード（毒沼/毒霧）：範囲内の敵に定期的に毒を付与
+function updateHazards(dt){
+  if(!G.hazards)G.hazards=[];
+  for(const h of G.hazards){ h.t-=dt; h.tick=(h.tick||0)-dt;
+    if(h.tick<=0){ h.tick=0.4; for(const e of G.enemies){ if(e.hp>0 && dist(h,e)<=h.r) applyPoison(e,h.dmg,h.dur||3,h.max||5); } }
+    if(Math.random()<dt*8){ const a=Math.random()*7,d=Math.random()*h.r; addFx({type:"frag",x:h.x+Math.cos(a)*d,y:h.y+Math.sin(a)*d,vx:0,vy:-12,col:"#9bd44a",life:0.5,r:2}); }
+  }
+  G.hazards=G.hazards.filter(h=>h.t>0);
+}
 
 /* ============ 描画 ============ */
 const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
@@ -3424,6 +3445,13 @@ function draw(){
       ctx.lineCap="butt";
       continue;
     }
+    if(s.goo){
+      const a=Math.atan2(s.target.y-s.y,s.target.x-s.x), w=4+Math.sin(G.t*30)*1.2;
+      ctx.strokeStyle=hexA("#6fae2e",0.4);ctx.lineWidth=3;ctx.lineCap="round";ctx.beginPath();ctx.moveTo(s.x-Math.cos(a)*14,s.y-Math.sin(a)*14);ctx.lineTo(s.x,s.y);ctx.stroke();ctx.lineCap="butt";
+      ctx.fillStyle="#7cc23a";ctx.beginPath();ctx.ellipse(s.x,s.y,w+2,w,a,0,7);ctx.fill();
+      ctx.fillStyle="rgba(200,255,150,.7)";ctx.beginPath();ctx.arc(s.x+1,s.y-1,2,0,7);ctx.fill();
+      continue;
+    }
     if(s.arrow){
       // 矢：矢柄＋矢じり＋羽
       const a=Math.atan2(s.target.y-s.y,s.target.x-s.x), c=Math.cos(a), sn=Math.sin(a);
@@ -3454,6 +3482,9 @@ function draw(){
   // ユニット
   for(const u of G.units)drawUnit(u);
   // 敵
+  if(G.hazards)for(const h of G.hazards){ const fade=Math.min(1,h.t/0.6), pulse=0.5+0.5*Math.sin(G.t*4+h.x);
+    ctx.fillStyle=hexA("#6fae2e",(0.18+0.08*pulse)*fade); ctx.beginPath();ctx.arc(h.x,h.y,h.r,0,7);ctx.fill();
+    ctx.strokeStyle=hexA("#9bd44a",0.5*fade); ctx.lineWidth=2; ctx.beginPath();ctx.arc(h.x,h.y,h.r,0,7);ctx.stroke(); }
   for(const en of G.enemies)drawEnemy(en);
   // エフェクト
   for(const f of G.fx)drawFx(f);
@@ -4255,7 +4286,7 @@ const SKILL_DESC={
   duelist:"決闘相手に3連撃を叩き込み、自身にクリティカル率+50%を付与する。",
   revenger:"攻撃力200%×2回の報復（HPが低いほど倍率UP・残10%で400%）。使うほど必殺技の火力UP。",
   marksman:"強力な徹甲弾を3連射。相手の防御（シールド）を50%無視する。",
-  poisoner:"猛毒を散布し、毒のダメージと持続が大幅強化。",
+  poisoner:"通路に毒沼を4つ設置。触れた敵を毒に侵す。",
   chaincaster:"連鎖数が6体に増え、群れを一掃する。",
   freezer:"凍結時間が延長＋周囲の敵も巻き込んで凍結。",
   shaman:"同時攻撃数が5体に増え、減速も強化。",
@@ -4297,7 +4328,8 @@ const ULT_DESC={
   duelist:"自身にクリティカル率+80%を付与し、決闘相手に攻撃力180%の一撃を3回叩き込む。",
   gunner:"ガトリングを展開し、攻撃力30%の弾を50連射。放射状の派手な銃火で敵を撃ち抜く。",
   revenger:"前進しながら10連撃でノックバック。HPが低いほど、スキルを使ったぶんだけ火力が上がる。",
-  marksman:"即座にリロードし、防御を50%無視する徹甲弾を5連射する。"
+  marksman:"即座にリロードし、防御を50%無視する徹甲弾を5連射する。",
+  poisoner:"攻撃速度UP＋自身の周囲6マスに毒霧を展開。触れた敵を毒に侵す（毒は最大5スタック）。"
 };
 
 /* ----- 育成 ----- */
