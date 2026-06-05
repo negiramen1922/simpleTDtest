@@ -2646,6 +2646,8 @@ function update(dt){
     if(u.duelQ){ u.duelQ.t-=dt; if(u.duelQ.t<=0 && u.duelQ.left>0){ duelStrike(u,u.duelQ.mul); u.duelQ.left--; u.duelQ.t=u.duelQ.gap; if(u.duelQ.left<=0)u.duelQ=null; } }
     // ガンナー：二丁乱射の連射キュー。撃ち切ったらリロード完了（マガジン満タン）
     if(u.gunBurst){ u.gunBurst.t-=dt; if(u.gunBurst.t<=0 && u.gunBurst.left>0){ fireGunShot(u); u.gunBurst.left--; u.gunBurst.t=u.gunBurst.gap; if(u.gunBurst.left<=0){ u.gunBurst=null; u.mag=0; u.reloadT=0; floatNum(u.x,u.y-14,0,"#7fe0ff","RELOAD!"); } } }
+    // ガンナー：2発目以降を時間差で発射
+    if(u.perShotQ){ u.perShotQ.t-=dt; if(u.perShotQ.t<=0 && u.perShotQ.left>0){ const tg=pickEnemy(u); if(tg){ const s2=shot(u,tg,u.perShotQ.dmg,u.cfg.color,"bolt"); s2.bullet=!!u.cfg.bullet; G.shots.push(s2); Sound.play("shoot"); } u.perShotQ.left--; u.perShotQ.t=u.perShotQ.gap; if(u.perShotQ.left<=0)u.perShotQ=null; } }
     // マークスマン：徹甲弾バーストの連射
     if(u.apQ){ u.apQ.t-=dt; if(u.apQ.t<=0 && u.apQ.left>0){ fireApShot(u,u.apQ.mul); u.apQ.left--; u.apQ.t=u.apQ.gap; if(u.apQ.left<=0){ u.apQ=null; u.mag=0; u.reloadT=0; } } }
     if(u.iceQ){ u.iceQ.t-=dt; if(u.iceQ.t<=0 && u.iceQ.left>0){ fireIceShot(u); u.iceQ.left--; u.iceQ.t=u.iceQ.gap; if(u.iceQ.left<=0)u.iceQ=null; } }
@@ -2967,8 +2969,8 @@ function update(dt){
           // フリーザー：凍結を付与
           if(u.cfg.freeze){ s.freeze=(active&&sk.freeze?sk.freeze:u.cfg.freeze); s.aoeFreeze=active&&sk.aoeFreeze?sk.aoeFreeze*TILE:0; }
           G.shots.push(s);
-          // ガンナー：1回の攻撃でperShot発（2連撃・後方にずらして時差に見せる）
-          if(u.cfg.perShot>1){ const ang2=Math.atan2(tg.y-u.y,tg.x-u.x); for(let i=1;i<u.cfg.perShot;i++){ const s2=shot(u,tg,u.atk*atkMult,u.cfg.color,"bolt"); s2.bullet=!!u.cfg.bullet; s2.x=u.x-Math.cos(ang2)*i*16; s2.y=u.y-Math.sin(ang2)*i*16; G.shots.push(s2); } }
+          // ガンナー：1回の攻撃でperShot発（2発目以降は時間差で発射＝弾が分かれて見える）
+          if(u.cfg.perShot>1){ u.perShotQ={left:u.cfg.perShot-1,t:0.13,gap:0.13,dmg:u.atk*atkMult}; }
           // アーチャー：スキル中は通常攻撃を一度にvolley発（射程内の敵へ分散、足りなければ最前へ）
           if(active&&sk&&sk.volley&&sk.volley>1){
             const R=unitRange(u), pool=G.enemies.filter(e=>e!==tg&&canHit(u,e)&&dist(u,e)<=R).sort((a,b)=>b.progress-a.progress);
