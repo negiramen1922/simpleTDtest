@@ -132,17 +132,18 @@
     #battle{display:flex;flex-direction:column;gap:4px;height:calc(100vh - 10px)}
     #battle header{display:none}            /* ヘッダー行は畳んで盤面を広く */
 
-    /* 上段：戻るボタン＋ステータスを1行に統合（薄く・読みやすく） */
-    #battle .hud{margin:0;gap:6px;flex:0 0 auto;align-items:stretch}
+    /* 上段：戻るボタン＋ステータスを1行に統合。各ステータスは「ラベル：値」のインライン表示で幅を節約 */
+    #battle .hud{margin:0;gap:5px;flex:0 0 auto;align-items:stretch}
     #battle .hud .lsback{display:flex;align-items:center;justify-content:center;flex:0 0 auto;
-      width:38px;padding:0;border-radius:9px;font-size:19px;font-weight:700;
+      width:34px;padding:0;border-radius:8px;font-size:18px;font-weight:700;
       border:1px solid var(--line2);background:linear-gradient(180deg,var(--panel),var(--panel2));color:var(--txt)}
     #battle .hud .lsback:active{background:var(--panel2)}
-    #battle .hud .stat{padding:4px 10px;min-width:0}
-    #battle .hud .stat .k{font-size:8.5px;letter-spacing:.12em}
-    #battle .hud .stat .v{font-size:15px}
-    #battle .hud #sStatus{flex:1.6;min-width:90px}
-    #battle .hud #sStatus .v{font-size:13px}
+    #battle .hud .stat{flex:0 0 auto;display:flex;flex-direction:row;align-items:baseline;gap:2px;padding:3px 9px}
+    #battle .hud .stat .k{font-size:9px;letter-spacing:.04em;margin:0}
+    #battle .hud .stat .k::after{content:"："}
+    #battle .hud .stat .v{font-size:13px;line-height:1.15;margin:0}
+    #battle .hud #sStatus{flex:1 1 auto;min-width:0;overflow:hidden}
+    #battle .hud #sStatus .v{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
     /* 盤面：残りの高さいっぱいにフィット（canvasは高さ基準で幅自動＝なるべく大きく） */
     #battle .stage{flex:1 1 0;align-self:center;min-height:80px;margin:0;
