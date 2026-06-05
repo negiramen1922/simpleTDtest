@@ -836,7 +836,7 @@
       <button data-s="3">3×</button>
     </div>
     <span class="grow"></span>
-    <span class="modelabel" style="font-size:12px">全体スキル:</span>
+    <span class="modelabel" style="font-size:12px">必殺技:</span>
     <div class="modetoggle" id="allModeToggle">
       <button data-m="auto" class="on">自動</button>
       <button data-m="manual">手動</button>
@@ -886,10 +886,10 @@
         <li><span style="color:#d4a574">■ ドラゴンライダー</span>：通路に置く。2体ブロックしつつ<b>低空の飛行敵も薙ぎ払える</b>両対応の前衛。空の壁役。</li>
       </ul>
       <b style="color:#67d8e8">✈ 飛行敵と攻撃対象</b>：敵には<b>地上を歩く敵</b>と<b>空を飛ぶ敵</b>（破線ルート）がいます。各キャラには攻撃できる対象（地上／空中／両方）が決まっており、<b>対空可能なキャラでないと飛行敵を倒せません</b>。対空できるのは、レンジャー・スナイパー・メイジ・ボマー・エンチャンター（両対応）、アーチャー・フラック（対空専門）、ドラゴンライダー（前衛で低空に対応）、そしてアーティラリー（スキル中のみ対空）です。また砲兵や飛行敵など<b>遠隔攻撃を持つ敵は高台のキャラも攻撃</b>してくるので、メディックでの維持が重要です。
-      <b style="color:var(--gold)">★ スキル（自動 / 手動 切替）</b>：配置後、各キャラのSP（足元のゲージ）が時間で溜まります。キャラをタップして選択すると、下のパネルで<b>自動／手動</b>を切り替えられます。<br>
-      ・<b>自動</b>：SPが満タンの状態で攻撃（行動）する時に自動で発動します。<br>
-      ・<b>手動</b>：SPが満タンになると★が点滅。そのキャラを<b>タップ</b>（または選択して「スキル発動」ボタン／Qキー）で任意のタイミングに発動できます。<br>
-      切り替えた発動方式は、以後新しく配置するキャラの既定にもなります。コントロール右の<b>「全体スキル：自動／手動」</b>で、配置中の全員＋今後の既定を<b>一括切替</b>もできます。発動中はゲージが金色になり、効果時間が切れると再チャージします。
+      <b style="color:var(--gold)">★ スキル</b>：配置後、各キャラのSP（足元のゲージ）が時間で溜まり、満タンで攻撃（行動）する時に<b>自動で発動</b>します（手動操作はありません）。<br>
+      <b style="color:#ff5bd0">✦ 必殺技（自動 / 手動 切替）</b>：戦闘中に溜まる別ゲージ。コントロールの<b>「必殺技：自動／手動」</b>で切り替えできます（配置中の全員＋今後の既定に適用）。<br>
+      ・<b>自動</b>：ゲージが満タンで行動する時に自動で発動します。<br>
+      ・<b>手動</b>：ゲージが満タンになると足元に✦とリングが点滅。そのキャラを<b>タップ</b>（PCはEキー）で任意のタイミングに発動できます。発動中はSPゲージが金色になり、効果時間が切れると再チャージします。
       <ul>
         <li><span class="tk">ヴァンガード／鉄壁防御</span>：一定時間ダメージを大幅軽減＋自己回復。</li>
         <li><span class="at">ウォリアー／乱れ撃ち</span>：攻撃力と攻撃速度を大幅強化。</li>
@@ -3011,7 +3011,11 @@ function update(dt){
       if(k==="support"||k==="economy"||k==="bard"||k==="summon"||k==="enchanter") willAct=true;
     }
     // 自動モード：行動できる状態でSP満タンなら発動
-    if(willAct && u.skillMode==="auto" && skillReady(u)) fireSkill(u);
+    // スキルは常に自動発動。必殺技は自動モードのみ自動発動（手動モードはタップで発動）
+    if(willAct){
+      if(u.skillMode==="auto" && ultReady(u)) fireUlt(u);
+      else if(skillReady(u)) fireSkill(u);
+    }
 
     const sk=u.cfg.skill, active=u.skillActive;
     const ultp=u.ultActive?ULT_POW:1;
@@ -3768,17 +3772,8 @@ function drawUnit(u){
   if(u.cfg.skill){
     const sk=u.cfg.skill;
     const ratio=u.skillActive?(u.skillTimer/sk.dur):Math.min(1,u.sp/sk.spMax);
-    spBar(x,y+s/2+1,s,ratio,u.skillActive?"#ffd24a":(u.skillMode==="manual"&&ratio>=1?"#ffd24a":"#3fc7f4"));
-    // 手動モードで発動可能：点滅する★アイコン
-    if(u.skillMode==="manual" && skillReady(u)){
-      const blink=0.5+0.5*Math.sin(G.t*7);
-      ctx.fillStyle=hexA("#ffd24a",0.5+0.5*blink);
-      ctx.font="700 14px 'Chakra Petch'";ctx.textAlign="center";
-      ctx.fillText("★",x,y-s/2-13);
-      ctx.strokeStyle=hexA("#ffd24a",blink);ctx.lineWidth=2;
-      ctx.beginPath();ctx.arc(x,y,s/2+5,0,7);ctx.stroke();
-    }
-    // 必殺技ゲージ（紫〜マゼンタ）＋準備完了の✦
+    spBar(x,y+s/2+1,s,ratio,u.skillActive?"#ffd24a":"#3fc7f4"); // スキルは常に自動
+    // 必殺技ゲージ（紫〜マゼンタ）＋準備完了の✦（手動モードはタップ発動のリングも表示）
     if(!u.isToken){
       const up=Math.min(1,(u.ug||0)/ultMax(u.cfg));
       ctx.fillStyle="rgba(0,0,0,.5)";ctx.fillRect(x-s/2,y+s/2+6,s,2.5);
@@ -3786,8 +3781,12 @@ function drawUnit(u){
       if(ultReady(u)){
         const bl=0.5+0.5*Math.sin(G.t*8);
         ctx.fillStyle=hexA("#ff5bd0",0.55+0.45*bl);
-        ctx.font="700 13px 'Chakra Petch'";ctx.textAlign="center";
-        ctx.fillText("✦",x+s/2-2,y-s/2-2);
+        ctx.font="700 15px 'Chakra Petch'";ctx.textAlign="center";
+        ctx.fillText("✦",x,y-s/2-13);
+        if(u.skillMode==="manual"){ // タップで必殺技を発動できることを示すリング
+          ctx.strokeStyle=hexA("#ff5bd0",bl);ctx.lineWidth=2;
+          ctx.beginPath();ctx.arc(x,y,s/2+5,0,7);ctx.stroke();
+        }
       }
     }
   }
@@ -4036,7 +4035,6 @@ function doTap(c,r){
   const u=unitAtCell(c,r);
   if(u && !G.selectedType){
     if(ultReady(u)){ fireUlt(u); G.selectedUnit=u; syncRetreatBtn(); return; }
-    if(u.skillMode==="manual" && skillReady(u)){ fireSkill(u); G.selectedUnit=u; syncRetreatBtn(); return; }
     G.selectedUnit=(G.selectedUnit===u?null:u); syncRetreatBtn(); return;
   }
   if(G.selectedType){ tryPlace(c,r); G.selectedUnit=null; syncRetreatBtn(); return; }
@@ -4234,9 +4232,8 @@ addEventListener("keydown",e=>{
   else if(e.key==="Enter")startWave();
   else if(e.key===" "){e.preventDefault();pauseBtn.onclick();}
   else if(e.key==="r"||e.key==="R"){if(G.selectedUnit)retreat(G.selectedUnit);}
-  else if(e.key==="q"||e.key==="Q"){ if(G.selectedUnit && skillReady(G.selectedUnit)){fireSkill(G.selectedUnit);refreshSkillBtn();} }
-  else if(e.key==="e"||e.key==="E"){ if(G.selectedUnit && ultReady(G.selectedUnit)){fireUlt(G.selectedUnit);refreshSkillBtn();} }
-  else if(e.key==="m"||e.key==="M"){ if(G.selectedUnit){G.selectedUnit.skillMode=G.selectedUnit.skillMode==="auto"?"manual":"auto";G.defaultSkillMode=G.selectedUnit.skillMode;refreshSkillBtn();} }
+  else if(e.key==="e"||e.key==="E"){ if(G.selectedUnit && ultReady(G.selectedUnit)){fireUlt(G.selectedUnit);} } // 必殺技を手動発動
+  else if(e.key==="m"||e.key==="M"){ if(G.selectedUnit){G.selectedUnit.skillMode=G.selectedUnit.skillMode==="auto"?"manual":"auto";G.defaultSkillMode=G.selectedUnit.skillMode;} } // 必殺技の自動/手動切替
   else if(e.key==="Escape"){G.selectedType=null;G.selectedUnit=null;refreshBar();syncRetreatBtn();}
 });
 
