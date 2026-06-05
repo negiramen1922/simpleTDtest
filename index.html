@@ -2036,7 +2036,7 @@ function deployedCount(){return G.units.reduce((n,u)=>n+(u.isToken?0:1),0);}
 function cellOfPx(x,y){return [Math.floor(x/TILE),Math.floor(y/TILE)];}
 let reduceMotion=false; // 設定：演出を軽減（破片など装飾エフェクトを省く）
 function addFx(o){ if(reduceMotion&&(o.type==="frag"||o.type==="ring"))return; o.life=o.life||0.4;o.age=0;G.fx.push(o);}
-function clearTransient(){G.fx=[];G.shots=[];G.hazards=[];} // ダメージ表記・弾・着弾・地形効果などを一掃
+function clearTransient(){G.fx=[];G.shots=[];G.hazards=[];G.chains=[];} // ダメージ表記・弾・着弾・地形効果・連鎖などを一掃
 
 /* ============ 配置 ============ */
 function unitCost(t){return Math.round((TYPES[t].cost + COST_STEP*G.roster[t].times)*mod("costScale",1));}
@@ -3128,18 +3128,11 @@ function update(dt){
           for(let i=0;i<10;i++){ const a=Math.random()*7, sp=70+Math.random()*120; addFx({type:"frag",x:s.target.x,y:s.target.y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,col:cols[i%cols.length],life:0.5+Math.random()*0.3,r:2.5}); }
         }
       } else if(s.kind==="chain"){
-        // 連鎖：命中した敵から近い敵へ次々と飛ぶ（威力減衰）
-        let cur=s.target, dmg=s.dmg, hit=new Set([cur]);
-        applyBolt(s,cur,dmg);
-        addFx({type:"hit",x:cur.x,y:cur.y,col:s.col,life:0.2});
-        for(let j=1;j<s.chain;j++){
-          dmg*=s.falloff;
-          let nxt=null,bd=2.4*TILE;
-          for(const en of G.enemies){ if(hit.has(en)||en._dead)continue; const dd=dist(cur,en); if(dd<bd){bd=dd;nxt=en;} }
-          if(!nxt)break;
-          addFx({type:"beam",x1:cur.x,y1:cur.y,x2:nxt.x,y2:nxt.y,col:s.col,life:0.18});
-          applyBolt(s,nxt,dmg); hit.add(nxt); cur=nxt;
-        }
+        // 連鎖：最初の敵に命中し、以降は時間差で次々ジグザグに飛ぶ（威力減衰）
+        applyBolt(s,s.target,s.dmg);
+        addFx({type:"hit",x:s.target.x,y:s.target.y,col:s.col,life:0.25});
+        if(!G.chains)G.chains=[];
+        G.chains.push({cur:s.target,dmg:s.dmg*(s.falloff||0.7),left:(s.chain||1)-1,hit:new Set([s.target]),falloff:s.falloff||0.7,slow:s.slowHit,slowDur:s.slowDur,col:s.col,owner:s.owner,t:0.18,gap:0.18});
       }else{
         applyBolt(s,s.target,s.dmg);
         addFx({type:"hit",x:s.target.x,y:s.target.y,col:s.col,life:0.2});
@@ -3189,6 +3182,21 @@ function update(dt){
   }
   G.enemies=G.enemies.filter(e=>!e._dead);
   updateHazards(dt);
+  // 連鎖（チェイン）：時間差で次の敵へジグザグに飛ぶ
+  if(G.chains&&G.chains.length){
+    for(const ch of G.chains){ ch.t-=dt;
+      if(ch.t<=0 && ch.left>0){
+        let nxt=null,bd=2.6*TILE;
+        for(const en of G.enemies){ if(ch.hit.has(en)||en.hp<=0)continue; if(ch.owner&&!canHit(ch.owner,en))continue; const dd=dist(ch.cur,en); if(dd<bd){bd=dd;nxt=en;} }
+        if(!nxt){ ch.left=0; }
+        else{ addFx({type:"chainbeam",x1:ch.cur.x,y1:ch.cur.y,x2:nxt.x,y2:nxt.y,col:ch.col,life:0.28});
+          addFx({type:"hit",x:nxt.x,y:nxt.y,col:ch.col,life:0.2}); hurtEnemy(nxt,ch.dmg,ch.col,ch.owner);
+          if(ch.slow){ nxt.slowHitT=Math.max(nxt.slowHitT||0,ch.slowDur||3); nxt.slowHitF=Math.min(nxt.slowHitF||1,ch.slow); }
+          ch.hit.add(nxt); ch.cur=nxt; ch.dmg*=ch.falloff; ch.left--; ch.t=ch.gap; }
+      }
+    }
+    G.chains=G.chains.filter(c=>c.left>0 && c.t>-1);
+  }
   G.shots=G.shots.filter(s=>!s._dead);
   // 召喚トークンの寿命・死亡
   for(const u of G.units){
@@ -3795,6 +3803,14 @@ function drawFx(f){
   }else if(f.type==="beam"){
     ctx.strokeStyle=hexA(f.col,1-p);ctx.lineWidth=2;
     ctx.beginPath();ctx.moveTo(f.x1,f.y1);ctx.lineTo(f.x2,f.y2);ctx.stroke();
+  }else if(f.type==="chainbeam"){
+    // 稲妻：2点間をジグザグに走る電撃（外側グロー＋白い芯）
+    if(f.seg===undefined){ const dx=f.x2-f.x1,dy=f.y2-f.y1,len=Math.hypot(dx,dy)||1,nx=-dy/len,ny=dx/len,n=Math.max(3,Math.floor(len/14)); f.pts=[]; for(let i=0;i<=n;i++){const tt=i/n;const off=(i===0||i===n)?0:(Math.random()*2-1)*10; f.pts.push([f.x1+dx*tt+nx*off, f.y1+dy*tt+ny*off]);} f.seg=n; }
+    const al=1-p;
+    ctx.lineCap="round";ctx.lineJoin="round";
+    ctx.strokeStyle=hexA(f.col,al*0.5);ctx.lineWidth=6; ctx.beginPath();ctx.moveTo(f.pts[0][0],f.pts[0][1]);for(let i=1;i<f.pts.length;i++)ctx.lineTo(f.pts[i][0],f.pts[i][1]);ctx.stroke();
+    ctx.strokeStyle=hexA("#ffffff",al);ctx.lineWidth=2; ctx.beginPath();ctx.moveTo(f.pts[0][0],f.pts[0][1]);for(let i=1;i<f.pts.length;i++)ctx.lineTo(f.pts[i][0],f.pts[i][1]);ctx.stroke();
+    ctx.lineCap="butt";ctx.lineJoin="miter";
   }else if(f.type==="leak"){
     ctx.strokeStyle=hexA("#ff5b6e",1-p);ctx.lineWidth=3;
     ctx.beginPath();ctx.arc(f.x,f.y,p*22,0,7);ctx.stroke();
