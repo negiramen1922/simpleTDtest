@@ -1175,8 +1175,9 @@ const TYPES={
     skill:{name:"チェインライトニング",spMax:11,dur:0.5,chainBolt:{mul:2.0,chain:7,falloff:0.9,slow:0.6,slowDur:3},
            ultName:"ドラゴンライトニング",ultGauge:26,ultBeam:{dur:1.4,width:1.8,len:8,dps:7,slow:0.6,slowDur:3}}},
   freezer:{name:"フリーザー",role:"FREEZE",letter:"I",color:"#9fe0ff",place:"hill",cost:14,
-    hp:320,atk:90,interval:1.5,block:0,range:3.4,kind:"range",targets:"both",freeze:1.4,
-    skill:{name:"絶対零度",spMax:13,dur:5,freeze:2.6,atk:1.4,spd:1.4,aoeFreeze:1.2}},
+    hp:320,atk:95,interval:2.0,block:0,range:3.4,kind:"aoe",aoe:1.0,stun:0,targets:"both",ice:true,aoeSlow:0.55,slowDur:2.5,
+    skill:{name:"アイスシャード",spMax:11,dur:0.5,iceBurst:{n:5,gap:0.18},
+           ultName:"フロストノヴァ",ultGauge:26,ultNova:{n:6,gap:0.18,mul:2.0,aoe:1.6,freeze:2.5}}},
   shaman:{name:"シャーマン",role:"SHAMAN",letter:"Q",color:"#caa6ff",place:"hill",cost:13,
     hp:330,atk:60,interval:1.1,block:0,range:3.6,kind:"multi",targets:"both",multi:3,slowHit:0.55,slowDur:1.5,
     skill:{name:"呪詛の風",spMax:12,dur:5,atk:1.5,multi:5,slowHit:0.4,spd:1.4}},
@@ -1225,7 +1226,7 @@ const ORDER=["tank","attacker","shooter","healer","support","trickster","breaker
 // キャラアイコン画像（icons/<type>.png）。全キャラにアイコンを割り当て（読み込み失敗時はonerrorで文字にフォールバック）
 for(const t in TYPES){ TYPES[t].img="icons/"+t+".png?v=4"; }
 // 調整（レビュー）済みキャラ。未調整キャラは編成・出撃で使用不可（順次解放していく）
-const TUNED_LIST=["tank","attacker","shooter","healer","support","trickster","breaker","harvester","guardian","lancer","berserker","sniper","mage","artillery","archer","flak","dragonrider","sentinel","paladin","duelist","gunner","revenger","marksman","poisoner","chaincaster"];
+const TUNED_LIST=["tank","attacker","shooter","healer","support","trickster","breaker","harvester","guardian","lancer","berserker","sniper","mage","artillery","archer","flak","dragonrider","sentinel","paladin","duelist","gunner","revenger","marksman","poisoner","chaincaster","freezer"];
 TUNED_LIST.forEach(t=>{ if(TYPES[t]) TYPES[t].tuned=true; });
 function isTuned(t){ return !!(TYPES[t]&&TYPES[t].tuned); }
 // アイコン用HTML（DOMカード共通）：画像があれば<img>、無ければ文字
@@ -2155,7 +2156,7 @@ function fireSkill(u){
   return true;
 }
 // スキルが発動時に固有の一撃を持つか（汎用ボーナスを抑制する判定に使用）
-function hasCustomActivate(sk){ return !!(sk && (sk.smash||sk.frontSlash||sk.ultFrontSlash||sk.ultFlySlash||sk.ultChargeAlly||sk.ultBarrage||sk.ultDotField||sk.ultLanceCharge||sk.ultChargeAxe||sk.ultBeam||sk.ultBombard||sk.ultBreath||sk.ultTaunt||sk.ultDuelCombo||sk.ultGatling||sk.revUlt||sk.ultApBurst||sk.ultFog)); }
+function hasCustomActivate(sk){ return !!(sk && (sk.smash||sk.frontSlash||sk.ultFrontSlash||sk.ultFlySlash||sk.ultChargeAlly||sk.ultBarrage||sk.ultDotField||sk.ultLanceCharge||sk.ultChargeAxe||sk.ultBeam||sk.ultBombard||sk.ultBreath||sk.ultTaunt||sk.ultDuelCombo||sk.ultGatling||sk.revUlt||sk.ultApBurst||sk.ultFog||sk.ultNova)); }
 // エンチャンターのバフ対象：射程内で攻撃/回復する味方のうち、最もバフ残量が少ない味方
 function pickBuffAlly(u,R){
   let best=null,bv=Infinity;
@@ -2239,6 +2240,8 @@ function skillActivate(u,isUlt){
   if(!isUlt && sk.gunReload){ u.gunBurst={left:sk.gunReload,t:0,gap:0.06}; }
   // マークスマン：徹甲弾バースト（スキル）／即時リロードして5連射（必殺技）。どちらも防御50%貫通
   if(!isUlt && sk.apBurst){ const f=sk.apBurst; u.apQ={left:f.n,t:0,gap:0.18,mul:f.mul}; }
+  if(!isUlt && sk.iceBurst){ const f=sk.iceBurst; u.iceQ={left:f.n,t:0,gap:f.gap||0.18}; }
+  if(isUlt && sk.ultNova){ const f=sk.ultNova; u.bombard={left:f.n,t:0,gap:f.gap,mul:f.mul,aoe:f.aoe,freeze:f.freeze}; addFx({type:"magicburst",x:u.x,y:u.y,r:TILE*1.6,col:"#9fe0ff",life:0.6}); Sound.play("aoe"); return; }
   if(isUlt && sk.ultApBurst){ const f=sk.ultApBurst; u.mag=0; u.reloadT=0; u.apQ={left:f.n,t:0,gap:0.12,mul:f.mul}; return; }
   // ポイズナー：毒沼を通路に設置（スキル）／自身周囲に毒霧（必殺技）
   if(!isUlt && sk.poisonPool){ const f=sk.poisonPool, dmg=statATK(u.cfg,u.type)*f.pct, R=unitRange(u);
@@ -2381,6 +2384,8 @@ function fireGunShot(u){
   Sound.play("shoot");
 }
 // 徹甲弾を1発撃つ（マークスマン）。シールド50%貫通＋被ダメスタック
+function fireIceShot(u){ const tg=pickEnemy(u); if(!tg)return;
+  const s=shot(u,tg,statATK(u.cfg,u.type)*(u.atkBuff||1),u.cfg.color,"aoe"); s.aoeR=(u.cfg.aoe||1)*TILE; s.stun=0; s.ice=true; s.slowHit=u.cfg.aoeSlow||0.55; s.slowDur=u.cfg.slowDur||2.5; G.shots.push(s); Sound.play("aoe"); }
 function fireApShot(u,mul){
   const tg=pickEnemy(u); if(!tg)return;
   const s=shot(u,tg,statATK(u.cfg,u.type)*mul*(u.atkBuff||1),u.cfg.color,"bolt");
@@ -2423,7 +2428,7 @@ function fireAoeShot(u,mul,aoe,stun,knockback){
   if(!tg)return;
   const s=shot(u,tg,statATK(u.cfg,u.type)*mul*(u.atkBuff||1),u.cfg.color,"aoe");
   s.aoeR=(aoe||u.cfg.aoe)*TILE; s.stun=stun||0; s.knockback=knockback||0;
-  if(u.cfg.magic)s.magic=true; if(u.cfg.firework)s.firework=true;
+  if(u.cfg.magic)s.magic=true; if(u.cfg.firework)s.firework=true; if(u.cfg.ice)s.ice=true; if(u.cfg.aoeSlow){ s.slowHit=u.cfg.aoeSlow; s.slowDur=u.cfg.slowDur; }
   G.shots.push(s); Sound.play("aoe");
 }
 // 強力な狙撃弾を1発撃つ（スナイパー必殺技の連射から呼ばれる）
@@ -2643,6 +2648,7 @@ function update(dt){
     if(u.gunBurst){ u.gunBurst.t-=dt; if(u.gunBurst.t<=0 && u.gunBurst.left>0){ fireGunShot(u); u.gunBurst.left--; u.gunBurst.t=u.gunBurst.gap; if(u.gunBurst.left<=0){ u.gunBurst=null; u.mag=0; u.reloadT=0; floatNum(u.x,u.y-14,0,"#7fe0ff","RELOAD!"); } } }
     // マークスマン：徹甲弾バーストの連射
     if(u.apQ){ u.apQ.t-=dt; if(u.apQ.t<=0 && u.apQ.left>0){ fireApShot(u,u.apQ.mul); u.apQ.left--; u.apQ.t=u.apQ.gap; if(u.apQ.left<=0){ u.apQ=null; u.mag=0; u.reloadT=0; } } }
+    if(u.iceQ){ u.iceQ.t-=dt; if(u.iceQ.t<=0 && u.iceQ.left>0){ fireIceShot(u); u.iceQ.left--; u.iceQ.t=u.iceQ.gap; if(u.iceQ.left<=0)u.iceQ=null; } }
     // リベンジャー：報復スキルの2連撃
     if(u.revSkillQ){ u.revSkillQ.t-=dt; if(u.revSkillQ.t<=0&&u.revSkillQ.left>0){ revHit(u,2.0,4.0,1,false,0); u.revSkillQ.left--; u.revSkillQ.t=u.revSkillQ.gap; if(u.revSkillQ.left<=0)u.revSkillQ=null; } }
     // リベンジャー：必殺技の前進10連撃
@@ -2660,7 +2666,7 @@ function update(dt){
       const cands=G.enemies.filter(e=>e.hp>0);
       if(cands.length){ const tg=cands[Math.floor(Math.random()*cands.length)];
         const aoeR=(u.bombard.aoe||u.cfg.aoe)*TILE, dmg=statATK(u.cfg,u.type)*u.bombard.mul*(u.atkBuff||1);
-        G.fx.push({type:"shell",x:tg.x,y:tg.y,col:u.cfg.color,life:(u.cfg.delay||0.6)+0.02,age:0,delay:(u.cfg.delay||0.6),dmg,aoeR,fromU:u});
+        G.fx.push({type:"shell",x:tg.x,y:tg.y,col:u.cfg.color,life:(u.cfg.delay||0.6)+0.02,age:0,delay:(u.cfg.delay||0.6),dmg,aoeR,fromU:u,freeze:u.bombard.freeze});
       }
       u.bombard.left--; u.bombard.t=u.bombard.gap; if(u.bombard.left<=0)u.bombard=null; Sound.play("shell");
     } }
@@ -3011,7 +3017,7 @@ function update(dt){
             const s=shot(u,t2,u.atk*atkMult,u.cfg.color,"aoe");
             s.aoeR=(active&&sk.aoe?sk.aoe:u.cfg.aoe)*TILE;
             s.stun=(active&&sk.stun?sk.stun:u.cfg.stun);
-            if(u.cfg.magic)s.magic=true; if(u.cfg.firework)s.firework=true;
+            if(u.cfg.magic)s.magic=true; if(u.cfg.firework)s.firework=true; if(u.cfg.ice)s.ice=true; if(u.cfg.aoeSlow){ s.slowHit=u.cfg.aoeSlow; s.slowDur=u.cfg.slowDur; }
             G.shots.push(s);
           }
           Sound.play(u.cfg.magic?"magic":"aoe");
@@ -3119,9 +3125,13 @@ function update(dt){
       } else if(s.kind==="aoe"){
         const R=s.aoeR;
         for(const en of G.enemies){
-          if(canHit(s.owner,en) && dist(en,s.target)<=R){en.stun=Math.max(en.stun,s.stun); hurtEnemy(en,s.dmg,s.col,s.owner); if(s.knockback)knockback(en,s.knockback);}
+          if(canHit(s.owner,en) && dist(en,s.target)<=R){en.stun=Math.max(en.stun,s.stun); hurtEnemy(en,s.dmg,s.col,s.owner); if(s.knockback)knockback(en,s.knockback);
+            if(s.slowHit){ en.slowHitT=Math.max(en.slowHitT||0,s.slowDur||2); en.slowHitF=Math.min(en.slowHitF||1,s.slowHit); }
+            if(s.freeze){ en.freezeT=Math.max(en.freezeT||0,s.freeze); } }
         }
-        if(s.magic) addFx({type:"magicburst",x:s.target.x,y:s.target.y,r:R,col:s.col,life:0.5});
+        if(s.ice){ addFx({type:"ring",x:s.target.x,y:s.target.y,r:R,col:"#bfe9ff",life:0.4});
+          for(let i=0;i<8;i++){ const a=Math.random()*7,sp=60+Math.random()*120; addFx({type:"frag",x:s.target.x,y:s.target.y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,col:Math.random()<0.5?"#bfe9ff":"#fff",life:0.4,r:2.5}); } }
+        else if(s.magic) addFx({type:"magicburst",x:s.target.x,y:s.target.y,r:R,col:s.col,life:0.5});
         else addFx({type:"ring",x:s.target.x,y:s.target.y,r:R,col:s.col,life:0.4});
         if(s.firework){ // 花火の火花
           const cols=["#ff5b6e","#ffd24a","#7fc4ff","#a0e070","#ff9ad1"];
@@ -3211,8 +3221,15 @@ function update(dt){
     if(f.type==="shell" && !f._blown && f.age>=f.delay){
       f._blown=true;
       for(const en of G.enemies){
-        if((!f.fromU||canHit(f.fromU,en)) && dist(en,f)<=f.aoeR){ hurtEnemy(en,f.dmg,f.col,f.fromU); }
+        if((!f.fromU||canHit(f.fromU,en)) && dist(en,f)<=f.aoeR){ hurtEnemy(en,f.dmg,f.col,f.fromU); if(f.freeze){ en.freezeT=Math.max(en.freezeT||0,f.freeze); } }
       }
+      if(f.freeze){ // フロストノヴァ：氷の着弾
+        addFx({type:"flash",x:f.x,y:f.y,r:f.aoeR*0.9,col:"#dff5ff",life:0.16});
+        addFx({type:"ring",x:f.x,y:f.y,r:f.aoeR,col:"#bfe9ff",life:0.4});
+        addFx({type:"ring",x:f.x,y:f.y,r:f.aoeR*1.4,col:"#9fe0ff",life:0.6});
+        for(let i=0;i<14;i++){ const a=Math.random()*7, sp=70+Math.random()*160; addFx({type:"frag",x:f.x,y:f.y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,col:i%2?"#bfe9ff":"#fff",life:0.5+Math.random()*0.3,r:2+Math.random()*2}); }
+        Sound.play("shieldBreak");
+      } else {
       // 砲撃の着弾演出：閃光＋多重衝撃波＋瓦礫＋立ち上る煙
       addFx({type:"flash",x:f.x,y:f.y,r:f.aoeR*0.9,col:"#fff",life:0.16});
       addFx({type:"ring",x:f.x,y:f.y,r:f.aoeR,col:"#ffe7b0",life:0.35});
@@ -3220,6 +3237,7 @@ function update(dt){
       addFx({type:"pop",x:f.x,y:f.y,col:f.col,life:0.45});
       for(let i=0;i<9;i++){ const a=Math.random()*7, sp=60+Math.random()*140; addFx({type:"frag",x:f.x,y:f.y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,col:i%2?"#ffb340":"#8a7460",life:0.45+Math.random()*0.35,r:2+Math.random()*2}); }
       for(let i=0;i<5;i++){ const a=Math.random()*7, d=Math.random()*f.aoeR*0.6; addFx({type:"smoke",x:f.x+Math.cos(a)*d,y:f.y+Math.sin(a)*d,r:f.aoeR*(0.35+Math.random()*0.3),life:0.7+Math.random()*0.5}); }
+      }
       Sound.play("aoe");
     }
   }
@@ -3462,6 +3480,14 @@ function draw(){
       ctx.strokeStyle=hexA("#6fae2e",0.4);ctx.lineWidth=3;ctx.lineCap="round";ctx.beginPath();ctx.moveTo(s.x-Math.cos(a)*14,s.y-Math.sin(a)*14);ctx.lineTo(s.x,s.y);ctx.stroke();ctx.lineCap="butt";
       ctx.fillStyle="#7cc23a";ctx.beginPath();ctx.ellipse(s.x,s.y,w+2,w,a,0,7);ctx.fill();
       ctx.fillStyle="rgba(200,255,150,.7)";ctx.beginPath();ctx.arc(s.x+1,s.y-1,2,0,7);ctx.fill();
+      continue;
+    }
+    if(s.ice){
+      // 氷の弾：青白い氷晶＋曳光
+      const a=Math.atan2(s.target.y-s.y,s.target.x-s.x), c=Math.cos(a), sn=Math.sin(a);
+      ctx.strokeStyle=hexA("#9fe0ff",0.4);ctx.lineWidth=3;ctx.lineCap="round";ctx.beginPath();ctx.moveTo(s.x-c*14,s.y-sn*14);ctx.lineTo(s.x,s.y);ctx.stroke();ctx.lineCap="butt";
+      ctx.fillStyle="#bfe9ff";ctx.beginPath();ctx.moveTo(s.x+c*6,s.y+sn*6);ctx.lineTo(s.x-sn*4,s.y+c*4);ctx.lineTo(s.x-c*5,s.y-sn*5);ctx.lineTo(s.x+sn*4,s.y-c*4);ctx.closePath();ctx.fill();
+      ctx.fillStyle="rgba(255,255,255,.85)";ctx.beginPath();ctx.arc(s.x,s.y,1.8,0,7);ctx.fill();
       continue;
     }
     if(s.arrow){
@@ -4308,7 +4334,7 @@ const SKILL_DESC={
   marksman:"強力な徹甲弾を3連射。相手の防御（シールド）を50%無視する。",
   poisoner:"通路に毒沼を4つ設置。触れた敵を毒に侵す。",
   chaincaster:"1発で最大7体に連鎖する雷撃（連鎖ごとに-10%）。当たった敵を鈍化（移動・攻撃速度ダウン）。",
-  freezer:"凍結時間が延長＋周囲の敵も巻き込んで凍結。",
+  freezer:"5本の氷を順番に放ち、当たった敵を鈍化させる範囲攻撃。",
   shaman:"同時攻撃数が5体に増え、減速も強化。",
   summoner:"発動と同時に召喚兵を一気に3体追加召喚。",
   bard:"SPチャージ加速が大幅に強化される。",
@@ -4350,7 +4376,8 @@ const ULT_DESC={
   revenger:"前進しながら10連撃でノックバック。HPが低いほど、スキルを使ったぶんだけ火力が上がる。",
   marksman:"即座にリロードし、防御を50%無視する徹甲弾を5連射する。",
   poisoner:"攻撃速度UP＋自身の周囲6マスに毒霧を展開。触れた敵を毒に侵す（毒は最大5スタック）。",
-  chaincaster:"敵の方向へ極太の雷ビームを放ち多段ヒット。当たった敵を鈍化させる。"
+  chaincaster:"敵の方向へ極太の雷ビームを放ち多段ヒット。当たった敵を鈍化させる。",
+  freezer:"フロストノヴァ。敵を中心に巨大な氷を降らせ、当たった敵を凍結させる。"
 };
 
 /* ----- 育成 ----- */
