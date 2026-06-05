@@ -1305,7 +1305,7 @@ const TYPES={
 };
 const ORDER=["tank","attacker","shooter","healer","support","trickster","breaker","guardian","lancer","berserker","sniper","mage","artillery","archer","flak","dragonrider","sentinel","paladin","duelist","revenger","marksman","gunner","poisoner","chaincaster","freezer","shaman","summoner","commander","bard","alchemist","prospector","netcaster","harvester","warlord","archmage","valkyrie","highpriest","archon"];
 // キャラアイコン画像（icons/<type>.png）。全キャラにアイコンを割り当て（読み込み失敗時はonerrorで文字にフォールバック）
-for(const t in TYPES){ TYPES[t].img="icons/"+t+".png?v=4"; }
+for(const t in TYPES){ TYPES[t].img="icons/"+t+".png?v=5"; }
 // 調整（レビュー）済みキャラ。未調整キャラは編成・出撃で使用不可（順次解放していく）
 const TUNED_LIST=["tank","attacker","shooter","healer","support","trickster","breaker","harvester","guardian","lancer","berserker","sniper","mage","artillery","archer","flak","dragonrider","sentinel","paladin","duelist","gunner","revenger","marksman","poisoner","chaincaster","freezer","shaman","summoner"];
 TUNED_LIST.forEach(t=>{ if(TYPES[t]) TYPES[t].tuned=true; });
