@@ -4025,24 +4025,51 @@ function canvasXY(ev){
   const cy=(ev.touches?ev.touches[0].clientY:ev.clientY)-r.top;
   return [cx/r.width*W, cy/r.height*H];
 }
-function onTap(ev){
-  ev.preventDefault();
-  const [x,y]=canvasXY(ev); const [c,r]=cellOfPx(x,y);
-  // 既存ユニット
+// クライアント座標→セル
+function cellFromClient(clientX,clientY){
+  const r=cv.getBoundingClientRect();
+  const x=(clientX-r.left)/r.width*W, y=(clientY-r.top)/r.height*H;
+  return cellOfPx(x,y);
+}
+// 通常タップ（離した時に実行）：配置・選択・手動スキル/必殺技の発動
+function doTap(c,r){
   const u=unitAtCell(c,r);
   if(u && !G.selectedType){
-    // 必殺技ゲージが満タンなら、タップで即発動（最優先）
-    if(ultReady(u)){ fireUlt(u); G.selectedUnit=u; syncRetreatBtn(); refreshSkillBtn(); return; }
-    // 手動モードでスキルが溜まっていればタップで発動
-    if(u.skillMode==="manual" && skillReady(u)){ fireSkill(u); G.selectedUnit=u; syncRetreatBtn(); refreshSkillBtn(); return; }
-    G.selectedUnit=(G.selectedUnit===u?null:u); syncRetreatBtn(); refreshSkillBtn(); return;
+    if(ultReady(u)){ fireUlt(u); G.selectedUnit=u; syncRetreatBtn(); return; }
+    if(u.skillMode==="manual" && skillReady(u)){ fireSkill(u); G.selectedUnit=u; syncRetreatBtn(); return; }
+    G.selectedUnit=(G.selectedUnit===u?null:u); syncRetreatBtn(); return;
   }
-  if(G.selectedType){ tryPlace(c,r); G.selectedUnit=null; syncRetreatBtn(); refreshSkillBtn(); return; }
-  if(u){G.selectedUnit=u;syncRetreatBtn();refreshSkillBtn();return;}
-  G.selectedUnit=null; syncRetreatBtn(); refreshSkillBtn();
+  if(G.selectedType){ tryPlace(c,r); G.selectedUnit=null; syncRetreatBtn(); return; }
+  if(u){G.selectedUnit=u;syncRetreatBtn();return;}
+  G.selectedUnit=null; syncRetreatBtn();
 }
-cv.addEventListener("mousedown",onTap);
-cv.addEventListener("touchstart",onTap,{passive:false});
+// 長押し：出撃中ユニット（トークン除く）の詳細モーダルを表示
+let cvLpTimer=null, cvLpStart=null, cvLpFired=false;
+const LP_MS=450, LP_MOVE=14;
+function cvDown(ev){
+  if(ev.button!=null && ev.button!==0) return;
+  ev.preventDefault();
+  cvLpFired=false; cvLpStart={x:ev.clientX,y:ev.clientY};
+  const cx=ev.clientX, cy=ev.clientY;
+  clearTimeout(cvLpTimer);
+  cvLpTimer=setTimeout(()=>{
+    const [c,r]=cellFromClient(cx,cy), u=unitAtCell(c,r);
+    if(u && !u.isToken && TYPES[u.type]){ cvLpFired=true; openDetail(u.type); if(navigator.vibrate)navigator.vibrate(15); }
+  }, LP_MS);
+}
+function cvMove(ev){
+  if(!cvLpStart)return;
+  if(Math.hypot(ev.clientX-cvLpStart.x, ev.clientY-cvLpStart.y)>LP_MOVE){ clearTimeout(cvLpTimer); cvLpStart=null; }
+}
+function cvUp(ev){
+  clearTimeout(cvLpTimer);
+  if(cvLpStart && !cvLpFired){ const [c,r]=cellFromClient(ev.clientX,ev.clientY); doTap(c,r); }
+  cvLpStart=null;
+}
+cv.addEventListener("pointerdown",cvDown);
+cv.addEventListener("pointermove",cvMove);
+cv.addEventListener("pointerup",cvUp);
+cv.addEventListener("pointercancel",()=>{clearTimeout(cvLpTimer);cvLpStart=null;});
 
 function syncRetreatBtn(){retreatBtn.disabled=!G.selectedUnit; refreshSkillBtn();}
 
@@ -4052,24 +4079,9 @@ const unitPanel=document.getElementById("unitPanel"),
       modeToggle=document.getElementById("modeToggle"), skillBtn=document.getElementById("skillBtn"),
       ultBtn=document.getElementById("ultBtn");
 function refreshSkillBtn(){
-  const u=G.selectedUnit;
-  if(!u || !u.cfg.skill){ unitPanel.classList.remove("show"); return; }
-  unitPanel.classList.add("show");
-  upName.textContent=u.cfg.name+" Lv."+(u.level||1)+" ／ "+u.cfg.skill.name;
-  // SP状態表示＋必殺技ゲージ
-  const ugp=Math.floor(Math.min(1,(u.ug||0)/ultMax(u.cfg))*100);
-  if(u.skillActive) upSP.textContent=(u.ultActive?"必殺技 ":"発動中 ")+u.skillTimer.toFixed(1)+"s";
-  else { const p=Math.min(1,u.sp/u.cfg.skill.spMax); upSP.textContent="SP "+Math.floor(p*100)+"%　必殺 "+ugp+"%"; }
-  // モードトグル反映
-  [...modeToggle.children].forEach(b=>b.classList.toggle("on",b.dataset.m===u.skillMode));
-  // 発動ボタン：手動モードかつ準備完了で有効
-  const ready=skillReady(u);
-  skillBtn.disabled=!(u.skillMode==="manual" && ready);
-  skillBtn.classList.toggle("ready", u.skillMode==="manual" && ready);
-  // 必殺技ボタン：ゲージ満タンで有効
-  const ur=ultReady(u);
-  ultBtn.disabled=!ur;
-  ultBtn.classList.toggle("ready", ur);
+  // 出撃中ユニットのタップで出していたスキル操作パネルは廃止。
+  // スキル/必殺技は手動モード時にユニットをタップして発動、詳細は長押しで詳細モーダルを表示する。
+  unitPanel.classList.remove("show");
 }
 ultBtn.onclick=()=>{ if(G.selectedUnit && ultReady(G.selectedUnit)){ fireUlt(G.selectedUnit); refreshSkillBtn(); } };
 modeToggle.querySelectorAll("button").forEach(b=>{
@@ -4104,6 +4116,18 @@ function syncAllModeToggle(){
 
 /* ============ ユニットバー ============ */
 const bar=document.getElementById("bar");
+// 長押し検出ヘルパー：onLong を発火。直後のclick抑制用に el._lpFired() を提供
+function attachLongPress(el,onLong,ms=450,moveTol=12){
+  let timer=null,start=null,fired=false;
+  el._lpFired=()=>fired;
+  el.addEventListener("pointerdown",e=>{ fired=false; start={x:e.clientX,y:e.clientY};
+    clearTimeout(timer); timer=setTimeout(()=>{ fired=true; onLong(); if(navigator.vibrate)navigator.vibrate(15); }, ms); });
+  el.addEventListener("pointermove",e=>{ if(start && Math.hypot(e.clientX-start.x,e.clientY-start.y)>moveTol){ clearTimeout(timer); start=null; } });
+  const cancel=()=>{ clearTimeout(timer); start=null; };
+  el.addEventListener("pointerup",cancel);
+  el.addEventListener("pointercancel",cancel);
+  el.addEventListener("pointerleave",cancel);
+}
 function buildBar(){
   bar.innerHTML="";
   squad.forEach((t,i)=>{
@@ -4117,7 +4141,10 @@ function buildBar(){
       <div class="cost"><span class="cv">${cfg.cost}</span><span> DP</span></div>
       <div class="skill">★${cfg.skill.name}</div>
       <div class="state"></div>`;
+    // 長押しで詳細モーダルを表示（カードを離した時のタップは通常選択）
+    attachLongPress(d, ()=>openDetail(t));
     d.addEventListener("click",()=>{
+      if(d._lpFired && d._lpFired()){ return; } // 長押し直後のクリックは無視
       if(G.roster[t].state!=="ready")return;
       G.selectedType=(G.selectedType===t?null:t); G.selectedUnit=null; syncRetreatBtn(); refreshBar();
     });
