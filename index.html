@@ -869,14 +869,14 @@
       下のカードからキャラを選び、光ったマスをタップ／クリックで配置。配置には<b>DP（コスト）</b>を消費し、DPは時間と撃破で回復します。配置済みキャラをクリックすると射程表示＋撤退できます。<br>
       同じキャラは<b>同時に1体まで</b>。死亡または撤退すると<b>再出撃クールタイム（約20秒・ウェーブ中に経過）</b>が発生し、再出撃するたびに必要DPが<b>+5</b>ずつ増えていきます（コストが赤字＝値上がり中）。
       <ul>
-        <li><span class="tk">■ ヴァンガード</span>：通路（地上マス）に置く。最大<b>3体</b>をブロックして足止め。HP特大・攻撃低め。壁役。</li>
+        <li><span class="tk">■ ヴァンガード</span>：通路（地上マス）に置く。最大<b>4体</b>をブロックして足止め。HP特大・攻撃低め。壁役。</li>
         <li><span class="at">■ ウォリアー</span>：通路に置く。<b>1体</b>ブロックしつつ高い単体火力で殴る前衛。</li>
         <li><span class="sh">■ レンジャー</span>：高台に置く。ブロック不可。長射程・高火力の遠距離単体アタッカー。</li>
         <li><span class="he">■ メディック</span>：高台に置く。射程内で最も傷ついた<b>2体</b>を同時回復する。前衛の維持役。</li>
         <li><span class="su">■ エンチャンター</span>：高台に置く。射程内の敵を<b>減速</b>させ、近くの味方の<b>攻撃速度を強化</b>するオーラ役。</li>
         <li><span class="tr">■ ボマー</span>：高台に置く。特殊。<b>範囲攻撃＋短時間スタン</b>で群れを足止め＆まとめて削る。</li>
         <li><span class="br">■ レイダー</span>：通路に置く。1体ブロックの前衛。<b>敵を倒すたびに追加でDPを生産</b>する経済役。仕留めやすい位置に置くのがコツ。</li>
-        <li><span class="tk">■ ガーディアン</span>：通路に置く。最大<b>5体</b>ブロック・HP最大級の超壁役。攻撃はほぼ無いが、群れを丸ごと受け止める。</li>
+        <li><span class="tk">■ ガーディアン</span>：通路に置く。最大<b>6体</b>ブロック・HP最大級の超壁役。攻撃はほぼ無いが、群れを丸ごと受け止める。</li>
         <li><span style="color:#7ad0c0">■ ランサー</span>：通路に置く。1体ブロックしつつ、<b>後方に並んだ敵も貫通攻撃</b>。縦列で来る敵に強い前衛。</li>
         <li><span class="at">■ バーサーカー</span>：通路に置く。<b>HPが減るほど攻撃力が上がる</b>ハイリスク前衛。メディックと組ませて維持するのが鍵。</li>
         <li><span class="sh">■ スナイパー</span>：高台に置く。<b>超長射程・単発特大火力</b>だが連射は遅い。ボスや重装の狙撃に。</li>
@@ -1163,7 +1163,7 @@ const COST_STEP=5;       // 再出撃ごとに増えるコスト
 /* ============ キャラ定義 ============ */
 const TYPES={
   tank:{name:"ヴァンガード",role:"TANK",letter:"T",color:"#5b8dd6",place:"road",cost:14,
-    hp:1600,atk:90,interval:1.5,block:3,kind:"melee",targets:"ground",
+    hp:1600,atk:90,interval:1.5,block:4,kind:"melee",targets:"ground",
     skill:{name:"シールドバッシュ",spMax:6,dur:5,dr:0.10,smash:3,smashMul:2.6,knockback:0.5,
            ultGauge:20,ultDr:0.30,ultShield:700}},
   attacker:{name:"ウォリアー",role:"ATTACK",letter:"A",color:"#ff5b6e",place:"road",cost:13,
@@ -1193,7 +1193,7 @@ const TYPES={
     skill:{name:"鎌嵐",spMax:9,dur:5,atk:1.8,spd:1.3,
            ultGauge:22,ultName:"デッドハーヴェスト",ultDotField:{r:2.2,burst:2.0,dps:0.5}}},
   guardian:{name:"ガーディアン",role:"GUARD",letter:"G",color:"#6b9bd1",place:"road",cost:16,
-    hp:2200,atk:50,interval:1.8,block:5,kind:"melee",targets:"ground",
+    hp:2200,atk:50,interval:1.8,block:6,kind:"melee",targets:"ground",
     skill:{name:"絶対防壁",spMax:10,dur:5,dr:0.3,lifesteal:0.5,
            ultGauge:26,ultName:"鉄壁乱打",ultDr:0.7,ultFrontSlash:{n:5,mul:2.5,r:1.8,gap:0.1}}},
   lancer:{name:"ランサー",role:"LANCE",letter:"L",color:"#7ad0c0",place:"road",cost:15,
@@ -1644,13 +1644,13 @@ const STAGES=[
       [{t:"captain",n:2,gap:3,start:0.4},{t:"splitter",n:5,gap:1.1,start:3},{t:"swarm",n:12,gap:0.4,start:8}],
       [{t:"captain",n:2,gap:4,start:0.4},{t:"splitter",n:6,gap:1.0,start:3},{t:"mender",n:3,gap:1.6,start:8},{t:"bossBrood",n:1,gap:1,start:13}]
     ]},
-  {id:"6-1",name:"制空要塞",desc:"大型砲撃艦が地上を一方的に爆撃する。対空火力（アーチャー/スナイパー/メイジ等）で迎撃しよう。投網兵があれば飛行敵を足止めできる。",
-    diff:4,life:16,map:"gauntlet",
+  {id:"6-1",name:"制空要塞",desc:"大型砲撃艦が地上を一方的に爆撃する。高台が多い一本道なので、対空火力（アーチャー/スナイパー/メイジ等）を並べて迎撃しよう。投網兵があれば飛行敵を足止めできる。",
+    diff:4,life:18,map:"avenue",
     waves:[
-      [{t:"stinger",n:8,gap:0.4,start:0.4},{t:"flyer",n:5,gap:0.7,start:3}],
-      [{t:"gunship",n:1,gap:1,start:0.4},{t:"flyer",n:8,gap:0.6,start:3}],
-      [{t:"stinger",n:10,gap:0.35,start:0.4},{t:"raptor",n:4,gap:1.4,start:4},{t:"gunship",n:1,gap:1,start:8}],
-      [{t:"gunship",n:2,gap:4,start:0.4},{t:"stinger",n:10,gap:0.35,start:3},{t:"flyer",n:8,gap:0.6,start:8}]
+      [{t:"stinger",n:7,gap:0.5,start:0.4},{t:"flyer",n:5,gap:0.7,start:3}],
+      [{t:"gunship",n:1,gap:1,start:0.4},{t:"flyer",n:7,gap:0.7,start:3}],
+      [{t:"stinger",n:9,gap:0.45,start:0.4},{t:"raptor",n:3,gap:1.6,start:4},{t:"gunship",n:1,gap:1,start:9}],
+      [{t:"gunship",n:2,gap:5,start:0.4},{t:"stinger",n:9,gap:0.45,start:4},{t:"flyer",n:6,gap:0.7,start:9}]
     ]},
   {id:"6-2",name:"総力戦",desc:"あらゆる新型の敵が入り乱れる総力戦。全ロールをバランスよく編成し、穴のない布陣で挑め。",
     diff:5,life:16,map:"serpent",
