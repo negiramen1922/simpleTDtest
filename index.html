@@ -456,7 +456,8 @@
   .stam-track{position:relative;flex:1;height:18px;background:#0a1730;border-radius:9px;overflow:hidden;border:1px solid var(--line)}
   .stam-fill{position:absolute;inset:0;width:100%;background:linear-gradient(90deg,#3fc7f4,#67e8c0);transition:width .3s}
   .stam-text{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-    font-family:'Chakra Petch';font-weight:700;font-size:11px;color:#04161f;letter-spacing:.04em}
+    font-family:'Chakra Petch';font-weight:700;font-size:11px;color:#fff;letter-spacing:.04em;
+    text-shadow:0 1px 2px rgba(0,0,0,.75),0 0 3px rgba(0,0,0,.6)}
   .stam-regen{font-size:11px;color:var(--dim);font-family:'Chakra Petch';white-space:nowrap;min-width:96px;text-align:right}
   /* 一括周回ボタン */
   .farmbtn{margin-top:7px;font-size:12px;padding:6px 12px;border-color:var(--cyan);color:var(--cyan);
@@ -1641,7 +1642,7 @@ const STAGES=[
       [{t:"captain",n:2,gap:3,start:0.4},{t:"splitter",n:5,gap:1.1,start:3},{t:"swarm",n:12,gap:0.4,start:8}],
       [{t:"captain",n:2,gap:4,start:0.4},{t:"splitter",n:6,gap:1.0,start:3},{t:"mender",n:3,gap:1.6,start:8},{t:"bossBrood",n:1,gap:1,start:13}]
     ]},
-  {id:"6-1",name:"制空要塞",desc:"大型砲撃艦が地上を一方的に爆撃する。対空火力と空中ブロック（投網兵）で空を制圧せよ。",
+  {id:"6-1",name:"制空要塞",desc:"大型砲撃艦が地上を一方的に爆撃する。対空火力（アーチャー/スナイパー/メイジ等）で迎撃しよう。投網兵があれば飛行敵を足止めできる。",
     diff:4,life:16,map:"gauntlet",
     waves:[
       [{t:"stinger",n:8,gap:0.4,start:0.4},{t:"flyer",n:5,gap:0.7,start:3}],
@@ -4793,16 +4794,19 @@ function buildSquad(){
       <div class="cr">${roleInfo(t).name} / ${c.place==="road"?"通路":"高台"}</div>
       <div class="cc">${c.cost} DP</div>
       <div class="tgmark">${targetMark(c.targets)}</div>`;
-    d.addEventListener("click",()=>toggleSquad(t));
+    // 長押しでキャラ詳細を表示（タップは編成の出し入れ）
+    attachLongPress(d, ()=>openDetail(t));
+    d.addEventListener("click",()=>{ if(d._lpFired&&d._lpFired())return; toggleSquad(t); });
     g.appendChild(d);
   }
   // 未所持の案内
   const locked=ORDER.length-ownedCount();
   let note=document.getElementById("squadLockNote");
   if(!note){ note=document.createElement("p"); note.id="squadLockNote"; note.className="hint"; g.parentElement.insertBefore(note,g.nextSibling); }
-  note.innerHTML = locked>0
+  note.innerHTML = (locked>0
     ? `未所持のキャラが <b>${locked}体</b> あります。「キャラ図鑑・育成」で<b>🏅メダル</b>を使って解放できます（所持メダル <b>${medals}</b>）。`
-    : `全キャラ解放済みです！`;
+    : `全キャラ解放済みです！`)
+    + `<br><span style="opacity:.7">カードを<b>長押し</b>すると性能・スキルの詳細を確認できます。</span>`;
   refreshSquad();
 }
 function toggleSquad(t){
@@ -5005,8 +5009,9 @@ function ownedCount(){ return ownedList().length; }
 function maxedCount(){ return ORDER.filter(t=>getLevel(t)>=MAX_LEVEL).length; }
 function star3Count(){ return Object.values(clearData).filter(v=>v>=3).length; }
 function totalStages(){ return STAGES.filter(s=>!s.endless).length; }
-const TODAY=()=>new Date().toISOString().slice(0,10);
-const YDAY=()=>new Date(Date.now()-86400000).toISOString().slice(0,10);
+const _ymd=(d)=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+const TODAY=()=>_ymd(new Date());                       // 端末ローカルの日付（=ローカル0時に更新）
+const YDAY=()=>_ymd(new Date(Date.now()-86400000));
 
 // ---- デイリーミッション ----
 const DAILY_POOL=[
