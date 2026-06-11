@@ -886,7 +886,7 @@
         <li><span class="sh">■ フラック</span>：高台に置く。<b>対空の範囲攻撃</b>。群がる飛行敵をまとめて撃墜。地上は攻撃できない。</li>
         <li><span style="color:#d4a574">■ ドラゴンライダー</span>：通路に置く。2体ブロックしつつ<b>低空の飛行敵も薙ぎ払える</b>両対応の前衛。空の壁役。</li>
       </ul>
-      <b style="color:#67d8e8">✈ 飛行敵と攻撃対象</b>：敵には<b>地上を歩く敵</b>と<b>空を飛ぶ敵</b>（破線ルート）がいます。各キャラには攻撃できる対象（地上／空中／両方）が決まっており、<b>対空可能なキャラでないと飛行敵を倒せません</b>。対空できるのは、レンジャー・スナイパー・メイジ・ボマー・エンチャンター（両対応）、アーチャー・フラック（対空専門）、ドラゴンライダー（前衛で低空に対応）、そしてアーティラリー（スキル中のみ対空）です。また<b>砲兵（コボルト弓兵）や一部の飛行敵（ワイバーン・砲撃艦）</b>は高台のキャラも攻撃してきます。一方で<b>バット・キラーワスプなどの雑魚飛行は攻撃せず直進する“漏らすと痛い”敵</b>なので、対空で撃ち落として漏れを防ぎましょう。
+      <b style="color:#67d8e8">✈ 飛行敵と攻撃対象</b>：敵には<b>地上を歩く敵</b>と<b>空を飛ぶ敵</b>（破線ルート）がいます。各キャラには攻撃できる対象（地上／空中／両方）が決まっており、<b>対空可能なキャラでないと飛行敵を倒せません</b>。対空できるのは、レンジャー・スナイパー・メイジ・ボマー・エンチャンター（両対応）、アーチャー・フラック（対空専門）、ドラゴンライダー（前衛で低空に対応）、そしてアーティラリー（スキル中のみ対空）です。また<b>砲兵（コボルト弓兵）や一部の飛行敵（ワイバーン・砲撃艦）</b>は高台のキャラも攻撃してきます。一方で<b>バット・キラーワスプなどの雑魚飛行は攻撃せず直進する“漏らすと痛い”敵</b>なので、対空で撃ち落として漏れを防ぎましょう。<br>なお各マップのルート上には<b style="color:#c8a8ff">紫の重力フィールド（粘着ゾーン）</b>があり、<b>地上・空中問わず通過する敵を大きく減速</b>させます。敵が滞留して束になるので、その周辺に火力（特に範囲攻撃や対空）を集めるとまとめて殲滅できます。
       <b style="color:var(--gold)">★ スキル</b>：配置後、各キャラのSP（足元のゲージ）が時間で溜まり、満タンで攻撃（行動）する時に<b>自動で発動</b>します（手動操作はありません）。<br>
       <b style="color:#ff5bd0">✦ 必殺技（自動 / 手動 切替）</b>：戦闘中に溜まる別ゲージ。コントロールの<b>「必殺技：自動／手動」</b>で切り替えできます（配置中の全員＋今後の既定に適用）。<br>
       ・<b>自動</b>：ゲージが満タンで行動する時に自動で発動します。<br>
@@ -1081,7 +1081,8 @@ const MAPS={
            [11,3],[12,3],[13,3],
            [12,4],[13,4],[14,4],
            [2,5],[3,5],[6,5],[7,5],[8,5]],
-    fly:[[-1,5],[4,4],[8,3],[12,2],[16,1]]
+    fly:[[-1,5],[4,4],[8,3],[12,2],[16,1]],
+    snares:[[8,3]]
   },
   // まっすぐ一本道・高台が両脇に多い（射撃戦特化）
   avenue:{
@@ -1089,7 +1090,8 @@ const MAPS={
     path:[[0,3],[1,3],[2,3],[3,3],[4,3],[5,3],[6,3],[7,3],[8,3],[9,3],[10,3],[11,3],[12,3],[13,3],[14,3],[15,3]],
     hills:[[1,1],[2,1],[3,1],[4,1],[5,1],[6,1],[7,1],[8,1],[9,1],[10,1],[11,1],[12,1],[13,1],[14,1],
            [1,5],[2,5],[3,5],[4,5],[5,5],[6,5],[7,5],[8,5],[9,5],[10,5],[11,5],[12,5],[13,5],[14,5]],
-    fly:[[-1,5],[4,5],[8,4],[12,4],[16,3]]
+    fly:[[-1,5],[4,5],[8,4],[12,4],[16,3]],
+    snares:[[8,4]]
   },
   // 二股に分岐して合流（ブロック地点が2か所・高台は中央に集中）
   fork:{
@@ -1104,7 +1106,8 @@ const MAPS={
            [5,0],[6,0],[7,0],[8,0],[9,0],
            [5,6],[6,6],[7,6],[8,6],[9,6],
            [14,1],[14,2],[14,4],[14,5]],
-    fly:[[-1,0],[4,2],[8,3],[12,4],[16,3]]
+    fly:[[-1,0],[4,2],[8,3],[12,4],[16,3]],
+    snares:[[12,4]]
   },
   // 渦巻き状の長い経路（敵が長く滞在＝火力勝負、高台は少なめ）
   spiral:{
@@ -1119,7 +1122,8 @@ const MAPS={
            [6,2],[9,2],[12,2],
            [5,4],[8,4],[11,4],[13,4],
            [4,6],[7,6],[10,6]],
-    fly:[[-1,1],[4,2],[8,3],[12,4],[16,6]]
+    fly:[[-1,1],[4,2],[8,3],[12,4],[16,6]],
+    snares:[[8,3]]
   },
   // 高台が極端に少ない関門（前衛主体を強制）
   gauntlet:{
@@ -1128,12 +1132,13 @@ const MAPS={
           [8,2],[8,3],[8,4],[8,5],
           [9,5],[10,5],[11,5],[12,5],[13,5],[14,5],[15,5]],
     hills:[[3,3],[4,3],[11,2],[12,2],[12,3],[5,0]],
-    fly:[[-1,3],[5,3],[9,4],[13,4],[16,5]]
+    fly:[[-1,3],[5,3],[9,4],[13,4],[16,5]],
+    snares:[[9,4]]
   }
 };
 
 // 現在ロード中のマップから派生する可変データ
-let PATH, HILLS, WAY, FLYWAY, BRANCHES, MAP_IN, MAP_OUT;
+let PATH, HILLS, WAY, FLYWAY, BRANCHES, MAP_IN, MAP_OUT, SNARES;
 let roadSet=new Set(), hillSet=new Set();
 function loadMap(key){
   const m=MAPS[key]||MAPS.serpent;
@@ -1152,10 +1157,14 @@ function loadMap(key){
     BRANCHES=null;
   }
   FLYWAY=m.fly.map(p=>center(p[0],p[1]));
+  // 粘着フィールド：ルート上の固定セル。通る敵を大きく減速させ滞留させる（対空のキルゾーン）
+  SNARES=(m.snares||[]).map(p=>center(p[0],p[1]));
   roadSet=new Set(PATH.map(p=>cellKey(p[0],p[1])));
   hillSet=new Set(HILLS.map(p=>cellKey(p[0],p[1])));
 }
 loadMap("serpent");
+const SNARE_R=TILE*0.95; // 粘着フィールドの効果半径
+const SNARE_FACTOR=0.38; // フィールド内での移動速度倍率（地上・空中とも滞留させる）
 const MAX_UNITS=10;      // フィールドに同時配置できる味方の上限
 const REDEPLOY_CD=20;    // 死亡/撤退後の再出撃クールタイム(秒・ウェーブ中に経過)
 const COST_STEP=5;       // 再出撃ごとに増えるコスト
@@ -3032,7 +3041,11 @@ function update(dt){
     }
     // 加速・狂化：HPが減るほど移動が速くなる
     const rage=en.e.rageSpd ? 1+en.e.rageSpd*(1-Math.max(0,en.hp)/en.maxHp) : 1;
-    const step=en.spd*TILE*en.slow*(en.captainSpd||1)*rage*dt;
+    // 粘着フィールド：ゾーン内なら大きく減速して滞留（地上・空中とも）
+    let snareF=1;
+    for(const s of SNARES){ if(Math.hypot(s.x-en.x,s.y-en.y)<SNARE_R){ snareF=SNARE_FACTOR; en.inSnare=true; break; } }
+    if(snareF===1) en.inSnare=false;
+    const step=en.spd*TILE*en.slow*(en.captainSpd||1)*rage*snareF*dt;
     const dx=tgt.x-en.x, dy=tgt.y-en.y, d=Math.hypot(dx,dy);
     if(d<=step){ en.x=tgt.x; en.y=tgt.y; en.wp++; }
     else { en.x+=dx/d*step; en.y+=dy/d*step; }
@@ -3618,6 +3631,23 @@ function draw(){
   ctx.beginPath();
   for(let i=0;i<FLYWAY.length;i++){const p=FLYWAY[i]; i===0?ctx.moveTo(p.x,p.y-16):ctx.lineTo(p.x,p.y-16);}
   ctx.stroke(); ctx.setLineDash([]);
+  // 粘着フィールド（重力ウェル）：地上・空中とも大きく減速して滞留するキルゾーン
+  for(const s of SNARES){
+    const R=SNARE_R;
+    const grd=ctx.createRadialGradient(s.x,s.y,2,s.x,s.y,R);
+    grd.addColorStop(0,"rgba(168,120,255,.40)");
+    grd.addColorStop(0.7,"rgba(124,92,222,.18)");
+    grd.addColorStop(1,"rgba(124,92,222,0)");
+    ctx.fillStyle=grd; ctx.beginPath(); ctx.arc(s.x,s.y,R,0,7); ctx.fill();
+    ctx.save(); ctx.translate(s.x,s.y); ctx.rotate(G.t*1.6);
+    ctx.strokeStyle="rgba(206,176,255,.5)"; ctx.lineWidth=2;
+    for(let a=0;a<3;a++){
+      ctx.beginPath();
+      for(let k=0;k<=20;k++){ const th=k/20*Math.PI*1.2+a*Math.PI*2/3, rr=R*(0.2+0.72*k/20); const px=Math.cos(th)*rr, py=Math.sin(th)*rr; k===0?ctx.moveTo(px,py):ctx.lineTo(px,py); }
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
   // 入口・出口
   drawGate(WAY[1].x-TILE/2,WAY[1].y,"#ff5b6e","IN");
   drawGate(WAY[WAY.length-1].x-TILE/2,WAY[WAY.length-1].y,"#4ade80","OUT");
