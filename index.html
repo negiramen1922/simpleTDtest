@@ -870,7 +870,7 @@
       同じキャラは<b>同時に1体まで</b>。死亡または撤退すると<b>再出撃クールタイム（約20秒・ウェーブ中に経過）</b>が発生し、再出撃するたびに必要DPが<b>+5</b>ずつ増えていきます（コストが赤字＝値上がり中）。
       <ul>
         <li><span class="tk">■ ヴァンガード</span>：通路（地上マス）に置く。最大<b>4体</b>をブロックして足止め。HP特大・攻撃低め。壁役。</li>
-        <li><span class="at">■ ウォリアー</span>：通路に置く。<b>1体</b>ブロックしつつ高い単体火力で殴る前衛。</li>
+        <li><span class="at">■ ウォリアー</span>：通路に置く。<b>2体</b>ブロックしつつ高い火力で殴る前衛。<b>射程が短く、壁役の後ろに置いても前方の敵を攻撃</b>できる。</li>
         <li><span class="sh">■ レンジャー</span>：高台に置く。ブロック不可。長射程・高火力の遠距離単体アタッカー。</li>
         <li><span class="he">■ メディック</span>：高台に置く。射程内で最も傷ついた<b>2体</b>を同時回復する。前衛の維持役。</li>
         <li><span class="su">■ エンチャンター</span>：高台に置く。射程内の敵を<b>減速</b>させ、近くの味方の<b>攻撃速度を強化</b>するオーラ役。</li>
@@ -1179,7 +1179,7 @@ const TYPES={
     skill:{name:"シールドバッシュ",spMax:6,dur:5,dr:0.10,smash:3,smashMul:2.6,knockback:0.5,
            ultGauge:20,ultDr:0.30,ultShield:700}},
   attacker:{name:"ウォリアー",role:"ATTACK",letter:"A",color:"#ff5b6e",place:"road",cost:13,
-    hp:780,atk:230,interval:1.0,block:2,kind:"melee",targets:"ground",
+    hp:780,atk:230,interval:1.0,block:2,kind:"melee",targets:"ground",reach:1.2,maxHits:2,
     skill:{name:"聖剣技 天蓋連牙",spMax:7,dur:0.5,frontSlash:{n:4,mul:0.9,r:2.2,gap:0.1},
            ultGauge:22,ultName:"天牙煉斬閃",ultFlySlash:{n:5,mul:1.2,r:0.9,spd:560,life:0.7}}},
   shooter:{name:"レンジャー",role:"SHOOT",letter:"S",color:"#3fc7f4",place:"hill",cost:11,
@@ -1197,11 +1197,11 @@ const TYPES={
     skill:{name:"大爆発",spMax:13,dur:0.6,bombBurst:{n:4,gap:0.2,mul:2.0,aoe:1.8,stun:1.2},
            ultGauge:26,ultName:"爆裂連弾",ultBarrage:{n:8,mul:2.5,aoe:1.8,stun:1.5,gap:0.13}}},
   breaker:{name:"レイダー",role:"BREAK",letter:"$",color:"#ff8c42",place:"road",cost:13,
-    hp:640,atk:100,interval:0.9,block:1,kind:"melee",bonusDP:5,targets:"ground",
+    hp:640,atk:100,interval:0.9,block:1,kind:"melee",bonusDP:5,targets:"ground",reach:1.15,maxHits:1,
     skill:{name:"資源強奪",spMax:7,dur:0.6,frontSlash:{n:5,mul:0.85,r:2.0,gap:0.09},
            ultGauge:18,ultName:"略奪乱舞",ultFrontSlash:{n:7,mul:1.3,r:2.3,gap:0.08},ultBonusMul:3}},
   harvester:{name:"ハーヴェスター",role:"BREAK",letter:"刈",color:"#7ad0c0",place:"road",cost:12,
-    hp:800,atk:150,interval:0.85,block:1,kind:"melee",bonusDP:3,deployDP:12,targets:"ground",
+    hp:800,atk:150,interval:0.85,block:1,kind:"melee",bonusDP:3,deployDP:12,targets:"ground",reach:1.15,maxHits:1,
     skill:{name:"鎌嵐",spMax:9,dur:5,atk:1.8,spd:1.3,
            ultGauge:22,ultName:"デッドハーヴェスト",ultDotField:{r:2.2,burst:2.0,dps:0.5}}},
   guardian:{name:"ガーディアン",role:"GUARD",letter:"G",color:"#6b9bd1",place:"road",cost:16,
@@ -1239,11 +1239,11 @@ const TYPES={
     skill:{name:"竜のブレス",spMax:12,dur:1.0,breath:{n:20,mul:0.5,range:3,dur:1.0,spread:0.55},
            ultName:"大ブレス",ultGauge:26,ultBreath:{n:40,mul:0.7,range:6,dur:1.6,spread:0.95}}},
   sentinel:{name:"センチネル",role:"SENTINEL",letter:"哨",color:"#8fb8e0",place:"road",cost:15,
-    hp:1500,atk:120,interval:1.5,block:3,kind:"melee",targets:"ground",thrust:true,
+    hp:1500,atk:120,interval:1.5,block:3,kind:"melee",targets:"ground",thrust:true,reach:1.2,maxHits:2,
     skill:{name:"反撃の構え",spMax:10,dur:7,dr:0.3,counter:0.3,
            ultName:"挑発カウンター",ultGauge:24,ultDur:7,ultDr:0.6,ultCounter:0.6,ultKnockback:0.6,ultTaunt:{r:3,pull:2,mul:1.5}}},
   paladin:{name:"パラディン",role:"PALADIN",letter:"騎",color:"#ffe066",place:"road",cost:16,
-    hp:1600,atk:130,interval:1.2,block:3,kind:"melee",targets:"ground",thrust:true,
+    hp:1600,atk:130,interval:1.2,block:3,kind:"melee",targets:"ground",thrust:true,reach:1.2,maxHits:2,
     skill:{name:"聖なる連突",spMax:10,dur:0.7,frontSlash:{n:5,mul:1.2,r:1.7,gap:0.1,ls:0.5},
            ultName:"聖撃乱舞",ultGauge:26,ultShield:800,ultFrontSlash:{n:20,mul:1.2,r:1.9,gap:0.08,ls:0.5}}},
   duelist:{name:"デュエリスト",role:"DUEL",letter:"D",color:"#ff7a45",place:"road",cost:14,
@@ -4555,7 +4555,7 @@ function targetBadge(t){
 }
 // ロール（役割）定義
 const ROLE_INFO={
-  attacker:{name:"アタッカー",color:"#ff5b6e",desc:"通路に立ち、高い火力で敵を直接削る近接アタッカー。"},
+  attacker:{name:"アタッカー",color:"#ff5b6e",desc:"通路に立ち、高い火力で敵を直接削る近接アタッカー。射程が短く、壁役の後ろからでも前方の敵を攻撃できる。"},
   tank:{name:"タンク",color:"#5b8dd6",desc:"通路で敵を足止めするブロック特化。高HPで前線を支える壁役。"},
   shooter:{name:"シューター",color:"#3fc7f4",desc:"高台から遠距離攻撃を行う火力役。"},
   healer:{name:"ヒーラー",color:"#4ade80",desc:"味方の回復に特化した支援役。"},
