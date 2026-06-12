@@ -873,6 +873,7 @@
         <li><span class="at">■ ウォリアー</span>：通路に置く。<b>2体</b>ブロックしつつ高い火力で殴る前衛。<b>射程が短く、壁役の後ろに置いても前方の敵を攻撃</b>できる。</li>
         <li><span class="sh">■ レンジャー</span>：高台に置く。ブロック不可。長射程・高火力の遠距離単体アタッカー。</li>
         <li><span class="he">■ メディック</span>：高台に置く。射程内で最も傷ついた<b>2体</b>を同時回復する。前衛の維持役。</li>
+        <li><span style="color:#6fe0b0">■ ドルイド</span>：高台に置く。<b>射程内の味方全員を毎秒じわじわ回復</b>する持続回復（リジェネ・オーラ）型。単発は小さいが広範囲で全体を維持。メディックと重ねると崩れにくい。</li>
         <li><span class="su">■ エンチャンター</span>：高台に置く。射程内の敵を<b>減速</b>させ、近くの味方の<b>攻撃速度を強化</b>するオーラ役。</li>
         <li><span class="tr">■ ボマー</span>：高台に置く。特殊。<b>範囲攻撃＋短時間スタン</b>で群れを足止め＆まとめて削る。</li>
         <li><span class="br">■ レイダー</span>：通路に置く。1体ブロックの前衛。<b>敵を倒すたびに追加でDPを生産</b>する経済役。仕留めやすい位置に置くのがコツ。</li>
@@ -1188,6 +1189,10 @@ const TYPES={
   healer:{name:"メディック",role:"HEAL",letter:"H",color:"#4ade80",place:"hill",cost:12,
     hp:430,heal:150,interval:1.1,block:0,range:3.4,kind:"heal",targets:"none",healMulti:2,
     skill:{name:"治療領域",spMax:12,dur:5,heal:1.4,spd:1.5,healN:4,ultGauge:28,ultName:"守護の聖域",ultShieldPct:0.2}},
+  druid:{name:"ドルイド",role:"DRUID",letter:"癒",color:"#6fe0b0",place:"hill",cost:13,
+    hp:380,heal:40,interval:1.1,block:0,range:3.9,kind:"heal",targets:"none",regenAura:true,
+    skill:{name:"生命の祝福",spMax:11,dur:6,heal:2.2,spd:1.3,aoe:true,
+           ultGauge:26,ultName:"世界樹の恵み",ultShieldPct:0.15}},
   support:{name:"エンチャンター",role:"SUPPORT",letter:"B",color:"#ff6ba9",place:"hill",cost:13,
     hp:400,atk:24,interval:1.2,block:0,range:3.2,kind:"enchanter",targets:"both",
     encSlow:0.6,encSlowDur:2.0,encVuln:1.25,encVulnDur:3.0,encSpd:1.3,encAtk:1.2,encBuffDur:2.5,
@@ -1316,11 +1321,11 @@ const TYPES={
     hp:480,block:0,range:3.3,kind:"support",slow:1,spdBuff:1.2,atkAura:1.3,targets:"both",
     skill:{name:"進軍号令",spMax:13,dur:5,slow:0.7,spd:1.6,atk:1.8}}
 };
-const ORDER=["tank","attacker","shooter","healer","support","trickster","breaker","guardian","lancer","berserker","sniper","mage","artillery","archer","flak","dragonrider","sentinel","paladin","duelist","revenger","marksman","gunner","poisoner","chaincaster","freezer","shaman","summoner","commander","bard","alchemist","prospector","netcaster","harvester","warlord","archmage","valkyrie","highpriest","archon"];
+const ORDER=["tank","attacker","shooter","healer","support","trickster","breaker","guardian","lancer","berserker","sniper","mage","artillery","archer","flak","dragonrider","sentinel","paladin","duelist","revenger","marksman","gunner","poisoner","chaincaster","freezer","shaman","druid","summoner","commander","bard","alchemist","prospector","netcaster","harvester","warlord","archmage","valkyrie","highpriest","archon"];
 // キャラアイコン画像（icons/<type>.png）。全キャラにアイコンを割り当て（読み込み失敗時はonerrorで文字にフォールバック）
 for(const t in TYPES){ TYPES[t].img="icons/"+t+".png?v=5"; }
 // 調整（レビュー）済みキャラ。未調整キャラは編成・出撃で使用不可（順次解放していく）
-const TUNED_LIST=["tank","attacker","shooter","healer","support","trickster","breaker","harvester","guardian","lancer","berserker","sniper","mage","artillery","archer","flak","dragonrider","sentinel","paladin","duelist","gunner","revenger","marksman","poisoner","chaincaster","freezer","shaman","summoner"];
+const TUNED_LIST=["tank","attacker","shooter","healer","support","trickster","breaker","harvester","guardian","lancer","berserker","sniper","mage","artillery","archer","flak","dragonrider","sentinel","paladin","duelist","gunner","revenger","marksman","poisoner","chaincaster","freezer","shaman","druid","summoner"];
 TUNED_LIST.forEach(t=>{ if(TYPES[t]) TYPES[t].tuned=true; });
 function isTuned(t){ return !!(TYPES[t]&&TYPES[t].tuned); }
 // アイコン用HTML（DOMカード共通）：画像があれば<img>、無ければ文字
@@ -2039,7 +2044,7 @@ const STARTER=ORDER.slice(0,10);
 // アンロック価格（コスト/性能で段階）。未指定は既定値を後で補完
 const UNLOCK_COST={
   // 中堅：200〜300
-  healer:200, support:200, trickster:250, breaker:250, guardian:300, lancer:250, berserker:300,
+  healer:200, support:200, druid:250, trickster:250, breaker:250, guardian:300, lancer:250, berserker:300,
   // 上位：300〜450
   mage:350, artillery:400, archer:300, flak:350, dragonrider:350, sentinel:400, paladin:420, duelist:350,
   revenger:400, marksman:400, poisoner:400, chaincaster:450, freezer:450, shaman:450,
@@ -3255,7 +3260,7 @@ function update(dt){
       const healAmt=u.heal*(active&&sk.heal?sk.heal:1)*(u.ultActive?ULT_POW:1);
       const R=unitRange(u);
       if(u.cd<=0){
-        if(active&&(sk.healN||sk.aoe)){ // 複数同時回復（healN=人数指定 / aoe=範囲内全員）
+        if(u.cfg.regenAura || (active&&(sk.healN||sk.aoe))){ // 範囲内全員を回復（リジェネ・オーラ常時／範囲回復スキル）
           u.cd=itv;
           let pool=G.units.filter(a=>a!==u && a.hp<a.maxHp && dist(u,a)<=R);
           if(sk.healN) pool=pool.sort((a,b)=>(a.hp/a.maxHp)-(b.hp/b.maxHp)).slice(0,sk.healN);
@@ -3264,10 +3269,10 @@ function update(dt){
             a.hp=Math.min(a.maxHp,a.hp+healAmt);
             addFx({type:"heal",x:a.x,y:a.y,life:0.5});
             floatNum(a.x,a.y-6,healAmt,"#4ade80","+");
-            addFx({type:"beam",x1:u.x,y1:u.y,x2:a.x,y2:a.y,col:"#4ade80",life:0.2});
+            if(!u.cfg.regenAura) addFx({type:"beam",x1:u.x,y1:u.y,x2:a.x,y2:a.y,col:"#4ade80",life:0.2}); // オーラはビーム無し
             healed=true;
           }
-          if(healed)Sound.play("heal");
+          if(healed && !u.cfg.regenAura)Sound.play("heal"); // 常時オーラは無音（連続音を避ける）
         } else {
           // 通常回復：最も傷ついた healMulti 体を同時回復（既定1体）
           const n=u.cfg.healMulti||1;
@@ -3797,6 +3802,14 @@ function drawGate(x,y,col,label){
 }
 function drawUnit(u){
   const x=u.x,y=u.y,s=TILE*0.74,col=u.cfg.color;
+  // リジェネ・オーラ（ドルイド等）：薄い緑の円で回復範囲を常時表示
+  if(u.cfg.regenAura){
+    const R=unitRange(u), pulse=0.5+0.5*Math.sin(G.t*3);
+    ctx.fillStyle=hexA("#6fe0b0",0.05+0.035*pulse);
+    ctx.beginPath();ctx.arc(x,y,R,0,7);ctx.fill();
+    ctx.strokeStyle=hexA("#6fe0b0",0.20+0.12*pulse);ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.arc(x,y,R,0,7);ctx.stroke();
+  }
   // 巨大魔法ビーム（メイジ必殺技）：帯状のビーム＋発射元の魔法陣
   if(u.magicBeam){ const mb=u.magicBeam, prog=1-mb.t/mb.dur, pulse=0.6+0.4*Math.sin(G.t*30);
     ctx.save();ctx.translate(x,y);ctx.rotate(mb.dir);
@@ -4559,6 +4572,7 @@ const ROLE_INFO={
   tank:{name:"タンク",color:"#5b8dd6",desc:"通路で敵を足止めするブロック特化。高HPで前線を支える壁役。"},
   shooter:{name:"シューター",color:"#3fc7f4",desc:"高台から遠距離攻撃を行う火力役。"},
   healer:{name:"ヒーラー",color:"#4ade80",desc:"味方の回復に特化した支援役。"},
+  druid:{name:"ドルイド",color:"#6fe0b0",desc:"高台に置く。射程内の味方全員を毎秒じわじわ回復する持続回復（リジェネ・オーラ）型のヒーラー。単発の回復量は小さいが、範囲が広く全体を維持できる。メディックのバースト回復と重ねると盤面が落ちにくくなる。継続ダメージや広く浅い被弾に強い。"},
   supporter:{name:"サポーター",color:"#ff6ba9",desc:"多少の攻撃もこなすが、基本はバフ・デバフ・妨害で支える支援役。"},
   breaker:{name:"ブレイカー",color:"#ffd24a",desc:"DP（コスト）の生産・獲得に秀でた経済役。"},
   trickster:{name:"トリックスター",color:"#c08bff",desc:"召喚・連鎖・凍結など、奇抜な戦い方をする特殊役。"}
